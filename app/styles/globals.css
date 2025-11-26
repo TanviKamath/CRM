@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme Variables */
+@import "./styles/variables.css";
+
+/* If you use Bootstrap */
+@import "bootstrap/dist/css/bootstrap.min.css";
