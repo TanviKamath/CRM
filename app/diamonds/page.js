@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import RecordPaymentModal from "./RecordPaymentModal";
 
 // Availability badge component
 function AvailabilityBadge({ status }) {
@@ -13,9 +14,9 @@ function AvailabilityBadge({ status }) {
     memo: { class: "bg-warning text-dark", text: "Out on Memo" },
     subject_to_sale: { class: "bg-info", text: "Subject to Prior Sale" },
   };
-  
+
   const badge = badges[status] || { class: "bg-secondary", text: status || "Unknown" };
-  
+
   return <span className={`badge ${badge.class}`}>{badge.text}</span>;
 }
 
@@ -36,23 +37,27 @@ const formatNumber = (value, decimals = 2) => {
 export default function DiamondsIndexPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [diamonds, setDiamonds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedDiamondId, setSelectedDiamondId] = useState(null);
+
   // Fetch diamonds
   const fetchDiamonds = async () => {
     setLoading(true);
-    
+
     try {
       const availability = searchParams.get("availability") || "";
       const res = await fetch(`/api/diamonds?availability=${availability}`);
-      
+
       if (!res.ok) throw new Error("Failed to fetch diamonds");
-      
+
       const data = await res.json();
-      
+
       // Handle both array and paginated response
       if (Array.isArray(data)) {
         setDiamonds(data);
@@ -69,7 +74,7 @@ export default function DiamondsIndexPage() {
 
   useEffect(() => {
     fetchDiamonds();
-    
+
     // Check for success message in URL
     const success = searchParams.get("success");
     if (success) {
@@ -85,9 +90,9 @@ export default function DiamondsIndexPage() {
 
     try {
       const res = await fetch(`/api/diamonds/${id}`, { method: "DELETE" });
-      
+
       if (!res.ok) throw new Error("Failed to delete diamond");
-      
+
       setSuccessMessage("Diamond deleted successfully!");
       fetchDiamonds();
     } catch (err) {
@@ -97,6 +102,17 @@ export default function DiamondsIndexPage() {
 
   // Dismiss success message
   const dismissSuccess = () => setSuccessMessage("");
+
+  const openPaymentModal = (id) => {
+    setSelectedDiamondId(id);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setSuccessMessage("Payment recorded successfully!");
+    // Optional: Refresh list if needed, though payment info isn't shown in list directly
+    // fetchDiamonds(); 
+  };
 
   return (
     <div className="container py-4">
@@ -116,9 +132,9 @@ export default function DiamondsIndexPage() {
       {successMessage && (
         <div className="alert alert-success alert-dismissible fade show" role="alert">
           {successMessage}
-          <button 
-            type="button" 
-            className="btn-close" 
+          <button
+            type="button"
+            className="btn-close"
             onClick={dismissSuccess}
             aria-label="Close"
           ></button>
@@ -171,25 +187,34 @@ export default function DiamondsIndexPage() {
                   </td>
                   <td>
                     <div className="btn-group" role="group">
-                      <Link 
-                        href={`/diamonds/show/${diamond.id}`} 
+                      <Link
+                        href={`/diamonds/show/${diamond.id}`}
                         className="btn btn-sm btn-info text-white"
                       >
                         View
                       </Link>
-                      <Link 
-                        href={`/diamonds/edit/${diamond.id}`} 
+                      <Link
+                        href={`/diamonds/edit/${diamond.id}`}
                         className="btn btn-sm btn-warning text-white"
                       >
                         Edit
                       </Link>
                       {diamond.availability === "available" && (
-                        <Link 
-                          href={`/sales/create?diamond_id=${diamond.id}`} 
+                        <Link
+                          href={`/sales/create?diamond_id=${diamond.id}`}
                           className="btn btn-sm btn-success text-white"
                         >
                           Record Sale
                         </Link>
+                      )}
+                      {diamond.payment_status === "On Terms" && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-dark text-white"
+                          onClick={() => openPaymentModal(diamond.id)}
+                        >
+                          Record Payment
+                        </button>
                       )}
                       <button
                         type="button"
@@ -206,6 +231,13 @@ export default function DiamondsIndexPage() {
           </tbody>
         </table>
       </div>
+
+      <RecordPaymentModal
+        show={showPaymentModal}
+        diamondId={selectedDiamondId}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 }

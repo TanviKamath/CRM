@@ -111,6 +111,12 @@ const diamondSchema = z.object({
   report_type: z.string().optional().nullable(),
   sorting: z.string().optional().nullable(),
   basket_status: z.string().optional().nullable(),
+
+  // Payment Information
+  payment_status: z.string().optional().nullable(),
+  buying_date: z.string().optional().nullable(),
+  terms_days: z.preprocess((v) => toNumberOrNull(v), z.number().nullable().optional()),
+  payment_amount_done: z.preprocess((v) => toNumberOrZero(v), z.number().optional()),
 });
 
 export async function GET(req) {
@@ -135,7 +141,7 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
-    
+
     // Debug log
     console.log("=== API RECEIVED ===");
     console.log("rap_rate:", body.rap_rate);
@@ -144,7 +150,7 @@ export async function POST(req) {
 
     // Parse and validate
     const parsed = diamondSchema.parse(body);
-    
+
     // Debug log after parsing
     console.log("=== AFTER PARSING ===");
     console.log("rap_rate:", parsed.rap_rate);
@@ -243,6 +249,11 @@ export async function POST(req) {
       report_type: parsed.report_type || null,
       sorting: parsed.sorting || null,
       basket_status: parsed.basket_status || null,
+
+      // Payment Information
+      payment_status: parsed.payment_status || null,
+      buying_date: parsed.buying_date || null,
+      terms_days: parsed.terms_days || 0,
     };
 
     console.log("=== INSERT DATA ===");
@@ -250,6 +261,15 @@ export async function POST(req) {
     console.log("rap_discount:", insertData.rap_discount);
 
     const [id] = await knex("diamonds").insert(insertData);
+
+    // Handle Payment Outstanding if "On Terms"
+    if (parsed.payment_status === "On Terms") {
+      await knex("payment_outstanding").insert({
+        diamond_id: id,
+        payment_amount_done: parsed.payment_amount_done || 0
+      });
+    }
+
     const created = await knex("diamonds").where({ id }).first();
 
     return new Response(JSON.stringify(created), {
