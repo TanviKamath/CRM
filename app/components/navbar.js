@@ -50,9 +50,9 @@ export default function Navbar() {
 
   return (
     <>
-      <nav 
+      <nav
         className="navbar navbar-expand-lg sticky-top py-3"
-        style={{ 
+        style={{
           backgroundColor: "#0f1117",
           borderBottom: "1px solid rgba(255,255,255,0.1)"
         }}
@@ -60,11 +60,11 @@ export default function Navbar() {
         <div className="container">
           {/* Brand */}
           <Link href="/" className="navbar-brand d-flex align-items-center me-5">
-            <div 
+            <div
               className="d-flex align-items-center justify-content-center rounded-3 me-3"
-              style={{ 
-                width: "42px", 
-                height: "42px", 
+              style={{
+                width: "42px",
+                height: "42px",
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)"
               }}
@@ -119,9 +119,9 @@ export default function Navbar() {
                   <i className="bi bi-gem me-2" style={{ fontSize: "1rem" }}></i>
                   <span>Diamonds</span>
                 </a>
-                <ul 
+                <ul
                   className="dropdown-menu border-0 shadow-lg mt-2 py-2"
-                  style={{ 
+                  style={{
                     backgroundColor: "#1a1d24",
                     borderRadius: "12px",
                     minWidth: "220px"
@@ -139,14 +139,14 @@ export default function Navbar() {
                       Add New Diamond
                     </Link>
                   </li>
-                  
+
                   <li className="my-2"><hr className="dropdown-divider mx-3" style={{ borderColor: "rgba(255,255,255,0.1)" }} /></li>
-                  
-                  {/* <li className="px-3 py-1">
+
+                  <li className="px-3 py-1">
                     <small className="text-muted text-uppercase" style={{ fontSize: "0.65rem", letterSpacing: "1px" }}>
                       Filter by Status
                     </small>
-                  </li> */}
+                  </li>
                   <li>
                     <Link className="dropdown-item py-2 px-3" href="/diamonds?availability=available">
                       <i className="bi bi-circle-fill me-2 text-success" style={{ fontSize: "0.5rem" }}></i>
@@ -180,9 +180,9 @@ export default function Navbar() {
                   <i className="bi bi-graph-up-arrow me-2" style={{ fontSize: "1rem" }}></i>
                   <span>Sales</span>
                 </a>
-                <ul 
+                <ul
                   className="dropdown-menu border-0 shadow-lg mt-2 py-2"
-                  style={{ 
+                  style={{
                     backgroundColor: "#1a1d24",
                     borderRadius: "12px",
                     minWidth: "220px"
@@ -200,14 +200,14 @@ export default function Navbar() {
                       Record New Sale
                     </Link>
                   </li>
-                  
+
                   <li className="my-2"><hr className="dropdown-divider mx-3" style={{ borderColor: "rgba(255,255,255,0.1)" }} /></li>
-                  
-                  {/* <li className="px-3 py-1">
+
+                  <li className="px-3 py-1">
                     <small className="text-muted text-uppercase" style={{ fontSize: "0.65rem", letterSpacing: "1px" }}>
                       Filter by Status
                     </small>
-                  </li> */}
+                  </li>
                   <li>
                     <Link className="dropdown-item py-2 px-3" href="/sales?status=pending">
                       <i className="bi bi-circle-fill me-2 text-warning" style={{ fontSize: "0.5rem" }}></i>
@@ -241,9 +241,9 @@ export default function Navbar() {
                   <i className="bi bi-people-fill me-2" style={{ fontSize: "1rem" }}></i>
                   <span>Clients</span>
                 </a>
-                <ul 
+                <ul
                   className="dropdown-menu border-0 shadow-lg mt-2 py-2"
-                  style={{ 
+                  style={{
                     backgroundColor: "#1a1d24",
                     borderRadius: "12px",
                     minWidth: "200px"
@@ -276,9 +276,9 @@ export default function Navbar() {
                   <i className="bi bi-person-badge-fill me-2" style={{ fontSize: "1rem" }}></i>
                   <span>Brokers</span>
                 </a>
-                <ul 
+                <ul
                   className="dropdown-menu border-0 shadow-lg mt-2 py-2"
-                  style={{ 
+                  style={{
                     backgroundColor: "#1a1d24",
                     borderRadius: "12px",
                     minWidth: "200px"
@@ -298,6 +298,67 @@ export default function Navbar() {
                   </li>
                 </ul>
               </li>
+
+              {/* Expenses Dropdown - Add this to your Navbar */}
+              <li className="nav-item dropdown me-1">
+                <a
+                  className="nav-link px-3 py-2 dropdown-toggle d-flex align-items-center"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  style={getNavLinkStyle("/expenses", true)}
+                >
+                  <i className="bi bi-receipt me-2" style={{ fontSize: "1rem" }}></i>
+                  <span>Expenses</span>
+                </a>
+                <ul
+                  className="dropdown-menu border-0 shadow-lg mt-2 py-2"
+                  style={{
+                    backgroundColor: "#1a1d24",
+                    borderRadius: "12px",
+                    minWidth: "220px"
+                  }}
+                >
+                  <li>
+                    <Link className="dropdown-item py-2 px-3" href="/expenses">
+                      <i className="bi bi-list-ul me-2 text-primary"></i>
+                      All Expenses
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item py-2 px-3" href="/expenses/create">
+                      <i className="bi bi-plus-lg me-2 text-success"></i>
+                      Add New Expense
+                    </Link>
+                  </li>
+
+                  <li className="my-2"><hr className="dropdown-divider mx-3" style={{ borderColor: "rgba(255,255,255,0.1)" }} /></li>
+
+                  <li className="px-3 py-1">
+                    <small className="text-muted text-uppercase" style={{ fontSize: "0.65rem", letterSpacing: "1px" }}>
+                      Filter by Category
+                    </small>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item py-2 px-3" href="/expenses?category=salaries">
+                      <i className="bi bi-circle-fill me-2 text-primary" style={{ fontSize: "0.5rem" }}></i>
+                      Salaries
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item py-2 px-3" href="/expenses?category=rent">
+                      <i className="bi bi-circle-fill me-2 text-danger" style={{ fontSize: "0.5rem" }}></i>
+                      Rent
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item py-2 px-3" href="/expenses?category=utilities">
+                      <i className="bi bi-circle-fill me-2 text-warning" style={{ fontSize: "0.5rem" }}></i>
+                      Utilities
+                    </Link>
+                  </li>
+                </ul>
+              </li>
             </ul>
 
             {/* Right Side - User */}
@@ -313,25 +374,25 @@ export default function Navbar() {
                     className="btn d-flex align-items-center p-2 rounded-3"
                     type="button"
                     data-bs-toggle="dropdown"
-                    style={{ 
+                    style={{
                       backgroundColor: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.1)"
                     }}
                   >
                     {/* Avatar */}
-                    <div 
+                    <div
                       className="rounded-circle d-flex align-items-center justify-content-center"
-                      style={{ 
-                        width: "36px", 
-                        height: "36px", 
-                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" 
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
                       }}
                     >
                       <span className="text-white fw-bold" style={{ fontSize: "0.9rem" }}>
                         {user.name?.charAt(0).toUpperCase() || "U"}
                       </span>
                     </div>
-                    
+
                     {/* Name */}
                     <div className="d-none d-md-block text-start mx-3">
                       <div className="text-white fw-medium" style={{ fontSize: "0.9rem", lineHeight: "1.2" }}>
@@ -341,15 +402,15 @@ export default function Navbar() {
                         {user.role || "User"}
                       </div>
                     </div>
-                    
+
                     {/* Chevron */}
                     <i className="bi bi-chevron-down text-muted" style={{ fontSize: "0.75rem" }}></i>
                   </button>
-                  
+
                   {/* Dropdown Menu */}
-                  <ul 
+                  <ul
                     className="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 py-2"
-                    style={{ 
+                    style={{
                       backgroundColor: "#1a1d24",
                       borderRadius: "12px",
                       minWidth: "200px"
@@ -358,12 +419,12 @@ export default function Navbar() {
                     {/* User Info Header */}
                     <li className="px-3 py-2 mb-2">
                       <div className="d-flex align-items-center">
-                        <div 
+                        <div
                           className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                          style={{ 
-                            width: "45px", 
-                            height: "45px", 
-                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" 
+                          style={{
+                            width: "45px",
+                            height: "45px",
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
                           }}
                         >
                           <span className="text-white fw-bold" style={{ fontSize: "1.1rem" }}>
@@ -376,12 +437,12 @@ export default function Navbar() {
                         </div>
                       </div>
                     </li>
-                    
+
                     <li><hr className="dropdown-divider mx-3" style={{ borderColor: "rgba(255,255,255,0.1)" }} /></li>
-                    
+
                     {/* Logout */}
                     <li>
-                      <button 
+                      <button
                         className="dropdown-item py-2 px-3 d-flex align-items-center text-danger"
                         onClick={handleLogout}
                       >
@@ -411,7 +472,7 @@ export default function Navbar() {
                   <Link
                     href="/auth/register"
                     className="btn px-4 py-2"
-                    style={{ 
+                    style={{
                       background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       border: "none",
                       color: "white",
