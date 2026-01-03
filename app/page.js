@@ -22,7 +22,7 @@ export default function HomePage() {
                 <div className="col-md-6 mb-3">
                   <div className="d-grid">
                     <Link href="/diamonds/create" className="btn btn-primary">
-                      <i className="fas fa-gem"></i> Add New Diamond
+                      <i className="fas fa-gem"></i> Add New Diamond / Purchase
                     </Link>
                   </div>
                 </div>
@@ -31,7 +31,7 @@ export default function HomePage() {
                 <div className="col-md-6 mb-3">
                   <div className="d-grid">
                     <Link href="/clients/create" className="btn btn-success">
-                      <i className="fas fa-user-plus"></i> Add New Client
+                      <i className="fas fa-user-plus"></i> Add New Client / KYC
                     </Link>
                   </div>
                 </div>
