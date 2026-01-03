@@ -1,5 +1,4 @@
 import knex from "../../../../lib/db";
-import { z } from "zod";
 
 export async function GET(req, { params }) {
     try {
@@ -12,7 +11,10 @@ export async function GET(req, { params }) {
             .first();
 
         if (!diamond) {
-            return new Response("Diamond not found", { status: 404 });
+            return Response.json({ 
+                error: true, 
+                message: "Diamond not found" 
+            }, { status: 404 });
         }
 
         // Fetch total paid so far
@@ -36,7 +38,10 @@ export async function GET(req, { params }) {
 
     } catch (e) {
         console.error("GET Payment Error:", e);
-        return new Response(e.message, { status: 500 });
+        return Response.json({ 
+            error: true, 
+            message: e.message || "Failed to fetch payment details" 
+        }, { status: 500 });
     }
 }
 
@@ -47,20 +52,25 @@ export async function POST(req, { params }) {
 
         const amount = Number(body.amount);
         if (isNaN(amount) || amount <= 0) {
-            return new Response("Invalid payment amount", { status: 400 });
+            return Response.json({ 
+                error: true, 
+                message: "Invalid payment amount" 
+            }, { status: 400 });
         }
 
         // Insert new payment record
         await knex("payment_outstanding").insert({
             diamond_id: id,
-            payment_amount_done: amount,
-            terms_days: 0 // Default for subsequent payments
+            payment_amount_done: amount
         });
 
         return Response.json({ success: true }, { status: 201 });
 
     } catch (e) {
         console.error("POST Payment Error:", e);
-        return new Response(e.message, { status: 500 });
+        return Response.json({ 
+            error: true, 
+            message: e.message || "Failed to record payment" 
+        }, { status: 500 });
     }
 }

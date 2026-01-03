@@ -32,31 +32,57 @@ export default function RecordPaymentModal({ diamondId, show, onClose, onSuccess
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!amount || parseFloat(amount) <= 0) {
+
+        const paymentAmount = parseFloat(amount);
+
+        if (!paymentAmount || paymentAmount <= 0) {
             setError("Please enter a valid amount");
             return;
         }
 
+        const currentOutstanding = parseFloat(data?.outstanding) || 0;
+        if (paymentAmount > currentOutstanding) {
+            setError("Payment cannot exceed outstanding amount");
+            return;
+        }
+
         setLoading(true);
+        setError("");
+
         try {
             const res = await fetch(`/api/diamonds/${diamondId}/payment`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ amount }),
+                body: JSON.stringify({
+                    diamond_id: diamondId,
+                    amount: paymentAmount,
+                }),
             });
 
-            if (!res.ok) throw new Error("Failed to record payment");
+            if (!res.ok) {
+                let errorMessage = "Failed to record payment";
+                try {
+                    const err = await res.json();
+                    errorMessage = err?.message || errorMessage;
+                } catch (parseError) {
+                    // If response is not JSON, try to get text
+                    const text = await res.text();
+                    errorMessage = text || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
 
             onSuccess();
             onClose();
             setAmount("");
             setData(null);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "An error occurred while recording payment");
         } finally {
             setLoading(false);
         }
     };
+
 
     const calculateExpiry = (buyingDate, termsDays) => {
         if (!buyingDate || termsDays === null || termsDays === undefined) return "N/A";
