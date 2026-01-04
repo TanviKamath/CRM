@@ -1,12 +1,13 @@
 // app/expenses/ExpenseForm.jsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 // Expense categories
 const EXPENSE_CATEGORIES = {
+  brokerage: "Brokerage",
   salaries: "Salaries & Wages",
   rent: "Rent & Lease",
   utilities: "Utilities (Electric, Water, Internet)",
@@ -57,6 +58,60 @@ export default function ExpenseForm({
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Broker autocomplete states
+  const [brokerName, setBrokerName] = useState(initial.category === "brokerage" ? initial.description : "");
+  const [brokerSuggestions, setBrokerSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingBrokers, setLoadingBrokers] = useState(false);
+  const brokerInputRef = useRef(null);
+  const suggestionsRef = useRef(null);
+
+  // Check if brokerage category is selected
+  const isBrokerage = form.category === "brokerage";
+
+  // Fetch broker suggestions based on input
+  useEffect(() => {
+    const fetchBrokers = async () => {
+      if (!brokerName || brokerName.length < 1) {
+        setBrokerSuggestions([]);
+        return;
+      }
+
+      setLoadingBrokers(true);
+      try {
+        const res = await fetch(`/api/brokers/search?q=${encodeURIComponent(brokerName)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBrokerSuggestions(data);
+        }
+      } catch (err) {
+        console.error("Error fetching brokers:", err);
+      } finally {
+        setLoadingBrokers(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchBrokers, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [brokerName]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target) &&
+        brokerInputRef.current &&
+        !brokerInputRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,7 +125,56 @@ export default function ExpenseForm({
       });
     }
 
-    setForm({ ...form, [name]: value });
+    // If category changes, reset broker name if switching away from brokerage
+    if (name === "category") {
+      if (value === "brokerage") {
+        // Switching to brokerage - clear description and paid_to
+        setForm({ ...form, [name]: value, description: "", paid_to: "" });
+        setBrokerName("");
+      } else {
+        // Switching away from brokerage
+        setForm({ ...form, [name]: value });
+        setBrokerName("");
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  // Handle broker name input change
+  const handleBrokerNameChange = (e) => {
+    const value = e.target.value;
+    setBrokerName(value);
+    setShowSuggestions(true);
+
+    // Clear validation error
+    if (validationErrors.description) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.description;
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle broker selection from suggestions
+  const handleSelectBroker = (broker) => {
+    setBrokerName(broker.name);
+    setShowSuggestions(false);
+  };
+
+  // Handle keyboard navigation in suggestions
+  const handleBrokerKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (brokerSuggestions.length > 0 && showSuggestions) {
+        // Select first suggestion
+        handleSelectBroker(brokerSuggestions[0]);
+      }
+      setShowSuggestions(false);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
   };
 
   // Validate form
@@ -85,8 +189,15 @@ export default function ExpenseForm({
       errors.category = "Category is required";
     }
 
-    if (!form.description.trim()) {
-      errors.description = "Description is required";
+    // For brokerage, validate broker name; otherwise validate description
+    if (isBrokerage) {
+      if (!brokerName.trim()) {
+        errors.description = "Broker name is required";
+      }
+    } else {
+      if (!form.description.trim()) {
+        errors.description = "Description is required";
+      }
     }
 
     if (!form.amount || parseFloat(form.amount) <= 0) {
@@ -113,11 +224,13 @@ export default function ExpenseForm({
       const dataToSend = {
         expense_date: form.expense_date,
         category: form.category,
-        description: form.description.trim(),
+        // For brokerage, use broker name as description
+        description: isBrokerage ? brokerName.trim() : form.description.trim(),
         amount: parseFloat(form.amount),
         payment_method: form.payment_method || null,
         reference_number: form.reference_number.trim() || null,
-        paid_to: form.paid_to.trim() || null,
+        // For brokerage, paid_to is null
+        paid_to: isBrokerage ? null : (form.paid_to.trim() || null),
         notes: form.notes.trim() || null,
       };
 
@@ -226,27 +339,99 @@ export default function ExpenseForm({
             </div>
           </div>
 
-          {/* Row 2: Description & Amount */}
+          {/* Row 2: Description/Broker Name & Amount */}
           <div className="row">
-            <div className="col-md-8 mb-3">
-              <label htmlFor="description" className="form-label fw-medium">
-                <i className="bi bi-card-text me-2 text-primary"></i>
-                Description <span className="text-danger">*</span>
-              </label>
-              <input
-                type="text"
-                id="description"
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                className={`form-control ${getErrorClass("description")}`}
-                placeholder="e.g., Monthly office rent, Staff lunch, etc."
-                required
-              />
-              {hasError("description") && (
-                <div className="invalid-feedback">{validationErrors.description}</div>
-              )}
-            </div>
+            {isBrokerage ? (
+              /* Broker Name Autocomplete Field */
+              <div className="col-md-8 mb-3">
+                <label htmlFor="broker_name" className="form-label fw-medium">
+                  <i className="bi bi-person-badge me-2 text-primary"></i>
+                  Broker Name <span className="text-danger">*</span>
+                </label>
+                <div className="position-relative">
+                  <input
+                    type="text"
+                    id="broker_name"
+                    ref={brokerInputRef}
+                    value={brokerName}
+                    onChange={handleBrokerNameChange}
+                    onFocus={() => setShowSuggestions(true)}
+                    onKeyDown={handleBrokerKeyDown}
+                    className={`form-control ${getErrorClass("description")}`}
+                    placeholder="Start typing broker name..."
+                    autoComplete="off"
+                  />
+                  {loadingBrokers && (
+                    <div className="position-absolute" style={{ right: "10px", top: "50%", transform: "translateY(-50%)" }}>
+                      <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
+                    </div>
+                  )}
+
+                  {/* Suggestions Dropdown */}
+                  {showSuggestions && brokerSuggestions.length > 0 && (
+                    <div
+                      ref={suggestionsRef}
+                      className="position-absolute w-100 bg-white border rounded shadow-sm"
+                      style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto", top: "100%" }}
+                    >
+                      {brokerSuggestions.map((broker) => (
+                        <div
+                          key={broker.id}
+                          className="px-3 py-2 cursor-pointer hover-bg-light"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleSelectBroker(broker)}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = "#f8f9fa"}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = "white"}
+                        >
+                          <div className="fw-medium">{broker.name}</div>
+                          {broker.phone && (
+                            <small className="text-muted">{broker.phone}</small>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* No results message */}
+                  {showSuggestions && brokerName.length >= 1 && !loadingBrokers && brokerSuggestions.length === 0 && (
+                    <div
+                      ref={suggestionsRef}
+                      className="position-absolute w-100 bg-white border rounded shadow-sm px-3 py-2"
+                      style={{ zIndex: 1000, top: "100%" }}
+                    >
+                      <span className="text-muted">No brokers found. Name will be saved as entered.</span>
+                    </div>
+                  )}
+                </div>
+                {hasError("description") && (
+                  <div className="invalid-feedback d-block">{validationErrors.description}</div>
+                )}
+                <small className="text-muted">
+                  Type to search existing brokers or enter a new name
+                </small>
+              </div>
+            ) : (
+              /* Regular Description Field */
+              <div className="col-md-8 mb-3">
+                <label htmlFor="description" className="form-label fw-medium">
+                  <i className="bi bi-card-text me-2 text-primary"></i>
+                  Description <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="description"
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  className={`form-control ${getErrorClass("description")}`}
+                  placeholder="e.g., Monthly office rent, Staff lunch, etc."
+                  required={!isBrokerage}
+                />
+                {hasError("description") && (
+                  <div className="invalid-feedback">{validationErrors.description}</div>
+                )}
+              </div>
+            )}
 
             <div className="col-md-4 mb-3">
               <label htmlFor="amount" className="form-label fw-medium">
@@ -313,21 +498,24 @@ export default function ExpenseForm({
               />
             </div>
 
-            <div className="col-md-4 mb-3">
-              <label htmlFor="paid_to" className="form-label fw-medium">
-                <i className="bi bi-person me-2 text-primary"></i>
-                Paid To
-              </label>
-              <input
-                type="text"
-                id="paid_to"
-                name="paid_to"
-                value={form.paid_to}
-                onChange={handleChange}
-                className="form-control"
-                placeholder="e.g., Vendor name, Employee name"
-              />
-            </div>
+            {/* Only show Paid To field if NOT brokerage */}
+            {!isBrokerage && (
+              <div className="col-md-4 mb-3">
+                <label htmlFor="paid_to" className="form-label fw-medium">
+                  <i className="bi bi-person me-2 text-primary"></i>
+                  Paid To
+                </label>
+                <input
+                  type="text"
+                  id="paid_to"
+                  name="paid_to"
+                  value={form.paid_to}
+                  onChange={handleChange}
+                  className="form-control"
+                  placeholder="e.g., Vendor name, Employee name"
+                />
+              </div>
+            )}
           </div>
 
           {/* Row 4: Notes */}
