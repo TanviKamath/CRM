@@ -248,7 +248,7 @@ export default function BrokersIndex() {
                 <thead style={{ backgroundColor: "#ffffff" }}>
                   <tr>
                     <th className="px-4 py-3 text-muted" style={{ fontSize: "0.85rem" }}>Broker</th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>Company</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>Address</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>Contact</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.85rem" }}>Commission</th>
                     <th className="py-3 text-muted text-center" style={{ width: 200, fontSize: "0.85rem" }}>Actions</th>
@@ -294,27 +294,14 @@ export default function BrokersIndex() {
                                   {broker.name || "-"}
                                 </Link>
                               </div>
-                              <div className="text-muted small">
-                                <span className="me-3">
-                                  <i className="bi bi-hash me-1" />
-                                  {broker.id}
-                                </span>
-                                {broker.tax_number ? (
-                                  <span>
-                                    <i className="bi bi-receipt me-1" />
-                                    {broker.tax_number}
-                                  </span>
-                                ) : null}
-                              </div>
                             </div>
                           </div>
                         </td>
 
                         <td className="py-3">
-                          <div className="fw-medium">{broker.company_name || "-"}</div>
                           <div className="text-muted small">
                             <i className="bi bi-geo-alt me-1" />
-                            {broker.address ? String(broker.address).slice(0, 40) + (String(broker.address).length > 40 ? "…" : "") : "-"}
+                            {broker.address ? String(broker.address).slice(0, 50) + (String(broker.address).length > 50 ? "…" : "") : "-"}
                           </div>
                         </td>
 
