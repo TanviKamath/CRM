@@ -60,6 +60,7 @@ const toNumOrNull = (v) => {
 
 const fixed2 = (n) => (Number.isFinite(n) ? n.toFixed(2) : "0.00");
 
+/* ------------------------------ Section Component ------------------------------ */
 function Section({ title, icon, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
 
@@ -87,7 +88,6 @@ function Section({ title, icon, defaultOpen = false, children }) {
           <i className={`bi ${open ? "bi-chevron-up" : "bi-chevron-down"} text-muted`} />
         </div>
       </button>
-
       {open && <div className="card-body p-4">{children}</div>}
     </div>
   );
@@ -101,7 +101,7 @@ function Label({ children, required }) {
   );
 }
 
-/* ------------------------------ Component ------------------------------ */
+/* ------------------------------ Main Component ------------------------------ */
 export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
   const router = useRouter();
 
@@ -148,15 +148,20 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     // Price inputs
     rap_rate: initial.rap_rate ?? "",
     rap_discount: initial.rap_discount ?? "",
+    price_per_carat_usd: initial.price_per_carat_usd ?? "",
+    amount_usd: initial.amount_usd ?? "",
     conversion_rate: initial.conversion_rate ?? "",
+    amount_inr: initial.amount_inr ?? "",
     purchase_from: initial.purchase_from || "",
     pur_rap_discount: initial.pur_rap_discount ?? "",
+    purchase_price: initial.purchase_price ?? "",
     purchase_conversion_rate: initial.purchase_conversion_rate ?? "",
+    purchase_price_inr: initial.purchase_price_inr ?? "",
     availability: initial.availability || "available",
 
     // Payment Information
     payment_status: initial.payment_status || "",
-    buying_date: initial.buying_date ? initial.buying_date.split('T')[0] : "",
+    buying_date: initial.buying_date ? initial.buying_date.split("T")[0] : "",
     terms_days: initial.terms_days || "",
     payment_amount_done: initial.payment_amount_done || "",
 
@@ -202,20 +207,17 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Always-correct calculator (single source of truth)
+  // Price calculator
   const calculatePrices = useCallback((f) => {
     const rapRate = toNum(f.rap_rate);
     const rapDiscount = toNum(f.rap_discount);
     const weight = toNum(f.weight);
-
     const conversionRate = toNum(f.conversion_rate);
-
     const purRapDiscount = toNum(f.pur_rap_discount);
     const purchaseConversionRate = toNum(f.purchase_conversion_rate);
 
     const pricePerCarat = rapRate * (1 - rapDiscount / 100);
     const amountUsd = weight * pricePerCarat;
-
     const amountInr = conversionRate > 0 ? amountUsd * conversionRate : "";
 
     const purchasePrice = weight * rapRate * (1 - purRapDiscount / 100);
@@ -230,15 +232,16 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     };
   }, []);
 
-  // Initial compute once
+  // Initial calculation on mount
   useEffect(() => {
     setForm((prev) => ({ ...prev, ...calculatePrices(prev) }));
   }, [calculatePrices]);
 
-  // Change handler that ALWAYS recomputes (fixes your “not calculating” issue)
+  // Change handler with auto-recalculation
   const change = (e) => {
     const { name, value } = e.target;
 
+    // Clear validation error for this field
     setValidationErrors((prev) => {
       if (!prev[name]) return prev;
       const next = { ...prev };
@@ -246,6 +249,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
       return next;
     });
 
+    // Update form and recalculate prices
     setForm((prev) => {
       const updated = { ...prev, [name]: value };
       const calc = calculatePrices(updated);
@@ -253,43 +257,14 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     });
   };
 
+  // Helper functions for validation styling
   const hasError = (field) => Boolean(validationErrors[field]);
   const inputClass = (field) => `form-control ${hasError(field) ? "is-invalid" : ""}`;
   const selectClass = (field) => `form-select ${hasError(field) ? "is-invalid" : ""}`;
 
-    const updatedForm = { ...form, [name]: value };
-
-    // Clear validation error for this field
-    if (validationErrors[name]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-
-    // Recalculate prices if relevant fields change
-    const priceFields = ['rap_rate', 'rap_discount', 'weight', 'conversion_rate', 'pur_rap_discount', 'purchase_conversion_rate'];
-    if (priceFields.includes(name)) {
-      const calculatedValues = calculatePrices(updatedForm);
-      setForm({ ...updatedForm, ...calculatedValues });
-    } else {
-      setForm(updatedForm);
-    }
-  };
-
-  // Initial calculation on mount
-  useEffect(() => {
-    const calculatedValues = calculatePrices(form);
-    setForm(prev => ({ ...prev, ...calculatedValues }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Validate form before submit
   const validateForm = () => {
     const errors = {};
-
-    // Required string fields
 
     if (!form.shape) errors.shape = "Shape is required";
     if (!form.color) errors.color = "Color is required";
@@ -297,23 +272,17 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     if (!form.cut) errors.cut = "Cut is required";
 
     const w = toNum(form.weight);
-    if (!String(form.weight ?? "").trim() || w <= 0) errors.weight = "Weight is required and must be > 0";
-
-    if (String(form.rap_rate ?? "").trim() === "") errors.rap_rate = "Rap Rate is required";
-    if (String(form.rap_discount ?? "").trim() === "") errors.rap_discount = "Rap Discount is required";
-    if (String(form.pur_rap_discount ?? "").trim() === "") errors.pur_rap_discount = "Purchase Rap Discount is required";
-
-    // Required numeric fields
-    if (!form.weight || parseFloat(form.weight) <= 0) {
-      errors.weight = "Weight is required and must be greater than 0";
+    if (!String(form.weight ?? "").trim() || w <= 0) {
+      errors.weight = "Weight is required and must be > 0";
     }
-    if (form.rap_rate === "" || form.rap_rate === null || form.rap_rate === undefined) {
+
+    if (String(form.rap_rate ?? "").trim() === "") {
       errors.rap_rate = "Rap Rate is required";
     }
-    if (form.rap_discount === "" || form.rap_discount === null || form.rap_discount === undefined) {
+    if (String(form.rap_discount ?? "").trim() === "") {
       errors.rap_discount = "Rap Discount is required";
     }
-    if (form.pur_rap_discount === "" || form.pur_rap_discount === null || form.pur_rap_discount === undefined) {
+    if (String(form.pur_rap_discount ?? "").trim() === "") {
       errors.pur_rap_discount = "Purchase Rap Discount is required";
     }
 
@@ -321,6 +290,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     return Object.keys(errors).length === 0;
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -333,9 +303,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
     setSaving(true);
 
-    // Force-calc at submit time too (extra safety)
     const calc = calculatePrices(form);
-
     const method = initial.id ? "PUT" : "POST";
     const url = initial.id ? `/api/diamonds/${initial.id}` : `/api/diamonds`;
 
@@ -379,37 +347,25 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
       kimberley_process_number: form.kimberley_process_number || null,
       rough_invoice_number: form.rough_invoice_number || null,
 
-      // Price (computed)
+      // Price (computed values)
       rap_rate: toNum(form.rap_rate),
       rap_discount: toNum(form.rap_discount),
       price_per_carat_usd: toNum(calc.price_per_carat_usd),
       amount_usd: toNum(calc.amount_usd),
       conversion_rate: toNumOrNull(form.conversion_rate),
       amount_inr: calc.amount_inr === "" ? null : toNum(calc.amount_inr),
-
-      // Price - REQUIRED FIELDS (NOT NULL in DB)
-      rap_rate: parseFloat(form.rap_rate) || 0,
-      rap_discount: parseFloat(form.rap_discount) || 0,
-      price_per_carat_usd: parseFloat(form.price_per_carat_usd) || 0,
-      amount_usd: parseFloat(form.amount_usd) || 0,
-      pur_rap_discount: parseFloat(form.pur_rap_discount) || 0,
-
-      // Price - NULLABLE FIELDS
-      // conversion_rate: form.conversion_rate ? parseFloat(form.conversion_rate) : null,
-      // amount_inr: form.amount_inr ? parseFloat(form.amount_inr) : null,
       purchase_from: form.purchase_from || null,
       pur_rap_discount: toNum(form.pur_rap_discount),
       purchase_price: toNum(calc.purchase_price),
       purchase_conversion_rate: toNumOrNull(form.purchase_conversion_rate),
       purchase_price_inr: calc.purchase_price_inr === "" ? null : toNum(calc.purchase_price_inr),
-
       availability: form.availability || "available",
 
       // Payment Information
       payment_status: form.payment_status || null,
       buying_date: form.buying_date || null,
-      terms_days: form.payment_status === "On Terms" ? (parseInt(form.terms_days) || 0) : null,
-      payment_amount_done: form.payment_status === "On Terms" ? (parseFloat(form.payment_amount_done) || 0) : null,
+      terms_days: form.payment_status === "On Terms" ? parseInt(form.terms_days) || 0 : null,
+      payment_amount_done: form.payment_status === "On Terms" ? parseFloat(form.payment_amount_done) || 0 : null,
 
       // Dimensions
       measurement: form.measurement || null,
@@ -471,7 +427,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     }
   };
 
-  // Nice summary pills
+  // Summary for display
   const summary = useMemo(() => {
     return {
       ppc: form.price_per_carat_usd,
@@ -484,7 +440,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Top summary */}
+      {/* Top Summary */}
       <div
         className="p-3 mb-4"
         style={{
@@ -512,7 +468,6 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
               Purchase USD: <span className="fw-semibold ms-1">{summary.pUsd}</span>
             </span>
           </div>
-
           <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
             <i className="bi bi-check-circle me-2" />
             {GIA_STANDARDS.AVAILABILITY[form.availability] || form.availability}
@@ -523,7 +478,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       </div>
 
-      {/* Error */}
+      {/* Error Alert */}
       {error && (
         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
           <i className="bi bi-exclamation-triangle me-2 mt-1" />
@@ -541,37 +496,17 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       )}
 
-      {/* Sections */}
+      {/* Basic Information */}
       <Section title="Basic Information" icon="bi-gem" defaultOpen>
         <div className="row g-3">
           <div className="col-md-4">
             <Label>Stone Type</Label>
             <input name="stone_type" value={form.stone_type} onChange={change} className="form-control" />
-      {/* Basic Information Section */}
-      <CollapsibleSection title="Basic Information" id="basic-info" isOpen={true}>
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Stone Type</label>
-            <input
-              type="text"
-              name="stone_type"
-              value={form.stone_type}
-              onChange={change}
-              className="form-control"
-            />
           </div>
 
           <div className="col-md-4">
             <Label>Lab</Label>
             <select name="lab" value={form.lab} onChange={change} className="form-select">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Lab</label>
-            <select
-              name="lab"
-              value={form.lab}
-              onChange={change}
-              className="form-select"
-            >
               <option value="">Select Lab</option>
               {Object.entries(GIA_STANDARDS.LABS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -579,17 +514,6 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
             </select>
           </div>
 
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Certificate Number</label>
-            <input
-              type="text"
-              name="certificate_number"
-              value={form.certificate_number}
-              onChange={change}
-              className="form-control"
-            />
-          </div>
-        </div>
           <div className="col-md-4">
             <Label>Certificate Number</Label>
             <input name="certificate_number" value={form.certificate_number} onChange={change} className="form-control" />
@@ -597,7 +521,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label required>Shape</Label>
-            <selectname="shape"value={form.shape}onChange={change}className={selectClass("shape")}>
+            <select name="shape" value={form.shape} onChange={change} className={selectClass("shape")}>
               <option value="">Select Shape</option>
               {Object.entries(GIA_STANDARDS.SHAPES).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -606,16 +530,6 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
             {hasError("shape") && <div className="invalid-feedback d-block">{validationErrors.shape}</div>}
           </div>
 
-          <div className="col-md-3 mb-3">
-            <label className="form-label">Weight (Carats) <span className="text-danger">*</span></label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              name="weight"
-              value={form.weight}
-              onChange={change}
-              className={`form-control ${getErrorClass('weight')}`}
           <div className="col-md-3">
             <Label required>Weight (Carats)</Label>
             <input
@@ -633,7 +547,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label required>Color</Label>
-            <selectname="color"value={form.color}onChange={change}className={selectClass("color")}>
+            <select name="color" value={form.color} onChange={change} className={selectClass("color")}>
               <option value="">Select Color</option>
               {Object.entries(GIA_STANDARDS.COLORS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -644,7 +558,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label required>Clarity</Label>
-            <selectname="clarity"value={form.clarity}onChange={change}className={selectClass("clarity")}>
+            <select name="clarity" value={form.clarity} onChange={change} className={selectClass("clarity")}>
               <option value="">Select Clarity</option>
               {Object.entries(GIA_STANDARDS.CLARITY).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -655,7 +569,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label required>Cut</Label>
-            <selectname="cut"value={form.cut}onChange={change}className={selectClass("cut")}>
+            <select name="cut" value={form.cut} onChange={change} className={selectClass("cut")}>
               <option value="">Select Cut</option>
               {Object.entries(GIA_STANDARDS.CUT).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -666,7 +580,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label>Polish</Label>
-            <selectname="pol"value={form.pol}onChange={change}className="form-select">
+            <select name="pol" value={form.pol} onChange={change} className="form-select">
               <option value="">Select Polish</option>
               {Object.entries(GIA_STANDARDS.POLISH).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -676,7 +590,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label>Symmetry</Label>
-            <selectname="sym"value={form.sym}onChange={change}className="form-select">
+            <select name="sym" value={form.sym} onChange={change} className="form-select">
               <option value="">Select Symmetry</option>
               {Object.entries(GIA_STANDARDS.SYMMETRY).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -686,7 +600,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label>Fluorescence</Label>
-            <selectname="flor"value={form.flor}onChange={change}className="form-select">
+            <select name="flor" value={form.flor} onChange={change} className="form-select">
               <option value="">Select Fluorescence</option>
               {Object.entries(GIA_STANDARDS.FLUORESCENCE).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -696,7 +610,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label>Eye Clean</Label>
-            <selectname="eye_clean"value={form.eye_clean}onChange={change}className="form-select">
+            <select name="eye_clean" value={form.eye_clean} onChange={change} className="form-select">
               <option value="">Select Eye Clean</option>
               {Object.entries(GIA_STANDARDS.EYE_CLEAN).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
@@ -706,330 +620,169 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
           <div className="col-md-3">
             <Label>No BGM</Label>
-            <selectname="no_bgm"value={form.no_bgm}onChange={change}className="form-select">
+            <select name="no_bgm" value={form.no_bgm} onChange={change} className="form-select">
               <option value="">Select Option</option>
               <option value="yes">Yes</option>
               <option value="no">No</option>
             </select>
           </div>
         </div>
-      </CollapsibleSection>
+      </Section>
 
-      {/* Price Information - OPEN BY DEFAULT */}
-      <CollapsibleSection title="Price Information (Required)" id="price-info" isOpen={true}>
+      {/* Price Information */}
+      <Section title="Price Information" icon="bi-cash-stack" defaultOpen>
         <div className="alert alert-warning mb-3">
           <strong>Required:</strong> Please fill in Rap Rate, Rap Discount, and Purchase Rap Discount. These fields cannot be empty.
         </div>
-        <div className="alert alert-warning mb-3">
-          <strong>This is Listing Price</strong>
-        </div>
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Rap Rate <span className="text-danger">*</span></label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              name="rap_rate"
-              value={form.rap_rate}
-              onChange={change}
-              className={`form-control ${getErrorClass('rap_rate')}`}
-              placeholder="Enter Rap Rate (e.g., 5000)"
-            />
-            {hasError('rap_rate') && <div className="invalid-feedback">{validationErrors.rap_rate}</div>}
-      </Section>
 
-      <Section title="Price Information" icon="bi-cash-stack" defaultOpen>
-        {/* Key fix: these readOnly fields are bound to form.* which is always recalculated in change() */}
         <div className="row g-3">
           <div className="col-md-4">
             <Label required>Rap Rate</Label>
             <div className="input-group">
               <span className="input-group-text">$</span>
-              <input name="rap_rate" value={form.rap_rate} onChange={change} type="number" step="0.01" min="0" className={inputClass("rap_rate")} />
+              <input name="rap_rate" value={form.rap_rate} onChange={change} type="number" step="0.01" min="0" className={inputClass("rap_rate")} placeholder="e.g., 5000" />
             </div>
             {hasError("rap_rate") && <div className="invalid-feedback d-block">{validationErrors.rap_rate}</div>}
           </div>
 
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Rap Discount (%) <span className="text-danger">*</span></label>
-            <input
-              type="number"
-              step="0.01"
-              name="rap_discount"
-              value={form.rap_discount}
-              onChange={change}
-              className={`form-control ${getErrorClass('rap_discount')}`}
-              placeholder="Enter Discount % (e.g., 35)"
-            />
-            {hasError('rap_discount') && <div className="invalid-feedback">{validationErrors.rap_discount}</div>}
           <div className="col-md-4">
-            <Label required>Rap Discount</Label>
+            <Label required>Rap Discount (%)</Label>
             <div className="input-group">
-              <input name="rap_discount" value={form.rap_discount} onChange={change} type="number" step="0.01" className={inputClass("rap_discount")} />
+              <input name="rap_discount" value={form.rap_discount} onChange={change} type="number" step="0.01" className={inputClass("rap_discount")} placeholder="e.g., 35" />
               <span className="input-group-text">%</span>
             </div>
             {hasError("rap_discount") && <div className="invalid-feedback d-block">{validationErrors.rap_discount}</div>}
           </div>
 
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Price per Carat (USD)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="price_per_carat_usd"
-              value={form.price_per_carat_usd}
-              readOnly
-              className="form-control bg-light"
-            />
-            {/* <small className="text-muted">Auto-calculated: Rap × (1 - Discount%)</small> */}
-          </div>
-        </div>
           <div className="col-md-4">
-            <Label>Price per Carat</Label>
+            <Label>Price per Carat (USD)</Label>
             <div className="input-group">
               <span className="input-group-text">$</span>
               <input readOnly className="form-control bg-light" value={form.price_per_carat_usd} />
             </div>
-            {/* <div className="text-muted small mt-1">Auto-calculated</div> */}
           </div>
 
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Amount (USD)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="amount_usd"
-              value={form.amount_usd}
-              readOnly
-              className="form-control bg-light"
-            />
-            {/* <small className="text-muted">Auto-calculated: Weight × Price/Carat</small> */}
           <div className="col-md-4">
             <Label>Amount (USD)</Label>
             <div className="input-group">
               <span className="input-group-text">$</span>
               <input readOnly className="form-control bg-light" value={form.amount_usd} />
             </div>
-            {/* <div className="text-muted small mt-1">Auto-calculated (depends on Weight)</div> */}
           </div>
 
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Availability</label>
-            <select
-              name="availability"
-              value={form.availability}
-              onChange={change}
-              className="form-select"
-            >
+          <div className="col-md-4">
+            <Label>Conversion Rate (USD to INR)</Label>
+            <div className="input-group">
+              <span className="input-group-text"><i className="bi bi-arrow-left-right" /></span>
+              <input name="conversion_rate" value={form.conversion_rate} onChange={change} type="number" step="0.01" className="form-control" placeholder="e.g., 83.50" />
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <Label>Amount (INR)</Label>
+            <div className="input-group">
+              <span className="input-group-text">₹</span>
+              <input readOnly className="form-control bg-light" value={form.amount_inr} />
+            </div>
+          </div>
+        </div>
+
+        <hr className="my-4" />
+
+        <div className="row g-3">
+          <div className="col-md-4">
+            <Label>Purchase From</Label>
+            <input name="purchase_from" value={form.purchase_from} onChange={change} className="form-control" />
+          </div>
+
+          <div className="col-md-4">
+            <Label required>Purchase Rap Discount (%)</Label>
+            <div className="input-group">
+              <input name="pur_rap_discount" value={form.pur_rap_discount} onChange={change} type="number" step="0.01" className={inputClass("pur_rap_discount")} placeholder="e.g., 40" />
+              <span className="input-group-text">%</span>
+            </div>
+            {hasError("pur_rap_discount") && <div className="invalid-feedback d-block">{validationErrors.pur_rap_discount}</div>}
+          </div>
+
+          <div className="col-md-4">
+            <Label>Purchase Price (USD)</Label>
+            <div className="input-group">
+              <span className="input-group-text">$</span>
+              <input readOnly className="form-control bg-light" value={form.purchase_price} />
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <Label>Purchase Conversion Rate</Label>
+            <input name="purchase_conversion_rate" value={form.purchase_conversion_rate} onChange={change} type="number" step="0.01" className="form-control" placeholder="e.g., 83.50" />
+          </div>
+
+          <div className="col-md-4">
+            <Label>Purchase Price (INR)</Label>
+            <div className="input-group">
+              <span className="input-group-text">₹</span>
+              <input readOnly className="form-control bg-light" value={form.purchase_price_inr} />
+            </div>
+          </div>
+
+          <div className="col-md-4">
+            <Label>Availability</Label>
+            <select name="availability" value={form.availability} onChange={change} className="form-select">
               {Object.entries(GIA_STANDARDS.AVAILABILITY).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </div>
-          {/* <div className="col-md-4 mb-3">
-            <label className="form-label">Conversion Rate (USD to INR)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="conversion_rate"
-              value={form.conversion_rate}
-              onChange={change}
-              className="form-control"
-              placeholder="e.g., 83.50"
-            />
-          </div> */}
-          <div className="col-md-4">
-            <Label>Conversion Rate</Label>
-            <div className="input-group">
-              <span className="input-group-text">
-                <i className="bi bi-arrow-left-right" />
-              </span>
-              <input name="conversion_rate" value={form.conversion_rate} onChange={change} type="number" step="0.01" className="form-control" placeholder="e.g., 83.50" />
-            </div>
-          </div>
-
-          {/* <div className="col-md-4 mb-3">
-            <label className="form-label">Amount (INR)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="amount_inr"
-              value={form.amount_inr}
-              readOnly
-              className="form-control bg-light"
-            />
-          </div> */}
         </div>
 
-        <hr />
+        <hr className="my-4" />
 
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Purchase From</label>
-            <input
-              type="text"
-              name="purchase_from"
-              value={form.purchase_from}
-              onChange={change}
-              className="form-control"
-            />
-          </div>
-
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Purchase Rap Discount (%) <span className="text-danger">*</span></label>
-            <input
-              type="number"
-              step="0.01"
-              name="pur_rap_discount"
-              value={form.pur_rap_discount}
-              onChange={change}
-              className={`form-control ${getErrorClass('pur_rap_discount')}`}
-              placeholder="Enter Purchase Discount % (e.g., 40)"
-            />
-            {hasError('pur_rap_discount') && <div className="invalid-feedback">{validationErrors.pur_rap_discount}</div>}
-          </div>
-
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Purchase Price (USD)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="purchase_price"
-              value={form.purchase_price}
-              readOnly
-              className="form-control bg-light"
-            />
-          </div>
-        </div>
-
-        <div className="row">
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Purchase Conversion Rate</label>
-            <input
-              type="number"
-              step="0.01"
-              name="purchase_conversion_rate"
-              value={form.purchase_conversion_rate}
-              onChange={change}
-              className="form-control"
-              placeholder="e.g., 83.50"
-            />
-          </div>
-
-          <div className="col-md-4 mb-3">
-            <label className="form-label">Purchase Price (INR)</label>
-            <input
-              type="number"
-              step="0.01"
-              name="purchase_price_inr"
-              value={form.purchase_price_inr}
-              readOnly
-              className="form-control bg-light"
-            />
-          </div>
-
-          <div className="col-md-4">
+        <div className="row g-3">
+          <div className="col-md-3">
             <Label>Payment Status</Label>
-            <selectname="payment_status"value={form.payment_status}onChange={change}className="form-select">
+            <select name="payment_status" value={form.payment_status} onChange={change} className="form-select">
               <option value="">Select Status</option>
               <option value="On Terms">On Terms</option>
               <option value="Bill Cleared">Bill Cleared</option>
             </select>
           </div>
-        </div>
 
-        <div className="row">
-          <div className="col-md-3 mb-3">
-            <label className="form-label">Buying Date</label>
-            <input
-              type="date"
-              name="buying_date"
-              value={form.buying_date}
-              onChange={change}
-              className="form-control"
-            />
+          <div className="col-md-3">
+            <Label>Buying Date</Label>
+            <input type="date" name="buying_date" value={form.buying_date} onChange={change} className="form-control" />
           </div>
 
           {form.payment_status === "On Terms" && (
             <>
-              <div className="col-md-3 mb-3">
-                <label className="form-label">Terms (Days)</label>
-                <input
-                  type="number"
-                  name="terms_days"
-                  value={form.terms_days}
-                  onChange={change}
-                  className="form-control"
-                  placeholder="e.g. 30"
-                />
+              <div className="col-md-2">
+                <Label>Terms (Days)</Label>
+                <input type="number" name="terms_days" value={form.terms_days} onChange={change} className="form-control" placeholder="e.g. 30" />
               </div>
-              <div className="col-md-3 mb-3">
-                <label className="form-label">Expiry Date</label>
+              <div className="col-md-2">
+                <Label>Expiry Date</Label>
                 <input
                   type="date"
                   value={(() => {
                     if (!form.buying_date || !form.terms_days) return "";
                     const date = new Date(form.buying_date);
                     if (isNaN(date.getTime())) return "";
-                    // Add days
                     date.setDate(date.getDate() + (parseInt(form.terms_days) || 0));
-                    return date.toISOString().split('T')[0];
+                    return date.toISOString().split("T")[0];
                   })()}
                   className="form-control bg-light"
                   readOnly
                 />
               </div>
-              <div className="col-md-3 mb-3">
-                <label className="form-label">Payment Amount Done</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="payment_amount_done"
-                  value={form.payment_amount_done}
-                  onChange={change}
-                  className="form-control"
-                />
+              <div className="col-md-2">
+                <Label>Payment Amount Done</Label>
+                <input type="number" step="0.01" name="payment_amount_done" value={form.payment_amount_done} onChange={change} className="form-control" />
               </div>
             </>
           )}
         </div>
       </Section>
 
-      {/* <Section title="Report & Reference Information" icon="bi-file-earmark-text" defaultOpen={false}>
-        <div className="row g-3">
-          <div className="col-md-3">
-            <Label>Job No</Label>
-            <input name="job_no" value={form.job_no} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Control No</Label>
-            <input name="control_no" value={form.control_no} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Diamond Dossier</Label>
-            <input name="diamond_dossier" value={form.diamond_dossier} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Report No</Label>
-            <input name="report_no" value={form.report_no} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Report Date</Label>
-            <input type="date" name="report_dt" value={form.report_dt} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Client Ref</Label>
-            <input name="client_ref" value={form.client_ref} onChange={change} className="form-control" />
-          </div>
-          <div className="col-md-3">
-            <Label>Memo No</Label>
-            <input name="memo_no" value={form.memo_no} onChange={change} className="form-control" />
-          </div>
-        </div>
-      </Section> */}
-
+      {/* Quality Characteristics */}
       <Section title="Quality Characteristics" icon="bi-stars" defaultOpen={false}>
         <div className="row g-3">
           <div className="col-md-6">
@@ -1072,6 +825,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       </Section>
 
+      {/* Origin & Source Information */}
       <Section title="Origin & Source Information" icon="bi-globe2" defaultOpen={false}>
         <div className="row g-3">
           <div className="col-md-4">
@@ -1101,6 +855,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       </Section>
 
+      {/* Dimensions & Measurements */}
       <Section title="Dimensions & Measurements" icon="bi-rulers" defaultOpen={false}>
         <div className="row g-3">
           <div className="col-12">
@@ -1190,6 +945,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       </Section>
 
+      {/* Additional Features & Comments */}
       <Section title="Additional Features & Comments" icon="bi-chat-left-text" defaultOpen={false}>
         <div className="row g-3">
           <div className="col-md-6">
@@ -1225,6 +981,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
         </div>
       </Section>
 
+      {/* Additional Technical Details */}
       <Section title="Additional Technical Details" icon="bi-tools" defaultOpen={false}>
         <div className="row g-3">
           <div className="col-md-4">
@@ -1258,23 +1015,13 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
             <input name="basket_status" value={form.basket_status} onChange={change} className="form-control" />
           </div>
         </div>
-        <div className="row">
-          <div className="col-md-12 mb-3">
-            <label className="form-label">Basket Status</label>
-            <input type="text" name="basket_status" value={form.basket_status} onChange={change} className="form-control" />
-          </div>
-        </div>
-      </CollapsibleSection>
+      </Section>
 
       {/* Submit Buttons */}
       <div className="row mt-4 mb-5">
-        <div className="col-12">
-          <button
-            type="submit"
-            className="btn btn-primary btn-lg"
-            disabled={loading}
-          >
-            {loading ? (
+        <div className="col-12 d-flex gap-3">
+          <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
+            {saving ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" role="status" />
                 Saving...
@@ -1286,10 +1033,12 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
               </>
             )}
           </button>
+          <Link href="/diamonds" className="btn btn-outline-secondary btn-lg">
+            Cancel
+          </Link>
         </div>
       </div>
 
-      {/* Small UI polish */}
       <style jsx global>{`
         .btn:focus,
         .form-control:focus,
