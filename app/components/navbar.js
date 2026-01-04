@@ -186,6 +186,10 @@ export default function Navbar() {
               <li className="nav-item">
                 <NavPill href="/expenses" icon="bi-receipt" label="Expenses" active={isActiveGroup("/expenses")} />
               </li>
+
+              <li className="nav-item">
+                <NavPill href="/accounts" icon="bi-receipt" label="Accounts" active={isActiveGroup("/accounts")} />
+              </li>
             </ul>
 
             {/* Right side */}
