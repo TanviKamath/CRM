@@ -1,16 +1,9 @@
-// app/brokers/BrokersForm.jsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-/**
- * Modern Brokers Form (Bootstrap + Bootstrap Icons)
- * - Same fields + same submit behavior
- * - Cleaner layout: sections + icon input groups
- * - No extra outer card (your create/edit pages already wrap it)
- */
 export default function BrokersForm({
   initial = {},
   submitButtonText = "Save Broker",
@@ -20,15 +13,27 @@ export default function BrokersForm({
 
   const [form, setForm] = useState({
     name: initial.name || "",
-    company_name: initial.company_name || "",
     email: initial.email || "",
     phone: initial.phone || "",
-    commission_rate: initial.commission_rate || "",
-    tax_number: initial.tax_number || "",
     address: initial.address || "",
-    bank_details: initial.bank_details || "",
+    native_address: initial.native_address || "",
+    broking_since: initial.broking_since || "",
+    bdb_id: initial.bdb_id || "",
+    aadhaar: initial.aadhaar || "",
+    commission_rate: initial.commission_rate || "",
     notes: initial.notes || "",
+
+    bank_name: initial.bank_name || "",
+    branch: initial.branch || "",
+    bank_address: initial.bank_address || "",
+    account_type: initial.account_type || "",
+    account_no: initial.account_no || "",
+    ifsc_code: initial.ifsc_code || "",
   });
+
+  const [references, setReferences] = useState(
+    initial.reference || [{ company_name: "", contact_person: "" }]
+  );
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,39 +41,44 @@ export default function BrokersForm({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ---------- Reference (Company + Contact) ---------- */
+
+  const addReference = () => {
+    setReferences((prev) => [...prev, { company_name: "", contact_person: "" }]);
+  };
+
+  const updateReference = (index, field, value) => {
+    setReferences((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const removeReference = (index) => {
+    setReferences((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  /* ---------- Validation ---------- */
+
   const validateForm = () => {
     const errors = {};
-
     if (!form.name.trim()) errors.name = "Name is required";
-
-    if (!form.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Please enter a valid email address";
-    }
+    if (!form.email.trim()) errors.email = "Email is required";
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
+
+  /* ---------- Submit ---------- */
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     if (!validateForm()) {
-      setError("Please fill in the highlighted fields.");
+      setError("Please fill required fields.");
       return;
     }
 
@@ -77,20 +87,32 @@ export default function BrokersForm({
     try {
       const dataToSend = {
         name: form.name.trim(),
-        company_name: form.company_name.trim() || null,
         email: form.email.trim(),
-        phone: form.phone.trim() || null,
-
-        // accepts "2.5" or "2.5%" as input because parseFloat handles both
+        phone: form.phone || null,
+        address: form.address || null,
+        native_address: form.native_address || null,
+        broking_since: form.broking_since
+          ? parseInt(form.broking_since)
+          : null,
+        bdb_id: form.bdb_id || null,
+        aadhaar: form.aadhaar || null,
         commission_rate:
-          form.commission_rate !== "" && form.commission_rate !== null && form.commission_rate !== undefined
-            ? (Number.isNaN(parseFloat(form.commission_rate)) ? null : parseFloat(form.commission_rate))
+          form.commission_rate !== ""
+            ? parseFloat(form.commission_rate)
             : null,
 
-        tax_number: form.tax_number.trim() || null,
-        address: form.address.trim() || null,
-        bank_details: form.bank_details.trim() || null,
-        notes: form.notes.trim() || null,
+        reference: references.filter(
+          (r) => r.company_name || r.contact_person
+        ),
+
+        bank_name: form.bank_name || null,
+        branch: form.branch || null,
+        bank_address: form.bank_address || null,
+        account_type: form.account_type || null,
+        account_no: form.account_no || null,
+        ifsc_code: form.ifsc_code || null,
+
+        notes: form.notes || null,
       };
 
       if (onSubmit) {
@@ -99,7 +121,9 @@ export default function BrokersForm({
       }
 
       const method = initial.id ? "PUT" : "POST";
-      const url = initial.id ? `/api/brokers/${initial.id}` : `/api/brokers`;
+      const url = initial.id
+        ? `/api/brokers/${initial.id}`
+        : `/api/brokers`;
 
       const res = await fetch(url, {
         method,
@@ -107,343 +131,241 @@ export default function BrokersForm({
         body: JSON.stringify(dataToSend),
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText);
-      }
+      if (!res.ok) throw new Error("Failed to save broker");
 
       const saved = await res.json();
-      router.push(
-        `/brokers/show/${saved.id}?success=${encodeURIComponent(
-          initial.id ? "Broker updated successfully!" : "Broker created successfully!"
-        )}`
-      );
+      router.push(`/brokers/show/${saved.id}`);
     } catch (err) {
-      setError(err?.message || "Error saving broker");
+      setError(err.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
-  const hasError = (field) => Boolean(validationErrors[field]);
-  const inputClass = (field) => `form-control ${hasError(field) ? "is-invalid" : ""}`;
-  const selectClass = (field) => `form-select ${hasError(field) ? "is-invalid" : ""}`;
+  /* ---------- UI ---------- */
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Error Alert */}
-      {error && (
-        <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
-          <i className="bi bi-exclamation-triangle me-2 mt-1" />
-          <div className="flex-grow-1">
-            <div className="fw-semibold">{error}</div>
-            {Object.keys(validationErrors).length > 0 && (
-              <ul className="mb-0 mt-2 small">
-                {Object.entries(validationErrors).map(([field, msg]) => (
-                  <li key={field}>{msg}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <button type="button" className="btn-close ms-2" onClick={() => setError("")} />
-        </div>
-      )}
+      {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Section: Basic */}
-      <div className="mb-4">
-        <div className="d-flex align-items-center mb-3">
-          <div
-            className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: "rgba(102,126,234,0.10)" }}
-          >
-            <i className="bi bi-person-vcard text-primary" style={{ fontSize: "1.1rem" }} />
-          </div>
-          <div>
-            <div className="fw-bold">Basic Information</div>
-            <div className="text-muted small">Required fields: Name and Email</div>
-          </div>
-        </div>
-
-        <div className="row g-3">
-          <div className="col-md-6">
-            <label htmlFor="name" className="form-label fw-medium">
-              Name <span className="text-danger">*</span>
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-person text-muted" />
-              </span>
-              <input
-                id="name"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                className={inputClass("name")}
-                placeholder="Broker full name"
-                required
-              />
-            </div>
-            {hasError("name") && <div className="invalid-feedback d-block">{validationErrors.name}</div>}
-          </div>
-
-          <div className="col-md-6">
-            <label htmlFor="company_name" className="form-label fw-medium">
-              Company Name
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-building text-muted" />
-              </span>
-              <input
-                id="company_name"
-                name="company_name"
-                value={form.company_name}
-                onChange={handleChange}
-                className={inputClass("company_name")}
-                placeholder="Company / Firm (optional)"
-              />
-            </div>
-            {hasError("company_name") && <div className="invalid-feedback d-block">{validationErrors.company_name}</div>}
-          </div>
-
-          <div className="col-md-6">
-            <label htmlFor="email" className="form-label fw-medium">
-              Email <span className="text-danger">*</span>
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-envelope text-muted" />
-              </span>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                className={inputClass("email")}
-                placeholder="name@company.com"
-                required
-              />
-            </div>
-            {hasError("email") && <div className="invalid-feedback d-block">{validationErrors.email}</div>}
-          </div>
-
-          <div className="col-md-6">
-            <label htmlFor="phone" className="form-label fw-medium">
-              Phone
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-telephone text-muted" />
-              </span>
-              <input
-                id="phone"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className={inputClass("phone")}
-                placeholder="Phone (optional)"
-              />
-            </div>
-            {hasError("phone") && <div className="invalid-feedback d-block">{validationErrors.phone}</div>}
-          </div>
-        </div>
-      </div>
-
-      {/* Section: Business */}
-      <div className="mb-4">
-        <div className="d-flex align-items-center mb-3">
-          <div
-            className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: "rgba(245,158,11,0.12)" }}
-          >
-            <i className="bi bi-briefcase text-warning" style={{ fontSize: "1.1rem" }} />
-          </div>
-          <div>
-            <div className="fw-bold">Business Details</div>
-            <div className="text-muted small">Commission, tax and payment information</div>
-          </div>
-        </div>
-
-        <div className="row g-3">
-          <div className="col-md-6">
-            <label htmlFor="commission_rate" className="form-label fw-medium">
-              Commission Rate
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-percent text-muted" />
-              </span>
-              <input
-                id="commission_rate"
-                name="commission_rate"
-                value={form.commission_rate}
-                onChange={handleChange}
-                className={inputClass("commission_rate")}
-                placeholder="e.g., 2.5 or 2.5%"
-                inputMode="decimal"
-              />
-            </div>
-            <div className="form-text">You can type 2.5 or 2.5%.</div>
-            {hasError("commission_rate") && (
-              <div className="invalid-feedback d-block">{validationErrors.commission_rate}</div>
-            )}
-          </div>
-
-          <div className="col-md-6">
-            <label htmlFor="tax_number" className="form-label fw-medium">
-              Tax Number
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-receipt text-muted" />
-              </span>
-              <input
-                id="tax_number"
-                name="tax_number"
-                value={form.tax_number}
-                onChange={handleChange}
-                className={inputClass("tax_number")}
-                placeholder="GST / PAN / VAT (optional)"
-              />
-            </div>
-            {hasError("tax_number") && <div className="invalid-feedback d-block">{validationErrors.tax_number}</div>}
-          </div>
-
-          <div className="col-12">
-            <label htmlFor="address" className="form-label fw-medium">
-              Address
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white align-items-start pt-2">
-                <i className="bi bi-geo-alt text-muted" />
-              </span>
-              <textarea
-                id="address"
-                name="address"
-                value={form.address}
-                onChange={handleChange}
-                className={inputClass("address")}
-                rows={2}
-                placeholder="Address (optional)"
-              />
-            </div>
-            {hasError("address") && <div className="invalid-feedback d-block">{validationErrors.address}</div>}
-          </div>
-
-          <div className="col-12">
-            <label htmlFor="bank_details" className="form-label fw-medium">
-              Bank Details
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white align-items-start pt-2">
-                <i className="bi bi-bank text-muted" />
-              </span>
-              <textarea
-                id="bank_details"
-                name="bank_details"
-                value={form.bank_details}
-                onChange={handleChange}
-                className={inputClass("bank_details")}
-                rows={2}
-                placeholder="Account name, number, IFSC, bank name (optional)"
-              />
-            </div>
-            {hasError("bank_details") && <div className="invalid-feedback d-block">{validationErrors.bank_details}</div>}
-          </div>
-        </div>
-      </div>
-
-      {/* Section: Notes */}
-      <div className="mb-4">
-        <div className="d-flex align-items-center mb-3">
-          <div
-            className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: "rgba(108,117,125,0.12)" }}
-          >
-            <i className="bi bi-journal-text text-secondary" style={{ fontSize: "1.1rem" }} />
-          </div>
-          <div>
-            <div className="fw-bold">Notes</div>
-            <div className="text-muted small">Optional internal notes about the broker</div>
-          </div>
-        </div>
-
-        <div className="input-group">
-          <span className="input-group-text bg-white align-items-start pt-2">
-            <i className="bi bi-sticky text-muted" />
-          </span>
-          <textarea
-            id="notes"
-            name="notes"
-            value={form.notes}
+      {/* Basic Info */}
+      <h5 className="mb-3">Basic Information</h5>
+      <div className="row g-3 mb-4">
+        <div className="col-md-6">
+          <label className="form-label">Name *</label>
+          <input
+            name="name"
+            className="form-control"
+            value={form.name}
             onChange={handleChange}
-            className={inputClass("notes")}
-            rows={3}
-            placeholder="Add any important notes (optional)"
           />
         </div>
-        {hasError("notes") && <div className="invalid-feedback d-block">{validationErrors.notes}</div>}
+
+        <div className="col-md-6">
+          <label className="form-label">Email *</label>
+          <input
+            name="email"
+            type="email"
+            className="form-control"
+            value={form.email}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Phone</label>
+          <input
+            name="phone"
+            className="form-control"
+            value={form.phone}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Aadhaar</label>
+          <input
+            name="aadhaar"
+            className="form-control"
+            value={form.aadhaar}
+            onChange={handleChange}
+          />
+        </div>
       </div>
+
+      {/* Addresses */}
+      <h5 className="mb-3">Address</h5>
+      <div className="mb-4">
+        <textarea
+          name="address"
+          className="form-control mb-2"
+          placeholder="Current Address"
+          value={form.address}
+          onChange={handleChange}
+        />
+        <textarea
+          name="native_address"
+          className="form-control"
+          placeholder="Native Address"
+          value={form.native_address}
+          onChange={handleChange}
+        />
+      </div>
+
+      {/* Business */}
+      <h5 className="mb-3">Business Details</h5>
+      <div className="row g-3 mb-4">
+        <div className="col-md-4">
+          <input
+            name="broking_since"
+            className="form-control"
+            placeholder="Broking Since (Years)"
+            value={form.broking_since}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <input
+            name="bdb_id"
+            className="form-control"
+            placeholder="BDB ID"
+            value={form.bdb_id}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <input
+            name="commission_rate"
+            className="form-control"
+            placeholder="Commission %"
+            value={form.commission_rate}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* Reference JSON */}
+      <h5 className="mb-3">Associated Companies</h5>
+      {references.map((ref, i) => (
+        <div className="row g-2 mb-2" key={i}>
+          <div className="col-md-5">
+            <input
+              className="form-control"
+              placeholder="Company Name"
+              value={ref.company_name}
+              onChange={(e) =>
+                updateReference(i, "company_name", e.target.value)
+              }
+            />
+          </div>
+          <div className="col-md-5">
+            <input
+              className="form-control"
+              placeholder="Contact Person"
+              value={ref.contact_person}
+              onChange={(e) =>
+                updateReference(i, "contact_person", e.target.value)
+              }
+            />
+          </div>
+          <div className="col-md-2">
+            {references.length > 1 && (
+              <button
+                type="button"
+                className="btn btn-outline-danger w-100"
+                onClick={() => removeReference(i)}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-primary mb-4"
+        onClick={addReference}
+      >
+        + Add Company
+      </button>
+
+      {/* Bank */}
+      <h5 className="mb-3">Bank Details</h5>
+      <div className="row g-3 mb-4">
+        <div className="col-md-4">
+          <input
+            name="bank_name"
+            className="form-control"
+            placeholder="Bank Name"
+            value={form.bank_name}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <input
+            name="branch"
+            className="form-control"
+            placeholder="Branch"
+            value={form.branch}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <input
+            name="ifsc_code"
+            className="form-control"
+            placeholder="IFSC Code"
+            value={form.ifsc_code}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-6">
+          <input
+            name="account_no"
+            className="form-control"
+            placeholder="Account Number"
+            value={form.account_no}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-6">
+          <input
+            name="account_type"
+            className="form-control"
+            placeholder="Account Type"
+            value={form.account_type}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-12">
+          <textarea
+            name="bank_address"
+            className="form-control"
+            placeholder="Bank Address"
+            value={form.bank_address}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <textarea
+        name="notes"
+        className="form-control mb-4"
+        placeholder="Notes"
+        value={form.notes}
+        onChange={handleChange}
+      />
 
       {/* Actions */}
-      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2">
-        <div className="text-muted small">
-          <i className="bi bi-shield-check me-2" />
-          Your data is saved securely.
-        </div>
-
-        <div className="d-flex gap-2">
-          <Link href="/brokers" className="btn btn-outline-secondary px-4" style={{ borderRadius: 10 }}>
-            <i className="bi bi-x-lg me-2" />
-            Cancel
-          </Link>
-
-          <button type="submit" className="btn btn-primary px-4" style={{ borderRadius: 10 }} disabled={loading}>
-            {loading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-check-lg me-2" />
-                {submitButtonText}
-              </>
-            )}
-          </button>
-        </div>
+      <div className="d-flex justify-content-between">
+        <Link href="/brokers" className="btn btn-outline-secondary">
+          Cancel
+        </Link>
+        <button className="btn btn-primary" disabled={loading}>
+          {loading ? "Saving..." : submitButtonText}
+        </button>
       </div>
-
-      <style jsx global>{`
-        .input-group-text {
-          border-color: rgba(0, 0, 0, 0.08) !important;
-        }
-        .form-control,
-        .form-select {
-          border-color: rgba(0, 0, 0, 0.08) !important;
-          border-radius: 12px;
-        }
-        .input-group .form-control,
-        .input-group .form-select {
-          border-left: 0 !important;
-        }
-        .input-group .input-group-text {
-          border-radius: 12px 0 0 12px;
-        }
-        .input-group .form-control,
-        .input-group textarea {
-          border-radius: 0 12px 12px 0;
-        }
-        .form-control:focus,
-        .form-select:focus {
-          box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15) !important;
-          border-color: rgba(102, 126, 234, 0.35) !important;
-        }
-        .btn:focus {
-          box-shadow: none !important;
-        }
-      `}</style>
     </form>
   );
 }

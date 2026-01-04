@@ -238,16 +238,7 @@ export default function ShowBroker() {
               <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.3px" }}>
                 {displayValue(broker.name)}
               </h2>
-              <div className="text-muted">
-                {broker.company_name ? (
-                  <>
-                    <i className="bi bi-building me-2" />
-                    {broker.company_name}
-                  </>
-                ) : (
-                  "Broker Details"
-                )}
-              </div>
+              <div className="text-muted">Broker Details</div>
             </div>
           </div>
 
@@ -293,7 +284,6 @@ export default function ShowBroker() {
               icon="bi-person-lines-fill"
             >
               <InfoRow icon="bi-person" label="Name" value={displayValue(broker.name)} />
-              <InfoRow icon="bi-building" label="Company Name" value={displayValue(broker.company_name)} />
               <InfoRow
                 icon="bi-envelope"
                 label="Email"
@@ -306,6 +296,7 @@ export default function ShowBroker() {
                 value={displayValue(broker.phone)}
                 href={broker.phone ? `tel:${broker.phone}` : undefined}
               />
+              <InfoRow icon="bi-credit-card" label="Aadhaar" value={displayValue(broker.aadhaar)} />
 
               <div className="pt-3 mt-3 border-top">
                 <div className="d-flex align-items-center justify-content-between">
@@ -322,13 +313,80 @@ export default function ShowBroker() {
           {/* Right */}
           <div className="col-lg-6">
             <SectionCard
-              title="Business"
-              subtitle="Tax and banking details"
+              title="Address"
+              subtitle="Location information"
+              icon="bi-geo-alt"
+            >
+              <InfoRow icon="bi-geo-alt" label="Current Address" value={displayValue(broker.address)} />
+              <InfoRow icon="bi-house" label="Native Address" value={displayValue(broker.native_address)} />
+            </SectionCard>
+          </div>
+
+          {/* Associated Companies */}
+          {broker.reference && broker.reference.length > 0 && (
+            <div className="col-12">
+              <div className="card border-0 shadow-sm" style={{ borderRadius: 16 }}>
+                <div className="card-header bg-white border-0 py-4 px-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                  <div className="d-flex align-items-center">
+                    <div
+                      className="rounded-3 d-flex align-items-center justify-content-center me-3"
+                      style={{ width: 40, height: 40, backgroundColor: "rgba(102,126,234,0.10)" }}
+                    >
+                      <i className="bi bi-building text-primary" style={{ fontSize: "1.1rem" }} />
+                    </div>
+                    <div>
+                      <div className="fw-bold">Associated Companies</div>
+                      <div className="text-muted small">Company references and contacts</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="card-body p-4">
+                  <div className="row g-3">
+                    {broker.reference.map((ref, idx) => (
+                      <div className="col-md-6" key={idx}>
+                        <div
+                          className="p-3"
+                          style={{
+                            backgroundColor: "rgba(102,126,234,0.05)",
+                            borderRadius: 12,
+                            border: "1px solid rgba(102,126,234,0.1)"
+                          }}
+                        >
+                          <div className="d-flex align-items-start">
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
+                              style={{ width: 36, height: 36, backgroundColor: "rgba(102,126,234,0.15)" }}
+                            >
+                              <i className="bi bi-building text-primary" />
+                            </div>
+                            <div className="flex-grow-1">
+                              <div className="fw-semibold text-dark mb-1">
+                                {ref.company_name || "N/A"}
+                              </div>
+                              <div className="text-muted small">
+                                <i className="bi bi-person me-1" />
+                                {ref.contact_person || "N/A"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Business Details */}
+          <div className="col-lg-6">
+            <SectionCard
+              title="Business Details"
+              subtitle="Professional information"
               icon="bi-briefcase"
             >
-              <InfoRow icon="bi-receipt" label="Tax Number" value={displayValue(broker.tax_number)} />
-              <InfoRow icon="bi-geo-alt" label="Address" value={displayValue(broker.address)} />
-              <InfoRow icon="bi-bank" label="Bank Details" value={displayValue(broker.bank_details)} />
+              <InfoRow icon="bi-calendar-check" label="Broking Since (Years)" value={displayValue(broker.broking_since)} />
+              <InfoRow icon="bi-card-text" label="BDB ID" value={displayValue(broker.bdb_id)} />
 
               <div className="pt-3 mt-3 border-top">
                 <div className="d-flex align-items-center justify-content-between">
@@ -339,6 +397,22 @@ export default function ShowBroker() {
                   </div>
                 </div>
               </div>
+            </SectionCard>
+          </div>
+
+          {/* Bank Details */}
+          <div className="col-lg-6">
+            <SectionCard
+              title="Bank Details"
+              subtitle="Banking information"
+              icon="bi-bank"
+            >
+              <InfoRow icon="bi-bank" label="Bank Name" value={displayValue(broker.bank_name)} />
+              <InfoRow icon="bi-diagram-3" label="Branch" value={displayValue(broker.branch)} />
+              <InfoRow icon="bi-credit-card-2-front" label="Account Number" value={displayValue(broker.account_no)} />
+              <InfoRow icon="bi-tag" label="Account Type" value={displayValue(broker.account_type)} />
+              <InfoRow icon="bi-upc" label="IFSC Code" value={displayValue(broker.ifsc_code)} />
+              <InfoRow icon="bi-geo" label="Bank Address" value={displayValue(broker.bank_address)} />
             </SectionCard>
           </div>
 
