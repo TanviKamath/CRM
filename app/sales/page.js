@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import RecordSalePaymentModal from "./RecordSalePaymentModal";
 
 function StatusPill({ status }) {
   const map = {
@@ -14,9 +15,27 @@ function StatusPill({ status }) {
   const s = map[status] || { bg: "secondary", text: status || "Unknown", icon: "bi-info-circle", textClass: "" };
 
   return (
-    <span className={`badge bg-${s.bg} ${s.textClass} px-3 py-2`} style={{ borderRadius: 999 }}>
-      <i className={`bi ${s.icon} me-2`} />
+    <span className={`badge bg-${s.bg} ${s.textClass} px-2 py-1`} style={{ borderRadius: 999, fontSize: "0.75rem" }}>
+      <i className={`bi ${s.icon} me-1`} />
       {s.text}
+    </span>
+  );
+}
+
+function PaymentStatusPill({ status, outstanding }) {
+  let config;
+  if (outstanding <= 0 || status === "completed") {
+    config = { bg: "success", text: "Paid", icon: "bi-check-circle-fill" };
+  } else if (status === "partial") {
+    config = { bg: "info", text: "Partial", icon: "bi-pie-chart-fill" };
+  } else {
+    config = { bg: "warning", text: "On Terms", icon: "bi-hourglass-split", textClass: "text-dark" };
+  }
+
+  return (
+    <span className={`badge bg-${config.bg} bg-opacity-10 text-${config.bg} ${config.textClass || ""} px-2 py-1`} style={{ borderRadius: 999, fontSize: "0.7rem" }}>
+      <i className={`bi ${config.icon} me-1`} />
+      {config.text}
     </span>
   );
 }
@@ -24,21 +43,60 @@ function StatusPill({ status }) {
 const formatCurrency = (value, symbol = "$") => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
-  return Number.isNaN(num)
-    ? "-"
-    : `${symbol}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return Number.isNaN(num) ? "-" : `${symbol}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 function StatPill({ icon, label, value, tone = "info" }) {
   return (
-    <span
-      className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`}
-      style={{ borderRadius: 999 }}
-    >
+    <span className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`} style={{ borderRadius: 999 }}>
       <i className={`bi ${icon} me-2`} />
       <span className="me-1">{label}:</span>
       <span className="fw-semibold">{value}</span>
     </span>
+  );
+}
+
+// Reusable Action Button Component with bigger icons
+function ActionButton({ href, onClick, variant, icon, title, disabled = false }) {
+  const baseStyle = {
+    borderRadius: 10,
+    width: 42,
+    height: 42,
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+  };
+
+  const content = (
+    <i className={`bi ${icon}`} style={{ fontSize: "1.1rem" }} />
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`btn btn-${variant}`}
+        style={baseStyle}
+        title={title}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`btn btn-${variant}`}
+      style={baseStyle}
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {content}
+    </button>
   );
 }
 
@@ -49,17 +107,28 @@ export default function SalesIndex() {
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // lightweight local search (filters current result set)
+  // Payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState(null);
+
+  // Search
   const [q, setQ] = useState("");
 
   const activeStatus = searchParams.get("status") || "";
+  const paymentFilter = searchParams.get("payment") || "";
 
   const fetchSales = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/sales?status=${activeStatus}`);
-      const data = await res.json();
-      setSales(Array.isArray(data) ? data : data.data || []);
+      let url = `/api/sales?`;
+      if (activeStatus) url += `status=${activeStatus}&`;
+      if (paymentFilter) url += `payment_status=${paymentFilter}&`;
+
+      const res = await fetch(url);
+      const json = await res.json();
+      
+      const data = Array.isArray(json) ? json : json.data || [];
+      setSales(data);
     } catch (err) {
       console.error(err);
       setSales([]);
@@ -72,8 +141,12 @@ export default function SalesIndex() {
     fetchSales();
 
     const success = searchParams.get("success");
-    if (success) setSuccessMessage(decodeURIComponent(success));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (success) {
+      setSuccessMessage(decodeURIComponent(success));
+      const url = new URL(window.location.href);
+      url.searchParams.delete("success");
+      window.history.replaceState({}, "", url);
+    }
   }, [searchParams]);
 
   const handleDelete = async (id) => {
@@ -88,6 +161,17 @@ export default function SalesIndex() {
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const handleRecordPayment = (saleId) => {
+    setSelectedSaleId(saleId);
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setSuccessMessage("Payment recorded successfully!");
+    setPaymentModalOpen(false);
+    fetchSales();
   };
 
   const filteredSales = useMemo(() => {
@@ -107,20 +191,26 @@ export default function SalesIndex() {
 
   const totals = useMemo(() => {
     let usd = 0;
-    let inr = 0;
+    let outstanding = 0;
+    let received = 0;
+
     for (const s of filteredSales) {
-      const a = parseFloat(s.sale_amount);
-      const b = parseFloat(s.sale_amount_inr);
-      if (!Number.isNaN(a)) usd += a;
-      if (!Number.isNaN(b)) inr += b;
+      const amount = parseFloat(s.sale_amount) || 0;
+      const totalReceived = parseFloat(s.total_received) || 0;
+      const saleOutstanding = Math.max(0, amount - totalReceived);
+
+      usd += amount;
+      outstanding += saleOutstanding;
+      received += totalReceived;
     }
-    return { usd, inr, count: filteredSales.length };
+
+    return { usd, count: filteredSales.length, outstanding, received };
   }, [filteredSales]);
 
-  const setStatusFilter = (value) => {
+  const setFilter = (key, value) => {
     const url = new URL(window.location.href);
-    if (value) url.searchParams.set("status", value);
-    else url.searchParams.delete("status");
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
     window.location.href = url.toString();
   };
 
@@ -136,8 +226,8 @@ export default function SalesIndex() {
                 style={{
                   width: 52,
                   height: 52,
-                  background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-                  boxShadow: "0 6px 18px rgba(37,99,235,0.22)",
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  boxShadow: "0 6px 18px rgba(16,185,129,0.25)",
                 }}
               >
                 <i className="bi bi-graph-up-arrow text-white" style={{ fontSize: "1.3rem" }} />
@@ -147,21 +237,25 @@ export default function SalesIndex() {
                 <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.3px" }}>
                   Sales
                 </h2>
-                <div className="text-muted">Track transactions, amounts and status.</div>
+                <div className="text-muted">Track transactions, payments and receivables.</div>
               </div>
             </div>
 
             <div className="mt-3 d-flex flex-wrap gap-2">
-              <StatPill icon="bi-collection" label="Records" value={totals.count} tone="primary" />
-              <StatPill icon="bi-cash-stack" label="Total USD" value={formatCurrency(totals.usd)} tone="info" />
-              <StatPill icon="bi-currency-rupee" label="Total INR" value={formatCurrency(totals.inr, "₹")} tone="success" />
-              {activeStatus && <StatPill icon="bi-filter" label="Filter" value={activeStatus} tone="secondary" />}
+              <StatPill icon="bi-collection" label="Sales" value={totals.count} tone="primary" />
+              <StatPill icon="bi-cash-stack" label="Total" value={formatCurrency(totals.usd)} tone="info" />
+              <StatPill icon="bi-check-circle" label="Received" value={formatCurrency(totals.received)} tone="success" />
+              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatCurrency(totals.outstanding)} tone="warning" />
             </div>
           </div>
 
           <div className="d-flex gap-2">
-            <Link href="/sales/create" className="btn btn-info text-white px-4" style={{ borderRadius: 10 }}>
-              <i className="bi bi-plus-lg me-2" />
+            <Link
+              href="/sales/create"
+              className="btn text-white px-4 py-2"
+              style={{ borderRadius: 12, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}
+            >
+              <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
               New Sale
             </Link>
           </div>
@@ -170,17 +264,17 @@ export default function SalesIndex() {
         {/* Success Message */}
         {successMessage && (
           <div className="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style={{ borderRadius: 14 }}>
-            <i className="bi bi-check-circle me-2" />
+            <i className="bi bi-check-circle-fill me-2" style={{ fontSize: "1.2rem" }} />
             {successMessage}
             <button type="button" className="btn-close" onClick={() => setSuccessMessage("")} />
           </div>
         )}
 
-        {/* Controls */}
+        {/* Filters */}
         <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>
           <div className="card-body p-4">
             <div className="row g-3 align-items-end">
-              <div className="col-lg-7">
+              <div className="col-lg-5">
                 <label className="form-label text-muted small mb-2">Quick Search</label>
                 <div className="input-group" style={{ borderRadius: 12, overflow: "hidden" }}>
                   <span className="input-group-text bg-white border-0">
@@ -190,86 +284,92 @@ export default function SalesIndex() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     className="form-control border-0"
-                    placeholder="Search by sale id, diamond cert, client name..."
+                    placeholder="Search sales..."
                     style={{ boxShadow: "none" }}
                   />
                   {q && (
-                    <button type="button" className="btn btn-outline-secondary border-0" onClick={() => setQ("")} title="Clear">
+                    <button type="button" className="btn btn-outline-secondary border-0" onClick={() => setQ("")}>
                       <i className="bi bi-x-lg" />
                     </button>
                   )}
                 </div>
-                <div className="text-muted small mt-2">Search filters the current loaded list.</div>
               </div>
 
-              <div className="col-lg-5">
-                <label className="form-label text-muted small mb-2">Status Filter</label>
-                <div className="d-flex gap-2 flex-wrap">
-                  <select
-                    className="form-select"
-                    value={activeStatus}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    style={{ borderRadius: 12 }}
-                  >
-                    <option value="">All Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
+              <div className="col-lg-3">
+                <label className="form-label text-muted small mb-2">Sale Status</label>
+                <select
+                  className="form-select"
+                  value={activeStatus}
+                  onChange={(e) => setFilter("status", e.target.value)}
+                  style={{ borderRadius: 12 }}
+                >
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
 
-                  {activeStatus && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary px-3"
-                      style={{ borderRadius: 12 }}
-                      onClick={() => setStatusFilter("")}
-                      title="Clear filter"
-                    >
-                      <i className="bi bi-x-lg" />
-                    </button>
-                  )}
-                </div>
+              <div className="col-lg-3">
+                <label className="form-label text-muted small mb-2">Payment Status</label>
+                <select
+                  className="form-select"
+                  value={paymentFilter}
+                  onChange={(e) => setFilter("payment", e.target.value)}
+                  style={{ borderRadius: 12 }}
+                >
+                  <option value="">All Payments</option>
+                  <option value="on_terms">On Terms</option>
+                  <option value="partial">Partial</option>
+                  <option value="completed">Fully Paid</option>
+                </select>
+              </div>
+
+              <div className="col-lg-1">
+                {(activeStatus || paymentFilter) && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary w-100"
+                    style={{ borderRadius: 12, height: 42 }}
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete("status");
+                      url.searchParams.delete("payment");
+                      window.location.href = url.toString();
+                    }}
+                    title="Clear filters"
+                  >
+                    <i className="bi bi-x-lg" style={{ fontSize: "1rem" }} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Table Card */}
+        {/* Table */}
         <div className="card border-0 shadow-sm" style={{ borderRadius: 16 }}>
           <div className="card-body p-0">
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
                 <thead style={{ backgroundColor: "#ffffff" }}>
                   <tr>
-                    <th className="px-4 py-3 text-muted" style={{ fontSize: "0.85rem" }}>
-                      Sale
-                    </th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>
-                      Diamond
-                    </th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>
-                      Client
-                    </th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.85rem" }}>
-                      Amount (USD)
-                    </th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.85rem" }}>
-                      Amount (INR)
-                    </th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.85rem" }}>
-                      Status
-                    </th>
-                    <th className="py-3 text-muted text-center" style={{ width: 220, fontSize: "0.85rem" }}>
-                      Actions
-                    </th>
+                    <th className="px-4 py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>SALE</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>DIAMOND</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING</th>
+                    <th className="py-3 text-muted text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>STATUS</th>
+                    <th className="py-3 text-muted text-center" style={{ width: 220, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-5">
-                        <div className="spinner-border" role="status" style={{ color: "#0ea5e9" }}>
+                      <td colSpan={8} className="text-center py-5">
+                        <div className="spinner-border" role="status" style={{ color: "#10b981" }}>
                           <span className="visually-hidden">Loading...</span>
                         </div>
                         <div className="text-muted mt-2">Loading sales...</div>
@@ -277,14 +377,17 @@ export default function SalesIndex() {
                     </tr>
                   ) : filteredSales.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-5">
-                        <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style={{ width: 70, height: 70, backgroundColor: "rgba(108,117,125,0.08)" }}>
+                      <td colSpan={8} className="text-center py-5">
+                        <div
+                          className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                          style={{ width: 70, height: 70, backgroundColor: "rgba(108,117,125,0.08)" }}
+                        >
                           <i className="bi bi-inbox text-muted" style={{ fontSize: "1.8rem" }} />
                         </div>
                         <div className="fw-semibold">No sales found</div>
                         <div className="text-muted small mb-3">Try changing filters or create a new sale.</div>
-                        <Link href="/sales/create" className="btn btn-info text-white px-4" style={{ borderRadius: 10 }}>
-                          <i className="bi bi-plus-lg me-2" />
+                        <Link href="/sales/create" className="btn btn-success px-4 py-2" style={{ borderRadius: 12 }}>
+                          <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
                           New Sale
                         </Link>
                       </td>
@@ -293,79 +396,105 @@ export default function SalesIndex() {
                     filteredSales.map((sale) => {
                       const diamondCert = sale?.diamond?.certificate_number || sale?.diamond_certificate || "-";
                       const clientName = sale?.client?.company_name || sale?.client_company || "-";
+                      const saleAmount = parseFloat(sale.sale_amount) || 0;
+                      const totalReceived = parseFloat(sale.total_received) || 0;
+                      const outstanding = Math.max(0, saleAmount - totalReceived);
+
                       return (
                         <tr key={sale.id}>
                           <td className="px-4 py-3">
-                            <div className="fw-semibold">
-                              <Link className="text-decoration-none" href={`/sales/show/${sale.id}`}>
-                                Sale #{sale.id}
-                              </Link>
-                            </div>
+                            <Link className="text-decoration-none fw-semibold" href={`/sales/show/${sale.id}`}>
+                              Sale #{sale.id}
+                            </Link>
                             <div className="text-muted small">
                               <i className="bi bi-calendar3 me-1" />
-                              {sale.created_at ? new Date(sale.created_at).toLocaleDateString() : "-"}
+                              {sale.selling_date
+                                ? new Date(sale.selling_date).toLocaleDateString()
+                                : sale.created_at
+                                ? new Date(sale.created_at).toLocaleDateString()
+                                : "-"}
                             </div>
                           </td>
 
                           <td className="py-3">
                             {sale.diamond_id ? (
                               <Link className="text-decoration-none" href={`/diamonds/show/${sale.diamond_id}`}>
-                                <i className="bi bi-gem me-2 text-muted" />
+                                <i className="bi bi-gem me-2 text-info" />
                                 {diamondCert}
                               </Link>
                             ) : (
-                              <>
-                                <i className="bi bi-gem me-2 text-muted" />
-                                {diamondCert}
-                              </>
+                              <span className="text-muted">{diamondCert}</span>
                             )}
                           </td>
 
                           <td className="py-3">
                             {sale.client_id ? (
                               <Link className="text-decoration-none" href={`/clients/show/${sale.client_id}`}>
-                                <i className="bi bi-building me-2 text-muted" />
+                                <i className="bi bi-building me-2" style={{ color: "#8b5cf6" }} />
                                 {clientName}
                               </Link>
                             ) : (
-                              <>
-                                <i className="bi bi-building me-2 text-muted" />
-                                {clientName}
-                              </>
+                              <span className="text-muted">{clientName}</span>
                             )}
                           </td>
 
-                          <td className="py-3 text-end fw-semibold">{formatCurrency(sale.sale_amount)}</td>
-                          <td className="py-3 text-end">{formatCurrency(sale.sale_amount_inr, "₹")}</td>
+                          <td className="py-3 text-end">
+                            <div className="fw-semibold">{formatCurrency(saleAmount)}</div>
+                            {sale.sale_amount_inr && <div className="text-muted small">{formatCurrency(sale.sale_amount_inr, "₹")}</div>}
+                          </td>
 
-                          <td className="py-3">
-                            <StatusPill status={sale.status} />
+                          <td className="py-3 text-end">
+                            <span className="text-success fw-medium">{formatCurrency(totalReceived)}</span>
+                          </td>
+
+                          <td className="py-3 text-end">
+                            <span className={outstanding > 0 ? "text-warning fw-semibold" : "text-success"}>
+                              {formatCurrency(outstanding)}
+                            </span>
                           </td>
 
                           <td className="py-3 text-center">
-                            <div className="btn-group" role="group" aria-label="Actions">
-                              <Link
+                            <div className="d-flex flex-column align-items-center gap-1">
+                              <StatusPill status={sale.status} />
+                              <PaymentStatusPill status={sale.payment_status} outstanding={outstanding} />
+                            </div>
+                          </td>
+
+                          <td className="py-3 text-center">
+                            <div className="d-flex gap-2 justify-content-center">
+                              {/* View Button */}
+                              <ActionButton
                                 href={`/sales/show/${sale.id}`}
-                                className="btn btn-sm btn-outline-info"
-                                style={{ borderRadius: "10px 0 0 10px" }}
-                                title="View"
-                              >
-                                <i className="bi bi-eye me-1" />
-                                View
-                              </Link>
-                              <Link href={`/sales/edit/${sale.id}`} className="btn btn-sm btn-outline-warning" title="Edit">
-                                <i className="bi bi-pencil me-1" />
-                                Edit
-                              </Link>
-                              <button
-                                className="btn btn-sm btn-outline-danger"
-                                style={{ borderRadius: "0 10px 10px 0" }}
-                                title="Delete"
+                                variant="outline-info"
+                                icon="bi-eye-fill"
+                                title="View Sale"
+                              />
+
+                              {/* Edit Button */}
+                              <ActionButton
+                                href={`/sales/edit/${sale.id}`}
+                                variant="outline-warning"
+                                icon="bi-pencil-fill"
+                                title="Edit Sale"
+                              />
+
+                              {/* Record Payment Button */}
+                              {outstanding > 0 && sale.status !== "cancelled" && (
+                                <ActionButton
+                                  onClick={() => handleRecordPayment(sale.id)}
+                                  variant="success"
+                                  icon="bi-cash-coin"
+                                  title="Record Payment"
+                                />
+                              )}
+
+                              {/* Delete Button */}
+                              <ActionButton
                                 onClick={() => handleDelete(sale.id)}
-                              >
-                                <i className="bi bi-trash me-1" />
-                                Delete
-                              </button>
+                                variant="outline-danger"
+                                icon="bi-trash-fill"
+                                title="Delete Sale"
+                              />
                             </div>
                           </td>
                         </tr>
@@ -377,25 +506,53 @@ export default function SalesIndex() {
             </div>
 
             {/* Footer */}
-            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 px-4 py-3" style={{ borderTop: "1px solid rgba(0,0,0,0.06)", backgroundColor: "#fff" }}>
+            <div
+              className="d-flex justify-content-between align-items-center flex-wrap gap-2 px-4 py-3"
+              style={{ borderTop: "1px solid rgba(0,0,0,0.06)", backgroundColor: "#fff" }}
+            >
               <div className="text-muted small">
-                Showing <span className="fw-semibold">{filteredSales.length}</span> sales
+                Showing <span className="fw-semibold">{filteredSales.length}</span> sale{filteredSales.length !== 1 ? "s" : ""}
               </div>
-              <div className="text-muted small">
-                <i className="bi bi-shield-check me-2" />
-                Data is stored securely.
+              <div className="d-flex gap-3 text-muted small">
+                <span>
+                  <i className="bi bi-check-circle text-success me-1" />
+                  Collected: <span className="fw-semibold text-success">{formatCurrency(totals.received)}</span>
+                </span>
+                <span>
+                  <i className="bi bi-hourglass-split text-warning me-1" />
+                  Pending: <span className="fw-semibold text-warning">{formatCurrency(totals.outstanding)}</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Payment Modal */}
+        <RecordSalePaymentModal
+          saleId={selectedSaleId}
+          show={paymentModalOpen}
+          onClose={() => {
+            setPaymentModalOpen(false);
+            setSelectedSaleId(null);
+          }}
+          onSuccess={handlePaymentSuccess}
+        />
+
         <style jsx global>{`
           .btn:focus {
             box-shadow: none !important;
           }
-          .form-select:focus {
+          .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          .table tbody tr:hover {
+            background-color: rgba(16, 185, 129, 0.03);
+          }
+          .form-select:focus,
+          .form-control:focus {
             box-shadow: none !important;
-            border-color: rgba(14, 165, 233, 0.35) !important;
+            border-color: rgba(16, 185, 129, 0.35) !important;
           }
         `}</style>
       </div>

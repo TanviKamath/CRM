@@ -4,12 +4,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 
-/**
- * Modern Sales Form
- * - Same fields + same calculations + same submit payload
- * - Cleaner layout: section headers + input groups with icons + summary panel
- * - No outer card (your pages already wrap it)
- */
 export default function SalesForm({
   initial = {},
   diamonds = [],
@@ -24,17 +18,22 @@ export default function SalesForm({
     client_id: initial.client_id || "",
     broker_id: initial.broker_id || "",
     status: initial.status || "pending",
-    sale_rap_discount: initial.sale_rap_discount || "",
-    sale_amount: initial.sale_amount || "",
-    conversion_rate: initial.conversion_rate || "",
-    sale_amount_inr: initial.sale_amount_inr || "",
-    brokerage_rate: initial.brokerage_rate || "",
-    brokerage_amount: initial.brokerage_amount || "",
+    sale_rap_discount: initial.sale_rap_discount ?? "",
+    sale_amount: initial.sale_amount ?? "",
+    conversion_rate: initial.conversion_rate ?? "",
+    sale_amount_inr: initial.sale_amount_inr ?? "",
+    brokerage_rate: initial.brokerage_rate ?? "",
+    brokerage_amount: initial.brokerage_amount ?? "", // Now in INR
     notes: initial.notes || "",
+    
+    // Payment fields
+    selling_date: initial.selling_date ? initial.selling_date.split('T')[0] : new Date().toISOString().split('T')[0],
+    payment_status: initial.payment_status || "on_terms",
+    terms_days: initial.terms_days ?? "30",
+    advance_amount: initial.advance_amount ?? "",
   });
 
   const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "" });
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -56,19 +55,15 @@ export default function SalesForm({
     return brokers.find((b) => String(b.id) === String(form.broker_id)) || null;
   }, [brokers, form.broker_id]);
 
-  // Calculate sale amount: Weight * Rap Rate * (1 - Discount/100)
+  // Calculate sale amount (USD)
   const calculateSaleAmount = (weight, rapRate, discount) => {
     const w = parseFloat(weight) || 0;
     const r = parseFloat(rapRate) || 0;
     const d = parseFloat(discount) || 0;
-    const saleAmount = w * r * (1 - d / 100);
-
-    setForm((prev) => ({
-      ...prev,
-      sale_amount: saleAmount > 0 ? saleAmount.toFixed(2) : "",
-    }));
+    return w * r * (1 - d / 100);
   };
 
+  // Calculate sale amount in INR
   const calculateSaleAmountInr = useCallback((saleAmount, conversionRate) => {
     const amount = parseFloat(saleAmount) || 0;
     const rate = parseFloat(conversionRate) || 0;
@@ -76,12 +71,36 @@ export default function SalesForm({
     return "";
   }, []);
 
-  const calculateBrokerageAmount = useCallback((saleAmount, brokerageRate) => {
-    const amount = parseFloat(saleAmount) || 0;
+  // Calculate brokerage amount in INR (based on INR sale amount)
+  const calculateBrokerageAmount = useCallback((saleAmountInr, brokerageRate) => {
+    const amount = parseFloat(saleAmountInr) || 0;
     const rate = parseFloat(brokerageRate) || 0;
-    if (rate > 0) return (amount * (rate / 100)).toFixed(2);
+    if (rate > 0 && amount > 0) return (amount * (rate / 100)).toFixed(2);
     return "";
   }, []);
+
+  // Calculate due date
+  const calculateDueDate = useMemo(() => {
+    if (!form.selling_date || !form.terms_days || form.payment_status !== 'on_terms') return null;
+    const date = new Date(form.selling_date);
+    if (isNaN(date.getTime())) return null;
+    date.setDate(date.getDate() + (parseInt(form.terms_days) || 0));
+    return date;
+  }, [form.selling_date, form.terms_days, form.payment_status]);
+
+  const formatDate = (date) => {
+    if (!date) return "N/A";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "N/A";
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  // Calculate outstanding
+  const outstandingAmount = useMemo(() => {
+    const saleAmount = parseFloat(form.sale_amount) || 0;
+    const advance = parseFloat(form.advance_amount) || 0;
+    return Math.max(0, saleAmount - advance);
+  }, [form.sale_amount, form.advance_amount]);
 
   // Update diamond info when diamond changes
   useEffect(() => {
@@ -90,12 +109,20 @@ export default function SalesForm({
         weight: selectedDiamond.weight || "",
         rap_rate: selectedDiamond.rap_rate || "",
       });
-      calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
+      const saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
+      const saleAmountInr = calculateSaleAmountInr(saleAmount, form.conversion_rate);
+      const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
+      
+      setForm(prev => ({
+        ...prev,
+        sale_amount: saleAmount > 0 ? saleAmount.toFixed(2) : "",
+        sale_amount_inr: saleAmountInr,
+        brokerage_amount: brokerageAmount,
+      }));
     } else {
       setDiamondInfo({ weight: "", rap_rate: "" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.diamond_id, diamonds]);
+  }, [form.diamond_id, diamonds, form.conversion_rate, form.brokerage_rate]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -115,23 +142,34 @@ export default function SalesForm({
     if (name === "sale_rap_discount") {
       const d = selectedDiamond;
       if (d) {
-        const w = parseFloat(d.weight) || 0;
-        const r = parseFloat(d.rap_rate) || 0;
-        const disc = parseFloat(value) || 0;
-
-        const saleAmount = w * r * (1 - disc / 100);
+        const saleAmount = calculateSaleAmount(d.weight, d.rap_rate, value);
         updated.sale_amount = saleAmount > 0 ? saleAmount.toFixed(2) : "";
         updated.sale_amount_inr = calculateSaleAmountInr(saleAmount, updated.conversion_rate);
-        updated.brokerage_amount = calculateBrokerageAmount(saleAmount, updated.brokerage_rate);
+        updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
       }
     }
 
+    // Conversion rate changes -> recalculate INR amounts
     if (name === "conversion_rate") {
       updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount, value);
+      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
     }
 
+    // Brokerage rate changes -> recalculate brokerage amount in INR
     if (name === "brokerage_rate") {
-      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount, value);
+      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, value);
+    }
+
+    // If payment status changes to completed, clear terms fields
+    if (name === "payment_status" && value === "completed") {
+      updated.terms_days = "";
+      updated.advance_amount = updated.sale_amount;
+    }
+
+    // If payment status changes to on_terms, set default terms
+    if (name === "payment_status" && value === "on_terms") {
+      updated.terms_days = "30";
+      updated.advance_amount = "";
     }
 
     setForm(updated);
@@ -142,9 +180,23 @@ export default function SalesForm({
     if (!form.diamond_id) errors.diamond_id = "Diamond is required";
     if (!form.client_id) errors.client_id = "Client is required";
     if (!form.status) errors.status = "Status is required";
-    if (form.sale_rap_discount === "" || form.sale_rap_discount === null || form.sale_rap_discount === undefined) {
+    if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
       errors.sale_rap_discount = "Sale RAP Discount is required";
     }
+    if (!form.selling_date) errors.selling_date = "Selling date is required";
+    if (!form.payment_status) errors.payment_status = "Payment status is required";
+    
+    if (form.payment_status === "on_terms") {
+      if (!form.terms_days || parseInt(form.terms_days) <= 0) {
+        errors.terms_days = "Terms days is required for On Terms payment";
+      }
+    }
+
+    // Warn if brokerage rate is set but no conversion rate
+    if (form.brokerage_rate && !form.conversion_rate) {
+      errors.conversion_rate = "Conversion rate is required to calculate brokerage in INR";
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -161,6 +213,14 @@ export default function SalesForm({
     setLoading(true);
 
     try {
+      // Calculate due date for payload
+      let dueDate = null;
+      if (form.payment_status === 'on_terms' && form.selling_date && form.terms_days) {
+        const date = new Date(form.selling_date);
+        date.setDate(date.getDate() + parseInt(form.terms_days));
+        dueDate = date.toISOString().split('T')[0];
+      }
+
       const dataToSend = {
         diamond_id: parseInt(form.diamond_id),
         client_id: parseInt(form.client_id),
@@ -171,8 +231,15 @@ export default function SalesForm({
         conversion_rate: form.conversion_rate ? parseFloat(form.conversion_rate) : null,
         sale_amount_inr: form.sale_amount_inr ? parseFloat(form.sale_amount_inr) : null,
         brokerage_rate: form.brokerage_rate ? parseFloat(form.brokerage_rate) : null,
-        brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null,
+        brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null, // Now in INR
         notes: form.notes || null,
+        
+        // Payment fields
+        selling_date: form.selling_date || null,
+        payment_status: form.payment_status,
+        terms_days: form.payment_status === 'on_terms' ? parseInt(form.terms_days) || 30 : null,
+        advance_amount: form.payment_status === 'on_terms' ? (parseFloat(form.advance_amount) || 0) : parseFloat(form.sale_amount) || 0,
+        due_date: dueDate,
       };
 
       await onSubmit(dataToSend);
@@ -190,13 +257,18 @@ export default function SalesForm({
   const summary = useMemo(() => {
     const usd = parseFloat(form.sale_amount);
     const inr = parseFloat(form.sale_amount_inr);
-    const bro = parseFloat(form.brokerage_amount);
+    const bro = parseFloat(form.brokerage_amount); // Now in INR
+    const adv = parseFloat(form.advance_amount) || 0;
+    const out = Math.max(0, (usd || 0) - adv);
+    
     return {
       usd: Number.isNaN(usd) ? "-" : `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      inr: Number.isNaN(inr) ? "-" : `₹${inr.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      bro: Number.isNaN(bro) ? "-" : `$${bro.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      inr: Number.isNaN(inr) ? "-" : `₹${inr.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      bro: Number.isNaN(bro) ? "-" : `₹${bro.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      advance: `$${adv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      outstanding: `$${out.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     };
-  }, [form.sale_amount, form.sale_amount_inr, form.brokerage_amount]);
+  }, [form.sale_amount, form.sale_amount_inr, form.brokerage_amount, form.advance_amount]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -222,32 +294,47 @@ export default function SalesForm({
       <div
         className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3"
         style={{
-          background: "linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(37,99,235,0.05) 100%)",
-          border: "1px solid rgba(14,165,233,0.12)",
+          background: "linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(5,150,105,0.05) 100%)",
+          border: "1px solid rgba(16,185,129,0.12)",
           borderRadius: 14,
         }}
       >
         <div className="d-flex flex-wrap gap-2">
           <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-cash-stack me-2" />
+            <i className="bi bi-currency-dollar me-2" />
             Sale (USD): <span className="fw-semibold ms-1">{summary.usd}</span>
           </span>
 
-          <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
+          <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
             <i className="bi bi-currency-rupee me-2" />
             Sale (INR): <span className="fw-semibold ms-1">{summary.inr}</span>
           </span>
 
-          <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-percent me-2" />
-            Brokerage: <span className="fw-semibold ms-1">{summary.bro}</span>
+          <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
+            <i className="bi bi-arrow-down-circle me-2" />
+            Advance: <span className="fw-semibold ms-1">{summary.advance}</span>
           </span>
+
+          <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2" style={{ borderRadius: 999 }}>
+            <i className="bi bi-hourglass-split me-2" />
+            Outstanding: <span className="fw-semibold ms-1">{summary.outstanding}</span>
+          </span>
+
+          {form.brokerage_amount && (
+            <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
+              <i className="bi bi-percent me-2" />
+              Brokerage (INR): <span className="fw-semibold ms-1">{summary.bro}</span>
+            </span>
+          )}
         </div>
 
-        <div className="text-muted small">
-          <i className="bi bi-lightning-charge me-2" />
-          Amounts update automatically as you type.
-        </div>
+        <span 
+          className={`badge px-3 py-2 ${form.payment_status === 'completed' ? 'bg-success' : 'bg-warning text-dark'}`} 
+          style={{ borderRadius: 999 }}
+        >
+          <i className={`bi ${form.payment_status === 'completed' ? 'bi-check-circle-fill' : 'bi-clock-history'} me-2`} />
+          {form.payment_status === 'completed' ? 'Paid in Full' : 'On Terms'}
+        </span>
       </div>
 
       {/* Section: Parties */}
@@ -281,18 +368,13 @@ export default function SalesForm({
               >
                 <option value="">Select Diamond</option>
                 {diamonds.map((d) => (
-                  <option key={d.id} value={d.id} data-weight={d.weight} data-rap-rate={d.rap_rate}>
+                  <option key={d.id} value={d.id}>
                     {d.certificate_number} ({d.shape} {d.weight}ct {d.color}/{d.clarity})
                   </option>
                 ))}
               </select>
             </div>
             {hasError("diamond_id") && <div className="invalid-feedback d-block">{validationErrors.diamond_id}</div>}
-            {selectedDiamond && (
-              <div className="text-muted small mt-2">
-                Selected: <span className="fw-semibold">{selectedDiamond.certificate_number}</span>
-              </div>
-            )}
           </div>
 
           <div className="col-md-6">
@@ -320,11 +402,6 @@ export default function SalesForm({
               </select>
             </div>
             {hasError("client_id") && <div className="invalid-feedback d-block">{validationErrors.client_id}</div>}
-            {selectedClient && (
-              <div className="text-muted small mt-2">
-                Selected: <span className="fw-semibold">{selectedClient.company_name}</span>
-              </div>
-            )}
           </div>
 
           <div className="col-md-6">
@@ -344,16 +421,11 @@ export default function SalesForm({
                 ))}
               </select>
             </div>
-            {selectedBroker && (
-              <div className="text-muted small mt-2">
-                Selected: <span className="fw-semibold">{selectedBroker.name}</span>
-              </div>
-            )}
           </div>
 
           <div className="col-md-6">
             <label htmlFor="status" className="form-label fw-medium">
-              Status <span className="text-danger">*</span>
+              Sale Status <span className="text-danger">*</span>
             </label>
             <div className="input-group">
               <span className="input-group-text bg-white">
@@ -370,7 +442,7 @@ export default function SalesForm({
         </div>
       </div>
 
-      {/* Section: Calculation */}
+      {/* Section: Pricing & Calculations */}
       <div className="mb-4">
         <div className="d-flex align-items-center mb-3">
           <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(14,165,233,0.10)" }}>
@@ -378,7 +450,7 @@ export default function SalesForm({
           </div>
           <div>
             <div className="fw-bold">Pricing & Calculations</div>
-            <div className="text-muted small">Discount drives totals; INR and brokerage are derived fields</div>
+            <div className="text-muted small">Discount drives totals; brokerage is calculated on INR amount</div>
           </div>
         </div>
 
@@ -390,6 +462,7 @@ export default function SalesForm({
                 <i className="bi bi-speedometer2 text-muted" />
               </span>
               <input value={diamondInfo.weight} className="form-control bg-light" readOnly />
+              <span className="input-group-text bg-white">ct</span>
             </div>
           </div>
 
@@ -428,14 +501,14 @@ export default function SalesForm({
             <label className="form-label fw-medium">Sale Amount (USD)</label>
             <div className="input-group">
               <span className="input-group-text bg-white">$</span>
-              <input value={form.sale_amount} className="form-control bg-light" readOnly />
+              <input value={form.sale_amount} className="form-control bg-light fw-semibold" readOnly />
             </div>
             <div className="text-muted small mt-1">Auto-calculated</div>
           </div>
 
           <div className="col-md-4">
             <label htmlFor="conversion_rate" className="form-label fw-medium">
-              Conversion Rate (USD to INR)
+              Conversion Rate (USD → INR) <span className="text-danger">*</span>
             </label>
             <div className="input-group">
               <span className="input-group-text bg-white">
@@ -448,50 +521,237 @@ export default function SalesForm({
                 name="conversion_rate"
                 value={form.conversion_rate}
                 onChange={handleChange}
-                className="form-control"
+                className={controlClass("conversion_rate")}
                 placeholder="e.g., 83.50"
               />
             </div>
+            {hasError("conversion_rate") && <div className="invalid-feedback d-block">{validationErrors.conversion_rate}</div>}
           </div>
 
           <div className="col-md-4">
             <label className="form-label fw-medium">Sale Amount (INR)</label>
             <div className="input-group">
               <span className="input-group-text bg-white">₹</span>
-              <input value={form.sale_amount_inr} className="form-control bg-light" readOnly />
+              <input value={form.sale_amount_inr} className="form-control bg-light fw-semibold" readOnly />
             </div>
             <div className="text-muted small mt-1">Auto-calculated</div>
           </div>
+        </div>
 
+        {/* Brokerage Section */}
+        <div className="row g-3 mt-2">
+          <div className="col-12">
+            <div className="p-3" style={{ backgroundColor: "rgba(108,117,125,0.05)", borderRadius: 12, border: "1px solid rgba(108,117,125,0.1)" }}>
+              <div className="d-flex align-items-center mb-3">
+                <i className="bi bi-person-badge text-secondary me-2" />
+                <span className="fw-medium">Brokerage (Calculated on INR)</span>
+              </div>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label htmlFor="brokerage_rate" className="form-label fw-medium">
+                    Brokerage Rate (%)
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-white">
+                      <i className="bi bi-percent text-muted" />
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      id="brokerage_rate"
+                      name="brokerage_rate"
+                      value={form.brokerage_rate}
+                      onChange={handleChange}
+                      className="form-control"
+                      placeholder="e.g., 1.0"
+                    />
+                  </div>
+                  <div className="text-muted small mt-1">Applied on INR sale amount</div>
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label fw-medium">Brokerage Amount (INR)</label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-warning bg-opacity-25">₹</span>
+                    <input 
+                      value={form.brokerage_amount} 
+                      className="form-control bg-warning bg-opacity-10 fw-semibold" 
+                      readOnly 
+                    />
+                  </div>
+                  <div className="text-muted small mt-1">
+                    {form.brokerage_rate && form.sale_amount_inr 
+                      ? `${form.brokerage_rate}% of ₹${parseFloat(form.sale_amount_inr).toLocaleString('en-IN')}`
+                      : "Auto-calculated from INR amount"
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section: Payment Information */}
+      <div className="mb-4">
+        <div className="d-flex align-items-center mb-3">
+          <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(16,185,129,0.10)" }}>
+            <i className="bi bi-credit-card text-success" style={{ fontSize: "1.1rem" }} />
+          </div>
+          <div>
+            <div className="fw-bold">Payment Information</div>
+            <div className="text-muted small">Set payment terms and track receivables</div>
+          </div>
+        </div>
+
+        <div className="row g-3">
           <div className="col-md-4">
-            <label htmlFor="brokerage_rate" className="form-label fw-medium">
-              Brokerage Rate (%)
+            <label htmlFor="selling_date" className="form-label fw-medium">
+              Selling Date <span className="text-danger">*</span>
             </label>
             <div className="input-group">
               <span className="input-group-text bg-white">
-                <i className="bi bi-percent text-muted" />
+                <i className="bi bi-calendar-event text-muted" />
               </span>
               <input
-                type="number"
-                step="0.01"
-                id="brokerage_rate"
-                name="brokerage_rate"
-                value={form.brokerage_rate}
+                type="date"
+                id="selling_date"
+                name="selling_date"
+                value={form.selling_date}
                 onChange={handleChange}
-                className="form-control"
-                placeholder="e.g., 1.0"
+                className={controlClass("selling_date")}
+                required
               />
             </div>
+            {hasError("selling_date") && <div className="invalid-feedback d-block">{validationErrors.selling_date}</div>}
           </div>
 
           <div className="col-md-4">
-            <label className="form-label fw-medium">Brokerage Amount (USD)</label>
+            <label htmlFor="payment_status" className="form-label fw-medium">
+              Payment Status <span className="text-danger">*</span>
+            </label>
             <div className="input-group">
-              <span className="input-group-text bg-white">$</span>
-              <input value={form.brokerage_amount} className="form-control bg-light" readOnly />
+              <span className="input-group-text bg-white">
+                <i className="bi bi-wallet2 text-muted" />
+              </span>
+              <select
+                id="payment_status"
+                name="payment_status"
+                value={form.payment_status}
+                onChange={handleChange}
+                className={selectClass("payment_status")}
+                required
+              >
+                <option value="on_terms">On Terms</option>
+                <option value="completed">Completed - Full Payment</option>
+              </select>
             </div>
-            <div className="text-muted small mt-1">Auto-calculated</div>
+            {hasError("payment_status") && <div className="invalid-feedback d-block">{validationErrors.payment_status}</div>}
           </div>
+
+          {/* Conditional fields for On Terms */}
+          {form.payment_status === "on_terms" && (
+            <>
+              <div className="col-md-4">
+                <label htmlFor="terms_days" className="form-label fw-medium">
+                  Terms (Days) <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">
+                    <i className="bi bi-clock text-muted" />
+                  </span>
+                  <input
+                    type="number"
+                    id="terms_days"
+                    name="terms_days"
+                    value={form.terms_days}
+                    onChange={handleChange}
+                    className={controlClass("terms_days")}
+                    placeholder="e.g., 30"
+                    min="1"
+                  />
+                  <span className="input-group-text bg-white">days</span>
+                </div>
+                {hasError("terms_days") && <div className="invalid-feedback d-block">{validationErrors.terms_days}</div>}
+              </div>
+
+              <div className="col-md-4">
+                <label htmlFor="advance_amount" className="form-label fw-medium">
+                  Advance Amount (USD)
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="advance_amount"
+                    name="advance_amount"
+                    value={form.advance_amount}
+                    onChange={handleChange}
+                    className="form-control"
+                    placeholder="0.00"
+                    min="0"
+                    max={form.sale_amount}
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-medium">Due Date</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">
+                    <i className="bi bi-calendar-check text-muted" />
+                  </span>
+                  <input
+                    type="text"
+                    value={calculateDueDate ? formatDate(calculateDueDate) : "N/A"}
+                    className="form-control bg-light"
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-medium">Outstanding Amount (USD)</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-warning bg-opacity-25">$</span>
+                  <input
+                    type="text"
+                    value={outstandingAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    className="form-control bg-warning bg-opacity-10 fw-bold text-warning"
+                    readOnly
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Full payment confirmation */}
+          {form.payment_status === "completed" && (
+            <div className="col-12">
+              <div 
+                className="p-3 d-flex align-items-center gap-3"
+                style={{ 
+                  borderRadius: 12, 
+                  backgroundColor: "rgba(16,185,129,0.08)",
+                  border: "1px solid rgba(16,185,129,0.2)"
+                }}
+              >
+                <div 
+                  className="rounded-circle d-flex align-items-center justify-content-center"
+                  style={{ width: 40, height: 40, backgroundColor: "rgba(16,185,129,0.15)" }}
+                >
+                  <i className="bi bi-check-circle-fill text-success" style={{ fontSize: "1.2rem" }} />
+                </div>
+                <div>
+                  <div className="fw-semibold text-success">Full Payment Received</div>
+                  <div className="text-muted small">
+                    Amount: ${parseFloat(form.sale_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} - No outstanding balance
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -518,8 +778,8 @@ export default function SalesForm({
       {/* Actions */}
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2">
         <div className="text-muted small">
-          <i className="bi bi-shield-check me-2" />
-          Values are calculated automatically and saved securely.
+          <i className="bi bi-info-circle me-2" />
+          Brokerage is calculated as a percentage of the INR sale amount.
         </div>
 
         <div className="d-flex gap-2">
@@ -528,7 +788,7 @@ export default function SalesForm({
             Cancel
           </Link>
 
-          <button type="submit" className="btn btn-info text-white px-4" style={{ borderRadius: 10 }} disabled={loading}>
+          <button type="submit" className="btn text-white px-4" style={{ borderRadius: 10, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }} disabled={loading}>
             {loading ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2" role="status" />
@@ -560,15 +820,23 @@ export default function SalesForm({
         .input-group .input-group-text {
           border-radius: 12px 0 0 12px;
         }
+        .input-group .input-group-text:last-child {
+          border-radius: 0 12px 12px 0;
+          border-left: 0 !important;
+        }
         .input-group .form-control,
         .input-group textarea,
         .input-group .form-select {
           border-radius: 0 12px 12px 0;
         }
+        .input-group .form-control:not(:last-child),
+        .input-group .form-select:not(:last-child) {
+          border-radius: 0;
+        }
         .form-control:focus,
         .form-select:focus {
-          box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.15) !important;
-          border-color: rgba(14, 165, 233, 0.35) !important;
+          box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.15) !important;
+          border-color: rgba(16, 185, 129, 0.35) !important;
         }
         .btn:focus {
           box-shadow: none !important;

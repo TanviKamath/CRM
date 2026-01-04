@@ -24,11 +24,15 @@ export default function EditDiamond() {
 
       try {
         const res = await fetch(`/api/diamonds/${id}`);
-        if (!res.ok) throw new Error("Diamond not found");
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Diamond not found");
+        }
         const data = await res.json();
+        console.log("Fetched diamond data:", data); // Debug log
         setDiamond(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching diamond:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -85,6 +89,35 @@ export default function EditDiamond() {
                       Back to Inventory
                     </Link>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!diamond) {
+    return (
+      <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-lg-6">
+              <div className="card border-0 shadow-sm text-center" style={{ borderRadius: 16 }}>
+                <div className="card-body p-5">
+                  <div
+                    className="rounded-circle d-inline-flex align-items-center justify-content-center mb-4"
+                    style={{ width: 80, height: 80, backgroundColor: "rgba(220,53,69,0.10)" }}
+                  >
+                    <i className="bi bi-exclamation-triangle text-danger" style={{ fontSize: "2rem" }} />
+                  </div>
+                  <h4 className="fw-bold mb-2">Diamond not found</h4>
+                  <p className="text-muted mb-4">The diamond you're looking for doesn't exist.</p>
+                  <Link className="btn btn-primary px-4" style={{ borderRadius: 10 }} href="/diamonds">
+                    <i className="bi bi-arrow-left me-2" />
+                    Back to Inventory
+                  </Link>
                 </div>
               </div>
             </div>
@@ -186,6 +219,8 @@ export default function EditDiamond() {
               <div className="card-body p-4 p-md-5 bg-white">
                 <DiamondsForm
                   initial={diamond}
+                  isEdit={true}
+                  diamondId={id}
                   onSuccess={() => {
                     router.push(`/diamonds/show/${id}?success=${encodeURIComponent("Diamond updated successfully!")}`);
                   }}
@@ -249,8 +284,12 @@ export default function EditDiamond() {
                         const res = await fetch(`/api/diamonds/${id}`, { method: "DELETE" });
                         if (res.ok) {
                           router.push("/diamonds?success=" + encodeURIComponent("Diamond deleted successfully!"));
+                        } else {
+                          const errorData = await res.json();
+                          alert(errorData.error || "Failed to delete diamond");
                         }
                       } catch (err) {
+                        console.error("Delete error:", err);
                         alert("Failed to delete diamond");
                       }
                     }}

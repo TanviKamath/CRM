@@ -37,6 +37,52 @@ const formatNum = (value) => {
   return Number.isNaN(num) ? "-" : num.toFixed(2);
 };
 
+// Reusable Action Button Component with bigger icons
+function ActionButton({ href, onClick, variant, icon, title, disabled = false }) {
+  const baseStyle = {
+    borderRadius: 10,
+    width: 42,
+    height: 42,
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+  };
+
+  const content = (
+    <>
+      <i className={`bi ${icon}`} style={{ fontSize: "1.1rem" }} />
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`btn btn-${variant}`}
+        style={baseStyle}
+        title={title}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={`btn btn-${variant}`}
+      style={baseStyle}
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {content}
+    </button>
+  );
+}
+
 export default function DiamondsIndexPage() {
   const searchParams = useSearchParams();
 
@@ -73,7 +119,6 @@ export default function DiamondsIndexPage() {
     fetchDiamonds();
     const success = searchParams.get("success");
     if (success) setSuccessMessage(decodeURIComponent(success));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const handleDelete = async (id, cert) => {
@@ -130,8 +175,8 @@ export default function DiamondsIndexPage() {
 
   const handlePaymentSuccess = () => {
     setSuccessMessage("Payment recorded successfully!");
-    setShowPaymentModal(false); // Fix: close modal on success
-    fetchDiamonds(); // Fix: refresh data to reflect payment status
+    setShowPaymentModal(false);
+    fetchDiamonds();
   };
 
   return (
@@ -177,8 +222,8 @@ export default function DiamondsIndexPage() {
           </div>
 
           <div className="d-flex gap-2">
-            <Link href="/diamonds/create" className="btn btn-primary px-4" style={{ borderRadius: 10 }}>
-              <i className="bi bi-plus-lg me-2" />
+            <Link href="/diamonds/create" className="btn btn-primary px-4 py-2" style={{ borderRadius: 12 }}>
+              <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
               Add Diamond
             </Link>
           </div>
@@ -187,7 +232,7 @@ export default function DiamondsIndexPage() {
         {/* Success Alert */}
         {successMessage && (
           <div className="alert alert-success border-0 shadow-sm d-flex align-items-center mb-4" style={{ borderRadius: 14 }}>
-            <i className="bi bi-check-circle-fill me-2" />
+            <i className="bi bi-check-circle-fill me-2" style={{ fontSize: "1.2rem" }} />
             <div>{successMessage}</div>
             <button type="button" className="btn-close ms-auto" onClick={() => setSuccessMessage("")} />
           </div>
@@ -254,7 +299,7 @@ export default function DiamondsIndexPage() {
                   <th className="py-3 text-muted small text-uppercase text-end">Weight</th>
                   <th className="py-3 text-muted small text-uppercase text-end">Price</th>
                   <th className="py-3 text-muted small text-uppercase text-center">Status</th>
-                  <th className="py-3 text-muted small text-uppercase text-center" style={{ width: 180 }}>
+                  <th className="py-3 text-muted small text-uppercase text-center" style={{ width: 240 }}>
                     Actions
                   </th>
                 </tr>
@@ -300,30 +345,50 @@ export default function DiamondsIndexPage() {
                         <StatusPill status={d.availability} />
                       </td>
                       <td className="py-3 text-center">
-                        <div className="btn-group btn-group-sm">
-                          <Link href={`/diamonds/show/${d.id}`} className="btn btn-outline-primary" title="View">
-                            <i className="bi bi-eye" />
-                          </Link>
-                          <Link href={`/diamonds/edit/${d.id}`} className="btn btn-outline-warning" title="Edit">
-                            <i className="bi bi-pencil" />
-                          </Link>
+                        <div className="d-flex gap-2 justify-content-center">
+                          {/* View Button */}
+                          <ActionButton
+                            href={`/diamonds/show/${d.id}`}
+                            variant="outline-primary"
+                            icon="bi-eye-fill"
+                            title="View Details"
+                          />
+
+                          {/* Edit Button */}
+                          <ActionButton
+                            href={`/diamonds/edit/${d.id}`}
+                            variant="outline-warning"
+                            icon="bi-pencil-fill"
+                            title="Edit Diamond"
+                          />
+
+                          {/* Sell Button (only if available) */}
                           {d.availability === "available" && (
-                            <Link href={`/sales/create?diamond_id=${d.id}`} className="btn btn-outline-success" title="Sell">
-                              <i className="bi bi-cart-plus" />
-                            </Link>
+                            <ActionButton
+                              href={`/sales/create?diamond_id=${d.id}`}
+                              variant="outline-success"
+                              icon="bi-cart-plus-fill"
+                              title="Create Sale"
+                            />
                           )}
+
+                          {/* Payment Button (only if on terms) */}
                           {d.payment_status === "On Terms" && (
-                            <button className="btn btn-outline-dark" title="Pay" onClick={() => openPaymentModal(d.id)}>
-                              <i className="bi bi-credit-card" />
-                            </button>
+                            <ActionButton
+                              onClick={() => openPaymentModal(d.id)}
+                              variant="outline-info"
+                              icon="bi-credit-card-fill"
+                              title="Record Payment"
+                            />
                           )}
-                          <button
-                            className="btn btn-outline-danger"
-                            title="Delete"
+
+                          {/* Delete Button */}
+                          <ActionButton
                             onClick={() => handleDelete(d.id, d.certificate_number)}
-                          >
-                            <i className="bi bi-trash" />
-                          </button>
+                            variant="outline-danger"
+                            icon="bi-trash-fill"
+                            title="Delete Diamond"
+                          />
                         </div>
                       </td>
                     </tr>
@@ -332,10 +397,16 @@ export default function DiamondsIndexPage() {
               </tbody>
             </table>
           </div>
-          <div className="card-footer bg-white py-3">
-            <small className="text-muted">
-              Showing {filteredDiamonds.length} records • Prices in USD
-            </small>
+          <div className="card-footer bg-white py-3 px-4">
+            <div className="d-flex justify-content-between align-items-center">
+              <small className="text-muted">
+                Showing <span className="fw-semibold">{filteredDiamonds.length}</span> diamonds
+              </small>
+              <small className="text-muted">
+                <i className="bi bi-currency-dollar me-1" />
+                Prices in USD
+              </small>
+            </div>
           </div>
         </div>
       </div>
@@ -346,6 +417,19 @@ export default function DiamondsIndexPage() {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={handlePaymentSuccess}
       />
+
+      <style jsx global>{`
+        .btn:focus {
+          box-shadow: none !important;
+        }
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .table tbody tr:hover {
+          background-color: rgba(102, 126, 234, 0.03);
+        }
+      `}</style>
     </div>
   );
 }

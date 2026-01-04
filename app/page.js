@@ -129,6 +129,30 @@ export default function HomePage() {
   });
   const [loading, setLoading] = useState(true);
   const [recentSales, setRecentSales] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  // Get current greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  // Get today's date formatted
+  const getTodayDate = () => {
+    return new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Set mounted state on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch dashboard stats
   useEffect(() => {
@@ -185,29 +209,22 @@ export default function HomePage() {
     fetchStats();
   }, []);
 
-  // Get current greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
-
-  // Get today's date formatted
-  const getTodayDate = () => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   // Format currency
   const formatCurrency = (value) => {
     const num = parseFloat(value) || 0;
     return num.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 });
   };
+
+  // Prevent hydration mismatch by not rendering time-dependent content until mounted
+  if (!mounted) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-vh-100" style={{ backgroundColor: "#f8f9fc" }}>
