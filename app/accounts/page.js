@@ -182,12 +182,6 @@ export default function AccountExport() {
                         )}
                     </div>
 
-                    <div className="d-flex gap-2">
-                        <Link href="/expenses" className="btn btn-outline-secondary px-4" style={{ borderRadius: 10 }}>
-                            <i className="bi bi-arrow-left me-2" />
-                            Back to Expenses
-                        </Link>
-                    </div>
                 </div>
 
                 {/* Success Message */}
