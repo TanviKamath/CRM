@@ -94,13 +94,12 @@ export default function SalesIndex() {
                                             <td>${Number(sale.sale_amount).toFixed(2)}</td>
                                             <td>
                                                 <span
-                                                    className={`badge bg-${
-                                                        sale.status === "completed"
-                                                            ? "success"
-                                                            : sale.status === "pending"
+                                                    className={`badge bg-${sale.status === "completed"
+                                                        ? "success"
+                                                        : sale.status === "pending"
                                                             ? "warning"
                                                             : "danger"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {sale.status.charAt(0).toUpperCase() +
                                                         sale.status.slice(1)}

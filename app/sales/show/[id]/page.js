@@ -155,8 +155,8 @@ export default function SalesShow() {
       nextStatus === "completed"
         ? "Mark this sale as completed?"
         : nextStatus === "cancelled"
-        ? "Cancel this sale?"
-        : "Update sale status?";
+          ? "Cancel this sale?"
+          : "Update sale status?";
 
     if (!confirm(confirmText)) return;
 
@@ -465,13 +465,13 @@ export default function SalesShow() {
 
           <div className="col-lg-6">
             <SectionCard title="Sale Details" subtitle="Amounts and status" icon="bi-receipt" accent="info">
-              <InfoRow icon="bi-calendar3" label="Sale Date" value={formatDate(sale.created_at)} />
+              <InfoRow icon="bi-calendar3" label="Sale Date" value={formatDate(sale.selling_date)} />
               <InfoRow icon="bi-cash-stack" label="Sale Amount (USD)" value={formatCurrency(sale.sale_amount)} />
               <InfoRow icon="bi-percent" label="RAP Discount" value={`${formatNumber(sale.sale_rap_discount)}%`} />
               <InfoRow icon="bi-arrow-left-right" label="Conversion Rate" value={sale.conversion_rate ? formatNumber(sale.conversion_rate) : "-"} />
               <InfoRow icon="bi-currency-rupee" label="Sale Amount (INR)" value={sale.sale_amount_inr ? formatCurrency(sale.sale_amount_inr, "₹") : "-"} />
               <InfoRow icon="bi-graph-down" label="Brokerage Rate" value={sale.brokerage_rate ? `${formatNumber(sale.brokerage_rate)}%` : "-"} />
-              <InfoRow icon="bi-cash-coin" label="Brokerage Amount (USD)" value={sale.brokerage_amount ? formatCurrency(sale.brokerage_amount) : "-"} />
+              <InfoRow icon="bi-currency-rupee" label="Brokerage Amount (INR)" value={sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, "₹") : "-"} />
 
               <div className="pt-3 mt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div className="text-muted small">Status</div>

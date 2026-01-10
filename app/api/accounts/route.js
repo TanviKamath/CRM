@@ -1,5 +1,5 @@
 // app/api/accounts/route.js
-import knex from "../../lib/db";  // Fixed import path
+import knex from "../../lib/db";
 import ExcelJS from "exceljs";
 
 // Helper function to parse date range based on selection type
@@ -55,6 +55,7 @@ function getDateRange(searchParams) {
 function formatDate(date) {
     if (!date) return "";
     const d = new Date(date);
+    if (isNaN(d.getTime())) return "";
     const day = String(d.getDate()).padStart(2, "0");
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const year = d.getFullYear();
@@ -94,7 +95,9 @@ async function handleExport(searchParams) {
             );
         }
 
+        console.log("=".repeat(50));
         console.log("Exporting data from", startDate, "to", endDate);
+        console.log("=".repeat(50));
 
         // Array to hold all transactions
         let transactions = [];
@@ -174,27 +177,60 @@ async function handleExport(searchParams) {
             const salePayments = await knex("sale_payments")
                 .join("sales", "sale_payments.sale_id", "=", "sales.id")
                 .join("clients", "sales.client_id", "=", "clients.id")
-                .whereBetween("sale_payments.created_at", [
-                    `${startDate} 00:00:00`,
-                    `${endDate} 23:59:59`,
-                ])
+                .leftJoin("diamonds", "sales.diamond_id", "=", "diamonds.id")
+                .where(function () {
+                    // Use payment_date if available, otherwise created_at
+                    this.whereBetween("sale_payments.payment_date", [startDate, endDate])
+                        .orWhere(function () {
+                            this.whereNull("sale_payments.payment_date")
+                                .andWhereBetween("sale_payments.created_at", [
+                                    `${startDate} 00:00:00`,
+                                    `${endDate} 23:59:59`,
+                                ]);
+                        });
+                })
+                // ✅ Exclude advance payments (they are handled separately)
+                .where(function () {
+                    this.whereNull("sale_payments.payment_method")
+                        .orWhereNot("sale_payments.payment_method", "advance");
+                })
                 .select(
+                    "sale_payments.id as payment_id",
                     "sale_payments.created_at as date",
                     "sale_payments.payment_date",
+                    "sale_payments.payment_method",
                     "clients.company_name",
                     "clients.contact_name",
+                    "diamonds.certificate_number",
+                    "diamonds.weight",
+                    "diamonds.shape",
                     "sale_payments.payment_amount_done as amount",
-                    "sale_payments.reference"
+                    "sale_payments.reference",
+                    "sale_payments.notes"
                 );
 
             console.log("Sale payments found:", salePayments.length);
 
             salePayments.forEach((payment) => {
                 let entityName = payment.company_name || payment.contact_name || "Unknown Client";
-                if (payment.reference) {
-                    entityName += ` (Ref: ${payment.reference})`;
+
+                // Add diamond info if available
+                if (payment.certificate_number) {
+                    entityName += ` (Cert: ${payment.certificate_number})`;
+                } else if (payment.shape && payment.weight) {
+                    entityName += ` (${payment.shape} ${payment.weight}ct)`;
                 }
-                entityName += " - Sale Payment Received";
+
+                // Add reference if available
+                if (payment.reference) {
+                    entityName += ` - Ref: ${payment.reference}`;
+                }
+
+                // Add payment method
+                const methodLabel = payment.payment_method
+                    ? payment.payment_method.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                    : "Payment";
+                entityName += ` - ${methodLabel} Received`;
 
                 const date = payment.payment_date
                     ? new Date(payment.payment_date)
@@ -212,7 +248,229 @@ async function handleExport(searchParams) {
             console.error("Error fetching sale payments:", err.message);
         }
 
-        console.log("Total transactions:", transactions.length);
+        // ✅ 4. Get Advance Payments from Sales (Credits - Income)
+        try {
+            console.log("\n--- Fetching Advance Payments ---");
+
+            // Build query step by step for better debugging
+            const advanceQuery = knex("sales")
+                .leftJoin("diamonds", "sales.diamond_id", "=", "diamonds.id")
+                .leftJoin("clients", "sales.client_id", "=", "clients.id")
+                .where("sales.advance_amount", ">", 0)
+                .select(
+                    "sales.id as sale_id",
+                    "sales.selling_date",
+                    "sales.created_at",
+                    "sales.advance_amount",
+                    "sales.sale_amount",
+                    "sales.diamond_id",
+                    "sales.client_id",
+                    "diamonds.certificate_number",
+                    "diamonds.weight",  // ✅ Fixed: was 'carat', should be 'weight'
+                    "diamonds.shape",
+                    "diamonds.color",
+                    "diamonds.clarity",
+                    "clients.company_name",
+                    "clients.contact_name"
+                );
+
+            // Get ALL sales with advance amount first (for debugging)
+            const allAdvances = await advanceQuery.clone();
+            console.log("Total sales with advance > 0:", allAdvances.length);
+
+            if (allAdvances.length > 0) {
+                console.log("Sample advance record:", JSON.stringify(allAdvances[0], null, 2));
+            }
+
+            // Now filter by date range
+            // Use selling_date as primary, fallback to created_at
+            const advancePayments = await knex("sales")
+                .leftJoin("diamonds", "sales.diamond_id", "=", "diamonds.id")
+                .leftJoin("clients", "sales.client_id", "=", "clients.id")
+                .where("sales.advance_amount", ">", 0)
+                .where(function () {
+                    // Check selling_date first
+                    this.whereBetween("sales.selling_date", [startDate, endDate])
+                        // Or if selling_date is null, check created_at
+                        .orWhere(function () {
+                            this.whereNull("sales.selling_date")
+                                .andWhereBetween(knex.raw("DATE(sales.created_at)"), [startDate, endDate]);
+                        });
+                })
+                .select(
+                    "sales.id as sale_id",
+                    "sales.selling_date",
+                    "sales.created_at",
+                    "sales.advance_amount",
+                    "sales.sale_amount",
+                    "sales.payment_status",
+                    "sales.diamond_id",
+                    "sales.client_id",
+                    "diamonds.certificate_number",
+                    "diamonds.weight",  // ✅ Fixed column name
+                    "diamonds.shape",
+                    "diamonds.color",
+                    "diamonds.clarity",
+                    "clients.company_name",
+                    "clients.contact_name"
+                );
+
+            console.log("Advance payments in date range:", advancePayments.length);
+
+            advancePayments.forEach((payment, index) => {
+                console.log(`\nProcessing advance #${index + 1}:`, {
+                    sale_id: payment.sale_id,
+                    advance_amount: payment.advance_amount,
+                    selling_date: payment.selling_date,
+                    created_at: payment.created_at,
+                    client: payment.company_name
+                });
+
+                // Build client name
+                let clientName = payment.company_name || payment.contact_name || "Unknown Client";
+
+                // Build diamond description
+                let diamondInfo = "";
+                if (payment.certificate_number) {
+                    diamondInfo = `Cert: ${payment.certificate_number}`;
+                } else if (payment.shape && payment.weight) {
+                    diamondInfo = `${payment.shape} ${payment.weight}ct`;
+                    if (payment.color && payment.clarity) {
+                        diamondInfo += ` ${payment.color}/${payment.clarity}`;
+                    }
+                } else if (payment.diamond_id) {
+                    diamondInfo = `Diamond #${payment.diamond_id}`;
+                }
+
+                let entityName = clientName;
+                if (diamondInfo) {
+                    entityName += ` (${diamondInfo})`;
+                }
+                entityName += " - Advance Payment Received";
+
+                // Use selling_date if available, otherwise use created_at
+                let transactionDate;
+                if (payment.selling_date) {
+                    transactionDate = new Date(payment.selling_date);
+                } else {
+                    transactionDate = new Date(payment.created_at);
+                }
+
+                // Validate date
+                if (isNaN(transactionDate.getTime())) {
+                    console.warn(`Invalid date for sale #${payment.sale_id}, using current date`);
+                    transactionDate = new Date();
+                }
+
+                const advanceAmount = parseFloat(payment.advance_amount) || 0;
+
+                if (advanceAmount > 0) {
+                    transactions.push({
+                        date: transactionDate,
+                        entity_name: entityName,
+                        credit: advanceAmount,
+                        debit: null,
+                        type: "advance_payment",
+                    });
+
+                    console.log(`✅ Added advance transaction:`, {
+                        sale_id: payment.sale_id,
+                        date: formatDate(transactionDate),
+                        amount: advanceAmount,
+                        entity: entityName.substring(0, 50) + "..."
+                    });
+                }
+            });
+
+            console.log("--- End Advance Payments ---\n");
+
+        } catch (err) {
+            console.error("Error fetching advance payments:", err);
+            console.error("Full error stack:", err.stack);
+        }
+
+        // ✅ 5. Also check sale_payments table for advance type payments
+        try {
+            console.log("\n--- Fetching Advance Payments from sale_payments table ---");
+
+            const advanceFromPaymentsTable = await knex("sale_payments")
+                .join("sales", "sale_payments.sale_id", "=", "sales.id")
+                .join("clients", "sales.client_id", "=", "clients.id")
+                .leftJoin("diamonds", "sales.diamond_id", "=", "diamonds.id")
+                .where("sale_payments.payment_method", "=", "advance")
+                .where(function () {
+                    this.whereBetween("sale_payments.payment_date", [startDate, endDate])
+                        .orWhere(function () {
+                            this.whereNull("sale_payments.payment_date")
+                                .andWhereBetween("sale_payments.created_at", [
+                                    `${startDate} 00:00:00`,
+                                    `${endDate} 23:59:59`,
+                                ]);
+                        });
+                })
+                .select(
+                    "sale_payments.id as payment_id",
+                    "sale_payments.sale_id",
+                    "sale_payments.payment_date",
+                    "sale_payments.created_at",
+                    "sale_payments.payment_amount_done as amount",
+                    "sale_payments.notes",
+                    "diamonds.certificate_number",
+                    "diamonds.weight",
+                    "diamonds.shape",
+                    "clients.company_name",
+                    "clients.contact_name"
+                );
+
+            console.log("Advance payments from sale_payments table:", advanceFromPaymentsTable.length);
+
+            advanceFromPaymentsTable.forEach((payment) => {
+                let clientName = payment.company_name || payment.contact_name || "Unknown Client";
+
+                let diamondInfo = "";
+                if (payment.certificate_number) {
+                    diamondInfo = `Cert: ${payment.certificate_number}`;
+                } else if (payment.shape && payment.weight) {
+                    diamondInfo = `${payment.shape} ${payment.weight}ct`;
+                }
+
+                let entityName = clientName;
+                if (diamondInfo) {
+                    entityName += ` (${diamondInfo})`;
+                }
+                entityName += " - Advance Payment Received";
+
+                const transactionDate = payment.payment_date
+                    ? new Date(payment.payment_date)
+                    : new Date(payment.created_at);
+
+                transactions.push({
+                    date: transactionDate,
+                    entity_name: entityName,
+                    credit: parseFloat(payment.amount) || 0,
+                    debit: null,
+                    type: "advance_payment_record",
+                });
+
+                console.log(`✅ Added advance from sale_payments:`, {
+                    payment_id: payment.payment_id,
+                    amount: payment.amount
+                });
+            });
+
+        } catch (err) {
+            console.error("Error fetching advance from sale_payments:", err.message);
+        }
+
+        console.log("=".repeat(50));
+        console.log("TRANSACTION SUMMARY:");
+        console.log("- Expenses:", transactions.filter(t => t.type === "expense").length);
+        console.log("- Purchase Payments:", transactions.filter(t => t.type === "purchase_payment").length);
+        console.log("- Sale Payments:", transactions.filter(t => t.type === "sale_payment").length);
+        console.log("- Advance Payments (from sales):", transactions.filter(t => t.type === "advance_payment").length);
+        console.log("- Advance Payments (from records):", transactions.filter(t => t.type === "advance_payment_record").length);
+        console.log("- TOTAL:", transactions.length);
+        console.log("=".repeat(50));
 
         // Sort all transactions by date (chronological order)
         transactions.sort((a, b) => a.date - b.date);
@@ -237,10 +495,21 @@ async function handleExport(searchParams) {
         // Add empty row
         worksheet.addRow([]);
 
+        // Add summary row
+        const summaryRow = worksheet.addRow([
+            `Total Transactions: ${transactions.length}`,
+            "",
+            "",
+            "",
+            ""
+        ]);
+        summaryRow.getCell(1).font = { italic: true, color: { argb: "FF666666" } };
+        worksheet.addRow([]);
+
         // Add header row
         const headerRow = worksheet.addRow([
             "Date",
-            "Entity Name",
+            "Entity Name / Description",
             "Credit (₹)",
             "Debit (₹)",
             "Balance (₹)",
@@ -312,14 +581,17 @@ async function handleExport(searchParams) {
                         }
                     }
 
+                    // Green for credits
                     if (colNumber === 3 && cell.value !== "") {
                         cell.font = { color: { argb: "FF008000" } };
                     }
 
+                    // Red for debits
                     if (colNumber === 4 && cell.value !== "") {
                         cell.font = { color: { argb: "FFFF0000" } };
                     }
 
+                    // Balance color
                     if (colNumber === 5) {
                         const balanceValue = typeof cell.value === "number" ? cell.value : runningBalance;
                         if (balanceValue < 0) {
@@ -330,6 +602,7 @@ async function handleExport(searchParams) {
                     }
                 });
 
+                // Alternate row coloring
                 if (index % 2 === 0) {
                     row.eachCell((cell) => {
                         if (!cell.fill || cell.fill.type !== "pattern") {
@@ -341,11 +614,24 @@ async function handleExport(searchParams) {
                         }
                     });
                 }
+
+                // Highlight advance payments with a subtle green background
+                if (transaction.type === "advance_payment" || transaction.type === "advance_payment_record") {
+                    row.eachCell((cell) => {
+                        cell.fill = {
+                            type: "pattern",
+                            pattern: "solid",
+                            fgColor: { argb: "FFE2F0D9" }, // Light green
+                        };
+                    });
+                }
             });
         }
 
+        // Add empty row before totals
         worksheet.addRow([]);
 
+        // Add totals row
         const totalsRow = worksheet.addRow([
             "TOTAL",
             "",
@@ -377,11 +663,11 @@ async function handleExport(searchParams) {
         totalsRow.height = 25;
 
         // Set column widths
-        worksheet.getColumn(1).width = 15;
-        worksheet.getColumn(2).width = 55;
-        worksheet.getColumn(3).width = 18;
-        worksheet.getColumn(4).width = 18;
-        worksheet.getColumn(5).width = 18;
+        worksheet.getColumn(1).width = 15;  // Date
+        worksheet.getColumn(2).width = 60;  // Entity Name (wider for advance details)
+        worksheet.getColumn(3).width = 18;  // Credit
+        worksheet.getColumn(4).width = 18;  // Debit
+        worksheet.getColumn(5).width = 18;  // Balance
 
         // Generate Excel buffer
         const buffer = await workbook.xlsx.writeBuffer();

@@ -56,10 +56,10 @@ export async function GET(req) {
 
     // Get payment totals for each sale
     const salesWithPayments = [];
-    
+
     for (const sale of rows) {
       let totalPayments = 0;
-      
+
       // Only try to get payments if table exists
       if (paymentsTableExists) {
         try {
@@ -67,7 +67,7 @@ export async function GET(req) {
             .where("sale_id", sale.id)
             .sum("payment_amount_done as total")
             .first();
-          
+
           totalPayments = parseFloat(paymentResult?.total) || 0;
         } catch (e) {
           // Table might not exist yet, continue without payments
@@ -105,7 +105,7 @@ export async function GET(req) {
     );
   } catch (e) {
     console.error("Error fetching sales:", e);
-    return new Response(JSON.stringify({ error: e.message }), { 
+    return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
@@ -138,12 +138,12 @@ export async function POST(req) {
     // Validate required fields
     if (!diamond_id || !client_id) {
       return new Response(
-        JSON.stringify({ error: "Diamond and Client are required" }), 
+        JSON.stringify({ error: "Diamond and Client are required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Prepare insert data
+    // Prepare insert data - include ALL fields directly (no conditional checks)
     const insertData = {
       diamond_id,
       client_id,
@@ -157,23 +157,15 @@ export async function POST(req) {
       brokerage_amount: brokerage_amount || null,
       notes: notes || null,
       created_at: new Date(),
+      // ✅ Include payment fields DIRECTLY - no conditional check needed
+      selling_date: selling_date || new Date().toISOString().split("T")[0],
+      payment_status: payment_status || "on_terms",
+      terms_days: terms_days || 30,
+      advance_amount: advance_amount || 0,
+      due_date: due_date || null,
     };
 
-    // Add optional payment fields if they exist in schema
-    try {
-      // Check if columns exist before adding them
-      const hasSellingDate = await knex.schema.hasColumn("sales", "selling_date");
-      if (hasSellingDate) {
-        insertData.selling_date = selling_date || new Date().toISOString().split("T")[0];
-        insertData.payment_status = payment_status || "on_terms";
-        insertData.terms_days = terms_days || 30;
-        insertData.advance_amount = advance_amount || 0;
-        insertData.due_date = due_date || null;
-      }
-    } catch (e) {
-      // Columns don't exist, continue without them
-      console.log("Payment columns not found, skipping");
-    }
+    console.log("Inserting sale with data:", insertData); // Debug log
 
     // Insert sale
     const [id] = await knex("sales").insert(insertData);
@@ -195,7 +187,6 @@ export async function POST(req) {
           created_at: new Date(),
         });
       } catch (e) {
-        // sale_payments table might not exist
         console.log("Could not create advance payment record:", e.message);
       }
     }
@@ -206,7 +197,7 @@ export async function POST(req) {
   } catch (e) {
     console.error("Error creating sale:", e);
     return new Response(
-      JSON.stringify({ error: e.message }), 
+      JSON.stringify({ error: e.message }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }

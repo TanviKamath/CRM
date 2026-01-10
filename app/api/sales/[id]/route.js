@@ -26,7 +26,7 @@ export async function GET(req, { params }) {
 
     if (!sale) {
       return new Response(
-        JSON.stringify({ error: "Sale not found" }), 
+        JSON.stringify({ error: "Sale not found" }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -68,7 +68,7 @@ export async function GET(req, { params }) {
   } catch (e) {
     console.error("Error fetching sale:", e);
     return new Response(
-      JSON.stringify({ error: e.message }), 
+      JSON.stringify({ error: e.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -84,14 +84,14 @@ export async function PUT(req, { params }) {
     const existing = await knex("sales").where("id", id).first();
     if (!existing) {
       return new Response(
-        JSON.stringify({ error: "Sale not found" }), 
+        JSON.stringify({ error: "Sale not found" }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
 
     // Prepare update data
     const updateData = { updated_at: new Date() };
-    
+
     const allowedFields = [
       "diamond_id",
       "client_id",
@@ -124,7 +124,7 @@ export async function PUT(req, { params }) {
   } catch (e) {
     console.error("Error updating sale:", e);
     return new Response(
-      JSON.stringify({ error: e.message }), 
+      JSON.stringify({ error: e.message }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -139,7 +139,7 @@ export async function DELETE(req, { params }) {
 
     if (!sale) {
       return new Response(
-        JSON.stringify({ error: "Sale not found" }), 
+        JSON.stringify({ error: "Sale not found" }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -165,7 +165,7 @@ export async function DELETE(req, { params }) {
   } catch (e) {
     console.error("Error deleting sale:", e);
     return new Response(
-      JSON.stringify({ error: e.message }), 
+      JSON.stringify({ error: e.message }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordSalePaymentModal from "./RecordSalePaymentModal";
-
+import { generateInvoicePDF } from "../lib/generateInvoice";
 function StatusPill({ status }) {
   const map = {
     pending: { bg: "warning", text: "Pending", icon: "bi-clock", textClass: "text-dark" },
@@ -57,7 +57,7 @@ function StatPill({ icon, label, value, tone = "info" }) {
 }
 
 // Reusable Action Button Component with bigger icons
-function ActionButton({ href, onClick, variant, icon, title, disabled = false }) {
+function ActionButton({ href, onClick, variant, icon, title, disabled = false, loading = false }) {
   const baseStyle = {
     borderRadius: 10,
     width: 42,
@@ -69,7 +69,9 @@ function ActionButton({ href, onClick, variant, icon, title, disabled = false })
     transition: "all 0.2s ease",
   };
 
-  const content = (
+  const content = loading ? (
+    <span className="spinner-border spinner-border-sm" role="status" />
+  ) : (
     <i className={`bi ${icon}`} style={{ fontSize: "1.1rem" }} />
   );
 
@@ -93,7 +95,7 @@ function ActionButton({ href, onClick, variant, icon, title, disabled = false })
       style={baseStyle}
       title={title}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
     >
       {content}
     </button>
@@ -111,6 +113,9 @@ export default function SalesIndex() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState(null);
 
+  // Invoice generation state
+  const [generatingInvoice, setGeneratingInvoice] = useState(null);
+
   // Search
   const [q, setQ] = useState("");
 
@@ -126,7 +131,7 @@ export default function SalesIndex() {
 
       const res = await fetch(url);
       const json = await res.json();
-      
+
       const data = Array.isArray(json) ? json : json.data || [];
       setSales(data);
     } catch (err) {
@@ -172,6 +177,33 @@ export default function SalesIndex() {
     setSuccessMessage("Payment recorded successfully!");
     setPaymentModalOpen(false);
     fetchSales();
+  };
+
+  // Generate Invoice Handler
+  const handleGenerateInvoice = async (saleId) => {
+    setGeneratingInvoice(saleId);
+
+    try {
+      // Fetch from invoice endpoint (separate from main sale route)
+      const response = await fetch(`/api/sales/${saleId}/invoice`);
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to fetch invoice data");
+      }
+
+      const sale = await response.json();
+
+      // Generate PDF
+      const invoiceNo = generateInvoicePDF(sale);
+
+      setSuccessMessage(`Invoice ${invoiceNo} downloaded!`);
+    } catch (err) {
+      console.error("Invoice error:", err);
+      alert(err.message || "Failed to generate invoice");
+    } finally {
+      setGeneratingInvoice(null);
+    }
   };
 
   const filteredSales = useMemo(() => {
@@ -361,7 +393,7 @@ export default function SalesIndex() {
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING</th>
                     <th className="py-3 text-muted text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>STATUS</th>
-                    <th className="py-3 text-muted text-center" style={{ width: 220, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
+                    <th className="py-3 text-muted text-center" style={{ width: 260, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
                   </tr>
                 </thead>
 
@@ -411,8 +443,8 @@ export default function SalesIndex() {
                               {sale.selling_date
                                 ? new Date(sale.selling_date).toLocaleDateString()
                                 : sale.created_at
-                                ? new Date(sale.created_at).toLocaleDateString()
-                                : "-"}
+                                  ? new Date(sale.created_at).toLocaleDateString()
+                                  : "-"}
                             </div>
                           </td>
 
@@ -476,6 +508,16 @@ export default function SalesIndex() {
                                 variant="outline-warning"
                                 icon="bi-pencil-fill"
                                 title="Edit Sale"
+                              />
+
+                              {/* Invoice Button */}
+                              <ActionButton
+                                onClick={() => handleGenerateInvoice(sale.id)}
+                                variant="outline-primary"
+                                icon="bi-file-earmark-pdf-fill"
+                                title="Download Invoice"
+                                loading={generatingInvoice === sale.id}
+                                disabled={generatingInvoice === sale.id}
                               />
 
                               {/* Record Payment Button */}
