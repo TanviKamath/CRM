@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordSalePaymentModal from "./RecordSalePaymentModal";
 import { generateInvoicePDF } from "../lib/generateInvoice";
+
 function StatusPill({ status }) {
   const map = {
     pending: { bg: "warning", text: "Pending", icon: "bi-clock", textClass: "text-dark" },
@@ -40,10 +41,18 @@ function PaymentStatusPill({ status, outstanding }) {
   );
 }
 
-const formatCurrency = (value, symbol = "$") => {
+// Format currency in INR
+const formatINR = (value) => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
-  return Number.isNaN(num) ? "-" : `${symbol}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return Number.isNaN(num) ? "-" : `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
+// Format currency in USD (for reference display)
+const formatUSD = (value) => {
+  if (value === null || value === undefined || value === "") return "-";
+  const num = parseFloat(value);
+  return Number.isNaN(num) ? "-" : `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 function StatPill({ icon, label, value, tone = "info" }) {
@@ -213,7 +222,7 @@ export default function SalesIndex() {
     return sales.filter((s) => {
       const diamondCert = s?.diamond?.certificate_number || s?.diamond_certificate || "";
       const clientName = s?.client?.company_name || s?.client_company || "";
-      const hay = [String(s.id ?? ""), diamondCert, clientName, String(s.sale_amount ?? ""), s.status]
+      const hay = [String(s.id ?? ""), diamondCert, clientName, String(s.sale_amount_inr ?? ""), s.status]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -221,22 +230,23 @@ export default function SalesIndex() {
     });
   }, [sales, q]);
 
+  // Calculate totals in INR
   const totals = useMemo(() => {
-    let usd = 0;
-    let outstanding = 0;
-    let received = 0;
+    let totalInr = 0;
+    let outstandingInr = 0;
+    let receivedInr = 0;
 
     for (const s of filteredSales) {
-      const amount = parseFloat(s.sale_amount) || 0;
-      const totalReceived = parseFloat(s.total_received) || 0;
-      const saleOutstanding = Math.max(0, amount - totalReceived);
+      const amountInr = parseFloat(s.sale_amount_inr) || 0;
+      const totalReceivedInr = parseFloat(s.total_received_inr) || 0;
+      const saleOutstandingInr = Math.max(0, amountInr - totalReceivedInr);
 
-      usd += amount;
-      outstanding += saleOutstanding;
-      received += totalReceived;
+      totalInr += amountInr;
+      outstandingInr += saleOutstandingInr;
+      receivedInr += totalReceivedInr;
     }
 
-    return { usd, count: filteredSales.length, outstanding, received };
+    return { totalInr, count: filteredSales.length, outstandingInr, receivedInr };
   }, [filteredSales]);
 
   const setFilter = (key, value) => {
@@ -275,9 +285,9 @@ export default function SalesIndex() {
 
             <div className="mt-3 d-flex flex-wrap gap-2">
               <StatPill icon="bi-collection" label="Sales" value={totals.count} tone="primary" />
-              <StatPill icon="bi-cash-stack" label="Total" value={formatCurrency(totals.usd)} tone="info" />
-              <StatPill icon="bi-check-circle" label="Received" value={formatCurrency(totals.received)} tone="success" />
-              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatCurrency(totals.outstanding)} tone="warning" />
+              <StatPill icon="bi-cash-stack" label="Total" value={formatINR(totals.totalInr)} tone="info" />
+              <StatPill icon="bi-check-circle" label="Received" value={formatINR(totals.receivedInr)} tone="success" />
+              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatINR(totals.outstandingInr)} tone="warning" />
             </div>
           </div>
 
@@ -389,9 +399,9 @@ export default function SalesIndex() {
                     <th className="px-4 py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>SALE</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>DIAMOND</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT (₹)</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED (₹)</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING (₹)</th>
                     <th className="py-3 text-muted text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>STATUS</th>
                     <th className="py-3 text-muted text-center" style={{ width: 260, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
                   </tr>
@@ -428,9 +438,11 @@ export default function SalesIndex() {
                     filteredSales.map((sale) => {
                       const diamondCert = sale?.diamond?.certificate_number || sale?.diamond_certificate || "-";
                       const clientName = sale?.client?.company_name || sale?.client_company || "-";
-                      const saleAmount = parseFloat(sale.sale_amount) || 0;
-                      const totalReceived = parseFloat(sale.total_received) || 0;
-                      const outstanding = Math.max(0, saleAmount - totalReceived);
+
+                      // Use INR values for payment tracking
+                      const saleAmountInr = parseFloat(sale.sale_amount_inr) || 0;
+                      const totalReceivedInr = parseFloat(sale.total_received_inr) || 0;
+                      const outstandingInr = Math.max(0, saleAmountInr - totalReceivedInr);
 
                       return (
                         <tr key={sale.id}>
@@ -471,24 +483,26 @@ export default function SalesIndex() {
                           </td>
 
                           <td className="py-3 text-end">
-                            <div className="fw-semibold">{formatCurrency(saleAmount)}</div>
-                            {sale.sale_amount_inr && <div className="text-muted small">{formatCurrency(sale.sale_amount_inr, "₹")}</div>}
+                            <div className="fw-semibold">{formatINR(saleAmountInr)}</div>
+                            {sale.sale_amount && (
+                              <div className="text-muted small">{formatUSD(sale.sale_amount)}</div>
+                            )}
                           </td>
 
                           <td className="py-3 text-end">
-                            <span className="text-success fw-medium">{formatCurrency(totalReceived)}</span>
+                            <span className="text-success fw-medium">{formatINR(totalReceivedInr)}</span>
                           </td>
 
                           <td className="py-3 text-end">
-                            <span className={outstanding > 0 ? "text-warning fw-semibold" : "text-success"}>
-                              {formatCurrency(outstanding)}
+                            <span className={outstandingInr > 0 ? "text-warning fw-semibold" : "text-success"}>
+                              {formatINR(outstandingInr)}
                             </span>
                           </td>
 
                           <td className="py-3 text-center">
                             <div className="d-flex flex-column align-items-center gap-1">
                               <StatusPill status={sale.status} />
-                              <PaymentStatusPill status={sale.payment_status} outstanding={outstanding} />
+                              <PaymentStatusPill status={sale.payment_status} outstanding={outstandingInr} />
                             </div>
                           </td>
 
@@ -521,7 +535,7 @@ export default function SalesIndex() {
                               />
 
                               {/* Record Payment Button */}
-                              {outstanding > 0 && sale.status !== "cancelled" && (
+                              {outstandingInr > 0 && sale.status !== "cancelled" && (
                                 <ActionButton
                                   onClick={() => handleRecordPayment(sale.id)}
                                   variant="success"
@@ -558,11 +572,11 @@ export default function SalesIndex() {
               <div className="d-flex gap-3 text-muted small">
                 <span>
                   <i className="bi bi-check-circle text-success me-1" />
-                  Collected: <span className="fw-semibold text-success">{formatCurrency(totals.received)}</span>
+                  Collected: <span className="fw-semibold text-success">{formatINR(totals.receivedInr)}</span>
                 </span>
                 <span>
                   <i className="bi bi-hourglass-split text-warning me-1" />
-                  Pending: <span className="fw-semibold text-warning">{formatCurrency(totals.outstanding)}</span>
+                  Pending: <span className="fw-semibold text-warning">{formatINR(totals.outstandingInr)}</span>
                 </span>
               </div>
             </div>

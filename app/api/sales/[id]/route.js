@@ -46,6 +46,7 @@ export async function GET(req, { params }) {
     const advanceAmount = parseFloat(sale.advance_amount) || 0;
     const totalReceived = advanceAmount + totalPayments;
 
+    // In the response object, add broker:
     const response = {
       ...sale,
       total_received: totalReceived,
@@ -61,6 +62,10 @@ export async function GET(req, { params }) {
         id: sale.client_id,
         company_name: sale.client_company,
         contact_name: sale.client_contact,
+      },
+      broker: {
+        id: sale.broker_id,
+        name: sale.broker_name,
       },
     };
 

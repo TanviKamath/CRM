@@ -385,8 +385,8 @@ export default function SalesShow() {
                     <i className="bi bi-percent text-warning" />
                   </div>
                   <div>
-                    <div className="text-muted small">Brokerage (USD)</div>
-                    <div className="fw-bold fs-5">{sale.brokerage_amount ? formatCurrency(sale.brokerage_amount) : "-"}</div>
+                    <div className="text-muted small">Brokerage (INR)</div>
+                    <div className="fw-bold fs-5">{sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, "₹") : "-"}</div>
                   </div>
                 </div>
                 <div className="text-muted small mt-2">

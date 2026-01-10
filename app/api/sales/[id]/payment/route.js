@@ -28,21 +28,30 @@ export async function GET(req, { params }) {
       return Response.json({ message: "Sale not found" }, { status: 404 });
     }
 
-    // Get all payments for this sale
+    // Get all payments for this sale (all stored in INR)
     const payments = await knex("sale_payments")
       .where("sale_id", id)
       .orderBy("payment_date", "desc")
       .orderBy("created_at", "desc");
 
-    // Calculate totals
-    const advanceAmount = parseFloat(sale.advance_amount) || 0;
-    const paymentsTotal = payments.reduce(
+    // Calculate totals in INR
+    const advanceAmountInr = parseFloat(sale.advance_amount) || 0;
+
+    // Sum all payments (includes advance if recorded as payment)
+    const paymentsTotalInr = payments.reduce(
       (sum, p) => sum + parseFloat(p.payment_amount_done || 0),
       0
     );
-    const totalReceived = advanceAmount + paymentsTotal;
-    const saleAmount = parseFloat(sale.sale_amount) || 0;
-    const outstanding = Math.max(0, saleAmount - totalReceived);
+
+    // Total received is sum of all payments
+    // Advance is already included in payments table
+    const totalReceivedInr = paymentsTotalInr;
+
+    // If no payments but advance exists in sales table, use that
+    const finalReceivedInr = totalReceivedInr > 0 ? totalReceivedInr : advanceAmountInr;
+
+    const saleAmountInr = parseFloat(sale.sale_amount_inr) || 0;
+    const outstandingInr = Math.max(0, saleAmountInr - finalReceivedInr);
 
     // Calculate due date if not set
     let dueDate = sale.due_date;
@@ -55,15 +64,16 @@ export async function GET(req, { params }) {
     return Response.json({
       sale_id: sale.id,
       sale_amount: sale.sale_amount,
-      sale_amount_inr: sale.sale_amount_inr,
+      sale_amount_inr: saleAmountInr,
       selling_date: sale.selling_date,
       terms_days: sale.terms_days || 30,
       due_date: dueDate,
       status: sale.status,
       payment_status: sale.payment_status || "on_terms",
-      advance_amount: advanceAmount,
-      total_received: totalReceived,
-      outstanding: outstanding,
+      // INR values
+      advance_amount_inr: advanceAmountInr,
+      total_received_inr: finalReceivedInr,
+      outstanding_inr: outstandingInr,
       diamond: {
         id: sale.diamond_id,
         certificate_number: sale.diamond_certificate,
@@ -86,7 +96,7 @@ export async function GET(req, { params }) {
   }
 }
 
-// POST - Record a new payment
+// POST - Record a new payment (in INR)
 export async function POST(req, { params }) {
   try {
     const { id } = params;
@@ -103,27 +113,29 @@ export async function POST(req, { params }) {
       return Response.json({ message: "Sale not found" }, { status: 404 });
     }
 
-    const saleAmount = parseFloat(sale.sale_amount) || 0;
-    const advanceAmount = parseFloat(sale.advance_amount) || 0;
+    const saleAmountInr = parseFloat(sale.sale_amount_inr) || 0;
+    const advanceAmountInr = parseFloat(sale.advance_amount) || 0;
 
-    // Get existing payments total
+    // Get existing payments total (all in INR)
     const [paymentResult] = await knex("sale_payments")
       .where("sale_id", id)
       .sum("payment_amount_done as total");
 
-    const paymentsTotal = parseFloat(paymentResult?.total) || 0;
-    const totalReceived = advanceAmount + paymentsTotal;
-    const currentOutstanding = saleAmount - totalReceived;
+    const paymentsTotalInr = parseFloat(paymentResult?.total) || 0;
+
+    // If payments exist, use that total; otherwise use advance from sales table
+    const totalReceivedInr = paymentsTotalInr > 0 ? paymentsTotalInr : advanceAmountInr;
+    const currentOutstandingInr = saleAmountInr - totalReceivedInr;
 
     // Validate payment doesn't exceed outstanding
-    if (parseFloat(amount) > currentOutstanding + 0.01) {
+    if (parseFloat(amount) > currentOutstandingInr + 0.01) {
       return Response.json(
-        { message: `Payment amount exceeds outstanding balance of $${currentOutstanding.toFixed(2)}` },
+        { message: `Payment amount exceeds outstanding balance of ₹${currentOutstandingInr.toFixed(2)}` },
         { status: 400 }
       );
     }
 
-    // Insert payment record
+    // Insert payment record (amount is in INR)
     const [paymentId] = await knex("sale_payments").insert({
       sale_id: id,
       payment_amount_done: amount,
@@ -135,13 +147,13 @@ export async function POST(req, { params }) {
     });
 
     // Calculate new outstanding
-    const newOutstanding = currentOutstanding - parseFloat(amount);
+    const newOutstandingInr = currentOutstandingInr - parseFloat(amount);
 
     // Update sale payment status
     let newPaymentStatus = sale.payment_status;
-    if (newOutstanding <= 0.01) {
+    if (newOutstandingInr <= 0.01) {
       newPaymentStatus = "completed";
-    } else if (totalReceived + parseFloat(amount) > advanceAmount) {
+    } else if (totalReceivedInr + parseFloat(amount) > 0) {
       newPaymentStatus = "partial";
     }
 
@@ -152,7 +164,7 @@ export async function POST(req, { params }) {
     return Response.json({
       message: "Payment recorded successfully",
       payment_id: paymentId,
-      new_outstanding: newOutstanding,
+      new_outstanding_inr: newOutstandingInr,
       payment_status: newPaymentStatus,
     });
   } catch (e) {

@@ -46,41 +46,49 @@ export async function GET(req) {
 
     const rows = await query;
 
-    // Check if sale_payments table exists
-    let paymentsTableExists = true;
-    try {
-      await knex.schema.hasTable("sale_payments");
-    } catch (e) {
-      paymentsTableExists = false;
-    }
-
     // Get payment totals for each sale
     const salesWithPayments = [];
 
     for (const sale of rows) {
-      let totalPayments = 0;
+      let totalPaymentsInr = 0;
 
-      // Only try to get payments if table exists
-      if (paymentsTableExists) {
-        try {
-          const paymentResult = await knex("sale_payments")
-            .where("sale_id", sale.id)
-            .sum("payment_amount_done as total")
-            .first();
+      // Get payments from sale_payments table
+      try {
+        const paymentResult = await knex("sale_payments")
+          .where("sale_id", sale.id)
+          .sum("payment_amount_done as total")
+          .first();
 
-          totalPayments = parseFloat(paymentResult?.total) || 0;
-        } catch (e) {
-          // Table might not exist yet, continue without payments
-          console.log("sale_payments table not found, skipping payment totals");
-        }
+        // Payments are stored in INR
+        totalPaymentsInr = parseFloat(paymentResult?.total) || 0;
+      } catch (e) {
+        // Table might not exist yet, continue without payments
+        console.log("sale_payments table error:", e.message);
       }
 
-      const advanceAmount = parseFloat(sale.advance_amount) || 0;
-      const totalReceived = advanceAmount + totalPayments;
+      // Advance amount is stored in INR (in sales table)
+      const advanceAmountInr = parseFloat(sale.advance_amount) || 0;
+
+      // Total received = advance + all payment installments
+      // But advance is already recorded in sale_payments as first payment
+      // So we just use totalPaymentsInr which includes advance
+      const totalReceivedInr = totalPaymentsInr;
+
+      // If no payments recorded but advance exists, use advance
+      const finalReceivedInr = totalReceivedInr > 0 ? totalReceivedInr : advanceAmountInr;
+
+      // Sale amount in INR for outstanding calculation
+      const saleAmountInr = parseFloat(sale.sale_amount_inr) || 0;
+      const outstandingInr = Math.max(0, saleAmountInr - finalReceivedInr);
 
       salesWithPayments.push({
         ...sale,
-        total_received: totalReceived,
+        // INR fields for payment tracking
+        total_received_inr: finalReceivedInr,
+        outstanding_inr: outstandingInr,
+        advance_amount_inr: advanceAmountInr,
+        // Legacy field for backward compatibility
+        total_received: finalReceivedInr,
         diamond: {
           id: sale.diamond_id,
           certificate_number: sale.diamond_certificate,
@@ -143,7 +151,7 @@ export async function POST(req) {
       );
     }
 
-    // Prepare insert data - include ALL fields directly (no conditional checks)
+    // Prepare insert data
     const insertData = {
       diamond_id,
       client_id,
@@ -157,15 +165,15 @@ export async function POST(req) {
       brokerage_amount: brokerage_amount || null,
       notes: notes || null,
       created_at: new Date(),
-      // ✅ Include payment fields DIRECTLY - no conditional check needed
+      // Payment fields - advance_amount is stored in INR
       selling_date: selling_date || new Date().toISOString().split("T")[0],
       payment_status: payment_status || "on_terms",
       terms_days: terms_days || 30,
-      advance_amount: advance_amount || 0,
+      advance_amount: advance_amount || 0, // Stored in INR
       due_date: due_date || null,
     };
 
-    console.log("Inserting sale with data:", insertData); // Debug log
+    console.log("Inserting sale with data:", insertData);
 
     // Insert sale
     const [id] = await knex("sales").insert(insertData);
@@ -175,12 +183,12 @@ export async function POST(req) {
       .where("id", diamond_id)
       .update({ availability: "sold", updated_at: new Date() });
 
-    // If there's an advance amount, create initial payment record
+    // If there's an advance amount, create initial payment record (in INR)
     if (advance_amount && parseFloat(advance_amount) > 0) {
       try {
         await knex("sale_payments").insert({
           sale_id: id,
-          payment_amount_done: advance_amount,
+          payment_amount_done: advance_amount, // Amount in INR
           payment_date: selling_date || new Date(),
           payment_method: "advance",
           notes: "Initial advance payment",

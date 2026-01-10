@@ -50,7 +50,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
             return;
         }
 
-        const currentOutstanding = parseFloat(data?.outstanding) || 0;
+        const currentOutstanding = parseFloat(data?.outstanding_inr) || 0;
         if (paymentAmount > currentOutstanding + 0.01) {
             setError("Payment cannot exceed outstanding amount");
             return;
@@ -93,15 +93,15 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
-    const formatCurrency = (value, symbol = "$") => {
+    const formatCurrency = (value) => {
         const num = parseFloat(value) || 0;
-        return `${symbol}${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     const isOverdue = () => {
         if (!data?.due_date) return false;
         const dueDate = new Date(data.due_date);
-        return new Date() > dueDate && parseFloat(data?.outstanding) > 0;
+        return new Date() > dueDate && parseFloat(data?.outstanding_inr) > 0;
     };
 
     const getDaysInfo = () => {
@@ -117,27 +117,28 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
 
     if (!show) return null;
 
-    const saleAmount = parseFloat(data?.sale_amount) || 0;
-    const advanceAmount = parseFloat(data?.advance_amount) || 0;
-    const totalReceived = parseFloat(data?.total_received) || 0;
-    const currentOutstanding = parseFloat(data?.outstanding) || 0;
+    // Use INR values from API
+    const saleAmountInr = parseFloat(data?.sale_amount_inr) || 0;
+    const advanceAmountInr = parseFloat(data?.advance_amount_inr) || 0;
+    const totalReceivedInr = parseFloat(data?.total_received_inr) || 0;
+    const currentOutstandingInr = parseFloat(data?.outstanding_inr) || 0;
     const newPayment = parseFloat(amount) || 0;
-    const remainingOutstanding = currentOutstanding - newPayment;
-    const paymentProgress = saleAmount > 0 ? ((totalReceived / saleAmount) * 100) : 0;
+    const remainingOutstanding = currentOutstandingInr - newPayment;
+    const paymentProgress = saleAmountInr > 0 ? ((totalReceivedInr / saleAmountInr) * 100) : 0;
     const daysInfo = getDaysInfo();
 
     return (
         <>
             {/* Backdrop */}
-            <div 
-                className="position-fixed top-0 start-0 w-100 h-100" 
+            <div
+                className="position-fixed top-0 start-0 w-100 h-100"
                 style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 1040 }}
                 onClick={onClose}
             />
 
             {/* Modal */}
-            <div 
-                className="position-fixed top-50 start-50 translate-middle" 
+            <div
+                className="position-fixed top-50 start-50 translate-middle"
                 style={{ zIndex: 1050, width: "100%", maxWidth: 600, maxHeight: "90vh", overflow: "auto" }}
             >
                 <div className="bg-white shadow-lg" style={{ borderRadius: 20, overflow: "hidden", animation: "modalSlideIn 0.3s ease-out" }}>
@@ -215,9 +216,9 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         </span>
                                     </div>
                                     <div className="progress mb-2" style={{ height: 10, borderRadius: 999, backgroundColor: "rgba(16,185,129,0.12)" }}>
-                                        <div 
-                                            className="progress-bar" 
-                                            style={{ 
+                                        <div
+                                            className="progress-bar"
+                                            style={{
                                                 width: `${Math.min(paymentProgress, 100)}%`,
                                                 borderRadius: 999,
                                                 background: "linear-gradient(90deg, #10b981 0%, #059669 100%)"
@@ -225,8 +226,8 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         />
                                     </div>
                                     <div className="d-flex justify-content-between small">
-                                        <span className="text-success fw-medium">{formatCurrency(totalReceived)} received</span>
-                                        <span className="text-muted">of {formatCurrency(saleAmount)}</span>
+                                        <span className="text-success fw-medium">{formatCurrency(totalReceivedInr)} received</span>
+                                        <span className="text-muted">of {formatCurrency(saleAmountInr)}</span>
                                     </div>
                                 </div>
 
@@ -235,25 +236,25 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                     <div className="col-4">
                                         <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.12)" }}>
                                             <div className="text-muted small mb-1">Sale Amount</div>
-                                            <div className="fw-bold text-info">{formatCurrency(saleAmount)}</div>
+                                            <div className="fw-bold text-info">{formatCurrency(saleAmountInr)}</div>
                                         </div>
                                     </div>
                                     <div className="col-4">
                                         <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.12)" }}>
                                             <div className="text-muted small mb-1">Received</div>
-                                            <div className="fw-bold text-success">{formatCurrency(totalReceived)}</div>
-                                            {advanceAmount > 0 && (
+                                            <div className="fw-bold text-success">{formatCurrency(totalReceivedInr)}</div>
+                                            {advanceAmountInr > 0 && (
                                                 <div className="text-muted" style={{ fontSize: "0.7rem" }}>
-                                                    (Adv: {formatCurrency(advanceAmount)})
+                                                    (Adv: {formatCurrency(advanceAmountInr)})
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                     <div className="col-4">
-                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: currentOutstanding > 0 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.06)", border: `1px solid ${currentOutstanding > 0 ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.12)"}` }}>
+                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: currentOutstandingInr > 0 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.06)", border: `1px solid ${currentOutstandingInr > 0 ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.12)"}` }}>
                                             <div className="text-muted small mb-1">Outstanding</div>
-                                            <div className="fw-bold" style={{ color: currentOutstanding > 0 ? "#f59e0b" : "#10b981" }}>
-                                                {formatCurrency(currentOutstanding)}
+                                            <div className="fw-bold" style={{ color: currentOutstandingInr > 0 ? "#f59e0b" : "#10b981" }}>
+                                                {formatCurrency(currentOutstandingInr)}
                                             </div>
                                         </div>
                                     </div>
@@ -295,16 +296,16 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 {/* Payment Amount */}
                                 <div className="mb-3">
                                     <label className="form-label fw-medium">
-                                        <i className="bi bi-currency-dollar me-2 text-success" />
+                                        <i className="bi bi-currency-rupee me-2 text-success" />
                                         Amount Received <span className="text-danger">*</span>
                                     </label>
                                     <div className="input-group input-group-lg" style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-                                        <span className="input-group-text bg-white border-0" style={{ fontSize: "1.2rem" }}>$</span>
+                                        <span className="input-group-text bg-white border-0" style={{ fontSize: "1.2rem" }}>₹</span>
                                         <input
                                             type="number"
                                             step="0.01"
                                             min="0.01"
-                                            max={currentOutstanding}
+                                            max={currentOutstandingInr}
                                             className="form-control border-0"
                                             value={amount}
                                             onChange={(e) => setAmount(e.target.value)}
@@ -321,7 +322,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                                 key={pct}
                                                 type="button"
                                                 className="btn btn-sm btn-outline-secondary"
-                                                onClick={() => setAmount((currentOutstanding * pct / 100).toFixed(2))}
+                                                onClick={() => setAmount((currentOutstandingInr * pct / 100).toFixed(2))}
                                                 style={{ borderRadius: 8, fontSize: "0.8rem" }}
                                             >
                                                 {pct}%
@@ -330,7 +331,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         <button
                                             type="button"
                                             className="btn btn-sm btn-outline-success"
-                                            onClick={() => setAmount(currentOutstanding.toFixed(2))}
+                                            onClick={() => setAmount(currentOutstandingInr.toFixed(2))}
                                             style={{ borderRadius: 8, fontSize: "0.8rem" }}
                                         >
                                             Full Amount
@@ -438,8 +439,8 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                     <button type="button" className="btn btn-light flex-grow-1 py-3" onClick={onClose} style={{ borderRadius: 12 }}>
                                         Cancel
                                     </button>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="btn flex-grow-1 py-3 text-white"
                                         disabled={loading || remainingOutstanding < 0 || !amount}
                                         style={{ borderRadius: 12, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", border: "none" }}
