@@ -14,32 +14,44 @@ export default function EditDiamond() {
   const [diamond, setDiamond] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [brokers, setBrokers] = useState([]);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchDiamond = async () => {
+    const fetchAll = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const res = await fetch(`/api/diamonds/${id}`);
-        if (!res.ok) {
-          const errorData = await res.json();
+        const [resDiamond, resClients, resBrokers] = await Promise.all([
+          fetch(`/api/diamonds/${id}`),
+          fetch("/api/clients"),
+          fetch("/api/brokers"),
+        ]);
+
+        if (!resDiamond.ok) {
+          const errorData = await resDiamond.json();
           throw new Error(errorData.error || "Diamond not found");
         }
-        const data = await res.json();
-        console.log("Fetched diamond data:", data); // Debug log
-        setDiamond(data);
+
+        const dataDiamond = await resDiamond.json();
+        const dataClients = await resClients.json();
+        const dataBrokers = await resBrokers.json();
+
+        setDiamond(dataDiamond);
+        setClients(Array.isArray(dataClients) ? dataClients : dataClients.data || []);
+        setBrokers(Array.isArray(dataBrokers) ? dataBrokers : dataBrokers.data || []);
       } catch (err) {
-        console.error("Error fetching diamond:", err);
+        console.error("Error fetching data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDiamond();
+    fetchAll();
   }, [id]);
 
   if (loading) {
@@ -219,6 +231,8 @@ export default function EditDiamond() {
               <div className="card-body p-4 p-md-5 bg-white">
                 <DiamondsForm
                   initial={diamond}
+                  clients={clients}
+                  brokers={brokers}
                   isEdit={true}
                   diamondId={id}
                   onSuccess={() => {

@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordPaymentModal from "./RecordPaymentModal";
+import TransferModal from "./TransferModal";
 
 function StatusPill({ status }) {
   const map = {
@@ -12,6 +13,7 @@ function StatusPill({ status }) {
     sold: { bg: "danger", text: "Sold", icon: "bi-bag-check" },
     memo: { bg: "warning", text: "On Memo", icon: "bi-hourglass-split", textClass: "text-dark" },
     subject_to_sale: { bg: "info", text: "Subject to Sale", icon: "bi-info-circle" },
+    at_lab: { bg: "secondary", text: "At Lab", icon: "bi-building-up" },
   };
   const s = map[status] || { bg: "secondary", text: status || "Unknown", icon: "bi-question-circle" };
 
@@ -89,6 +91,8 @@ export default function DiamondsIndexPage() {
   const [diamonds, setDiamonds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   // Search state
   const [q, setQ] = useState("");
@@ -96,6 +100,9 @@ export default function DiamondsIndexPage() {
   // Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedDiamondId, setSelectedDiamondId] = useState(null);
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   const activeStatus = searchParams.get("availability") || "";
 
@@ -107,6 +114,9 @@ export default function DiamondsIndexPage() {
       if (!res.ok) throw new Error("Failed to fetch diamonds");
       const data = await res.json();
       setDiamonds(Array.isArray(data) ? data : data.data || []);
+      // Clear selection on re-fetch/filter change if desired, or keep it.
+      // Keeping it might be confusing if items disappear. Better to clear.
+      setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
       setDiamonds([]);
@@ -179,6 +189,101 @@ export default function DiamondsIndexPage() {
     fetchDiamonds();
   };
 
+  // Selection Handlers
+  const toggleSelection = (id) => {
+    const newAndroid = new Set(selectedIds);
+    if (newAndroid.has(id)) {
+      newAndroid.delete(id);
+    } else {
+      newAndroid.add(id);
+    }
+    setSelectedIds(newAndroid);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredDiamonds.length && filteredDiamonds.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      const allIds = new Set(filteredDiamonds.map((d) => d.id));
+      setSelectedIds(allIds);
+    }
+  };
+
+  const isAllSelected = filteredDiamonds.length > 0 && selectedIds.size === filteredDiamonds.length;
+  const isIndeterminate = selectedIds.size > 0 && selectedIds.size < filteredDiamonds.length;
+
+  const [showTransferModal, setShowTransferModal] = useState(false);
+
+  // ... (existing code)
+
+  const handleTransfer = async (toPlace, notes) => {
+    setIsTransferring(true);
+    try {
+      const res = await fetch("/api/diamonds/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          to_place: toPlace,
+          notes: notes,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Transfer failed");
+      }
+
+      setSuccessMessage(`Successfully transferred diamonds to ${toPlace}!`);
+      // Clear selection and refresh
+      setSelectedIds(new Set());
+      fetchDiamonds();
+      setShowTransferModal(false);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setIsTransferring(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const payload = {
+        ids: Array.from(selectedIds),
+        filters: {
+          availability: activeStatus
+        }
+      };
+
+      const res = await fetch("/api/diamonds/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Export failed");
+
+      // Handle download
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `diamonds_export_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export diamonds.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>
       <div className="container">
@@ -222,6 +327,32 @@ export default function DiamondsIndexPage() {
           </div>
 
           <div className="d-flex gap-2">
+            <button
+              onClick={handleExport}
+              className="btn btn-success px-4 py-2"
+              style={{ borderRadius: 12 }}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              ) : (
+                <i className="bi bi-file-earmark-excel me-2" style={{ fontSize: "1.1rem" }} />
+              )}
+              {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : "Export All"}
+            </button>
+            <button
+              onClick={() => {
+                if (selectedIds.size === 0) return alert("Please select at least one diamond to transfer.");
+                setShowTransferModal(true);
+              }}
+              className="btn btn-outline-primary px-4 py-2"
+              style={{ borderRadius: 12 }}
+              disabled={isTransferring}
+            >
+              <i className="bi bi-arrow-left-right me-2" style={{ fontSize: "1.1rem" }} />
+              Transfer Diamond
+            </button>
+
             <Link href="/diamonds/create" className="btn btn-primary px-4 py-2" style={{ borderRadius: 12 }}>
               <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
               Add Diamond
@@ -276,6 +407,7 @@ export default function DiamondsIndexPage() {
                     <option value="available">Available</option>
                     <option value="sold">Sold</option>
                     <option value="memo">On Memo</option>
+                    <option value="at_lab">At Lab</option>
                   </select>
                   {activeStatus && (
                     <button className="btn btn-outline-secondary" style={{ borderRadius: 12 }} onClick={() => setAvailability("")}>
@@ -294,7 +426,22 @@ export default function DiamondsIndexPage() {
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="px-4 py-3 text-muted small text-uppercase">Certificate</th>
+                  <th className="px-4 py-3" style={{ width: 40 }}>
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(input) => {
+                          if (input) input.indeterminate = isIndeterminate;
+                        }}
+                        onChange={toggleSelectAll}
+                        style={{ cursor: "pointer" }}
+                      />
+                    </div>
+                  </th>
+                  <th className="py-3 text-muted small text-uppercase">Location</th>
+                  <th className="py-3 text-muted small text-uppercase">Certificate</th>
                   <th className="py-3 text-muted small text-uppercase">Details</th>
                   <th className="py-3 text-muted small text-uppercase text-end">Weight</th>
                   <th className="py-3 text-muted small text-uppercase text-end">Price</th>
@@ -307,7 +454,7 @@ export default function DiamondsIndexPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-5">
+                    <td colSpan={7} className="text-center py-5">
                       <div className="spinner-border text-primary" role="status">
                         <span className="visually-hidden">Loading...</span>
                       </div>
@@ -315,7 +462,7 @@ export default function DiamondsIndexPage() {
                   </tr>
                 ) : filteredDiamonds.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-5">
+                    <td colSpan={7} className="text-center py-5">
                       <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light mb-3" style={{ width: 64, height: 64 }}>
                         <i className="bi bi-gem text-muted fs-3" />
                       </div>
@@ -324,8 +471,24 @@ export default function DiamondsIndexPage() {
                   </tr>
                 ) : (
                   filteredDiamonds.map((d) => (
-                    <tr key={d.id}>
+                    <tr key={d.id} className={selectedIds.has(d.id) ? "table-active" : ""}>
                       <td className="px-4 py-3">
+                        <div className="form-check">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={selectedIds.has(d.id)}
+                            onChange={() => toggleSelection(d.id)}
+                            style={{ cursor: "pointer" }}
+                          />
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <span className={`badge bg-${d.location === 'Mumbai' ? 'info' : 'secondary'} bg-opacity-10 text-${d.location === 'Mumbai' ? 'info' : 'secondary'} border`}>
+                          {d.location || "Surat"}
+                        </span>
+                      </td>
+                      <td className="py-3">
                         <Link href={`/diamonds/show/${d.id}`} className="text-decoration-none fw-semibold text-dark">
                           {d.certificate_number || "-"}
                         </Link>
@@ -416,6 +579,13 @@ export default function DiamondsIndexPage() {
         diamondId={selectedDiamondId}
         onClose={() => setShowPaymentModal(false)}
         onSuccess={handlePaymentSuccess}
+      />
+
+      <TransferModal
+        show={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        onTransfer={handleTransfer}
+        selectedCount={selectedIds.size}
       />
 
       <style jsx global>{`

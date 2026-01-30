@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
+import QuickAddEntityModal from "../components/QuickAddEntityModal";
 
 export default function SalesForm({
   initial = {},
@@ -25,7 +26,7 @@ export default function SalesForm({
     brokerage_rate: initial.brokerage_rate ?? "",
     brokerage_amount: initial.brokerage_amount ?? "", // Now in INR
     notes: initial.notes || "",
-    
+
     // Payment fields
     selling_date: initial.selling_date ? initial.selling_date.split('T')[0] : new Date().toISOString().split('T')[0],
     payment_status: initial.payment_status || "on_terms",
@@ -37,6 +38,38 @@ export default function SalesForm({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+
+  // Dropdown Options State
+  const [clientList, setClientList] = useState(clients);
+  const [brokerList, setBrokerList] = useState(brokers);
+
+  // Sync with props
+  useEffect(() => {
+    setClientList(clients);
+  }, [clients]);
+
+  useEffect(() => {
+    setBrokerList(brokers);
+  }, [brokers]);
+
+  // Quick Add Modal
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("client");
+
+  const openModal = (type) => {
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  const handleModalSuccess = (newEntity) => {
+    if (modalType === "client") {
+      setClientList((prev) => [newEntity, ...prev]);
+      setForm((prev) => ({ ...prev, client_id: newEntity.id }));
+    } else {
+      setBrokerList((prev) => [newEntity, ...prev]);
+      setForm((prev) => ({ ...prev, broker_id: newEntity.id }));
+    }
+  };
 
   const getSelectedDiamond = useCallback(() => {
     if (!form.diamond_id) return null;
@@ -112,7 +145,7 @@ export default function SalesForm({
       const saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
       const saleAmountInr = calculateSaleAmountInr(saleAmount, form.conversion_rate);
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
-      
+
       setForm(prev => ({
         ...prev,
         sale_amount: saleAmount > 0 ? saleAmount.toFixed(2) : "",
@@ -185,7 +218,7 @@ export default function SalesForm({
     }
     if (!form.selling_date) errors.selling_date = "Selling date is required";
     if (!form.payment_status) errors.payment_status = "Payment status is required";
-    
+
     if (form.payment_status === "on_terms") {
       if (!form.terms_days || parseInt(form.terms_days) <= 0) {
         errors.terms_days = "Terms days is required for On Terms payment";
@@ -233,7 +266,7 @@ export default function SalesForm({
         brokerage_rate: form.brokerage_rate ? parseFloat(form.brokerage_rate) : null,
         brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null, // Now in INR
         notes: form.notes || null,
-        
+
         // Payment fields
         selling_date: form.selling_date || null,
         payment_status: form.payment_status,
@@ -260,7 +293,7 @@ export default function SalesForm({
     const bro = parseFloat(form.brokerage_amount); // Now in INR
     const adv = parseFloat(form.advance_amount) || 0;
     const out = Math.max(0, (usd || 0) - adv);
-    
+
     return {
       usd: Number.isNaN(usd) ? "-" : `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       inr: Number.isNaN(inr) ? "-" : `₹${inr.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
@@ -272,6 +305,12 @@ export default function SalesForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      <QuickAddEntityModal
+        show={showModal}
+        type={modalType}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+      />
       {/* Error Alert */}
       {error && (
         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
@@ -328,8 +367,8 @@ export default function SalesForm({
           )}
         </div>
 
-        <span 
-          className={`badge px-3 py-2 ${form.payment_status === 'completed' ? 'bg-success' : 'bg-warning text-dark'}`} 
+        <span
+          className={`badge px-3 py-2 ${form.payment_status === 'completed' ? 'bg-success' : 'bg-warning text-dark'}`}
           style={{ borderRadius: 999 }}
         >
           <i className={`bi ${form.payment_status === 'completed' ? 'bi-check-circle-fill' : 'bi-clock-history'} me-2`} />
@@ -389,12 +428,20 @@ export default function SalesForm({
                 id="client_id"
                 name="client_id"
                 value={form.client_id}
-                onChange={handleChange}
+                onChange={(e) => {
+                  if (e.target.value === "ADD_NEW") {
+                    openModal("client");
+                  } else {
+                    handleChange(e);
+                  }
+                }}
                 className={selectClass("client_id")}
                 required
               >
                 <option value="">Select Client</option>
-                {clients.map((c) => (
+                <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Client</option>
+                <hr />
+                {clientList.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.company_name} ({c.contact_name})
                   </option>
@@ -412,9 +459,23 @@ export default function SalesForm({
               <span className="input-group-text bg-white">
                 <i className="bi bi-person-badge text-muted" />
               </span>
-              <select id="broker_id" name="broker_id" value={form.broker_id} onChange={handleChange} className="form-select">
+              <select
+                id="broker_id"
+                name="broker_id"
+                value={form.broker_id}
+                onChange={(e) => {
+                  if (e.target.value === "ADD_NEW") {
+                    openModal("broker");
+                  } else {
+                    handleChange(e);
+                  }
+                }}
+                className="form-select"
+              >
                 <option value="">Select Broker</option>
-                {brokers.map((b) => (
+                <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Broker</option>
+                <hr />
+                {brokerList.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name} ({b.company_name})
                   </option>
@@ -573,14 +634,14 @@ export default function SalesForm({
                   <label className="form-label fw-medium">Brokerage Amount (INR)</label>
                   <div className="input-group">
                     <span className="input-group-text bg-warning bg-opacity-25">₹</span>
-                    <input 
-                      value={form.brokerage_amount} 
-                      className="form-control bg-warning bg-opacity-10 fw-semibold" 
-                      readOnly 
+                    <input
+                      value={form.brokerage_amount}
+                      className="form-control bg-warning bg-opacity-10 fw-semibold"
+                      readOnly
                     />
                   </div>
                   <div className="text-muted small mt-1">
-                    {form.brokerage_rate && form.sale_amount_inr 
+                    {form.brokerage_rate && form.sale_amount_inr
                       ? `${form.brokerage_rate}% of ₹${parseFloat(form.sale_amount_inr).toLocaleString('en-IN')}`
                       : "Auto-calculated from INR amount"
                     }
@@ -729,15 +790,15 @@ export default function SalesForm({
           {/* Full payment confirmation */}
           {form.payment_status === "completed" && (
             <div className="col-12">
-              <div 
+              <div
                 className="p-3 d-flex align-items-center gap-3"
-                style={{ 
-                  borderRadius: 12, 
+                style={{
+                  borderRadius: 12,
                   backgroundColor: "rgba(16,185,129,0.08)",
                   border: "1px solid rgba(16,185,129,0.2)"
                 }}
               >
-                <div 
+                <div
                   className="rounded-circle d-flex align-items-center justify-content-center"
                   style={{ width: 40, height: 40, backgroundColor: "rgba(16,185,129,0.15)" }}
                 >

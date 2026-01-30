@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QuickAddEntityModal from "../components/QuickAddEntityModal";
 
 /* ------------------------------ Standards ------------------------------ */
 const GIA_STANDARDS = {
@@ -39,7 +40,7 @@ const GIA_STANDARDS = {
     extremely_thick: "Extremely Thick",
   },
   CULET: { none: "None", very_small: "Very Small", small: "Small", medium: "Medium", slightly_large: "Slightly Large", large: "Large", very_large: "Very Large" },
-  AVAILABILITY: { available: "Available", memo: "Out on Memo", sold: "Sold", subject_to_sale: "Subject to Prior Sale" },
+  AVAILABILITY: { available: "Available", memo: "Out on Memo", sold: "Sold", subject_to_sale: "Subject to Prior Sale", at_lab: "At Lab" },
 };
 
 /* ------------------------------ Helpers ------------------------------ */
@@ -102,7 +103,7 @@ function Label({ children, required }) {
 }
 
 /* ------------------------------ Main Component ------------------------------ */
-export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
+export default function DiamondsForm({ initial = {}, clients: initialClients = [], brokers: initialBrokers = [], onSuccess = () => { } }) {
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -157,7 +158,10 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
     purchase_price: initial.purchase_price ?? "",
     purchase_conversion_rate: initial.purchase_conversion_rate ?? "",
     purchase_price_inr: initial.purchase_price_inr ?? "",
+    client_id: initial.client_id || "",
+    broker_id: initial.broker_id || "",
     availability: initial.availability || "available",
+    location: initial.location || "Surat",
 
     // Payment Information
     payment_status: initial.payment_status || "",
@@ -206,6 +210,38 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
+
+  // Dropdown options
+  const [clients, setClients] = useState(initialClients);
+  const [brokers, setBrokers] = useState(initialBrokers);
+
+  // Sync state with props
+  useEffect(() => {
+    setClients(initialClients);
+  }, [initialClients]);
+
+  useEffect(() => {
+    setBrokers(initialBrokers);
+  }, [initialBrokers]);
+
+  // Quick Add Modal
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("client"); // "client" or "broker"
+
+  const openModal = (type) => {
+    setModalType(type);
+    setShowModal(true);
+  };
+
+  const handleModalSuccess = (newEntity) => {
+    if (modalType === "client") {
+      setClients((prev) => [newEntity, ...prev]);
+      setForm((prev) => ({ ...prev, client_id: newEntity.id }));
+    } else {
+      setBrokers((prev) => [newEntity, ...prev]);
+      setForm((prev) => ({ ...prev, broker_id: newEntity.id }));
+    }
+  };
 
   // Price calculator
   const calculatePrices = useCallback((f) => {
@@ -359,6 +395,8 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
       purchase_price: toNum(calc.purchase_price),
       purchase_conversion_rate: toNumOrNull(form.purchase_conversion_rate),
       purchase_price_inr: calc.purchase_price_inr === "" ? null : toNum(calc.purchase_price_inr),
+      client_id: form.client_id ? parseInt(form.client_id) : null,
+      broker_id: form.broker_id ? parseInt(form.broker_id) : null,
       availability: form.availability || "available",
 
       // Payment Information
@@ -403,6 +441,7 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
       report_type: form.report_type || null,
       sorting: form.sorting || null,
       basket_status: form.basket_status || null,
+      location: form.location || "Surat",
     };
 
     try {
@@ -440,6 +479,12 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <QuickAddEntityModal
+        show={showModal}
+        type={modalType}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+      />
       {/* Top Summary */}
       <div
         className="p-3 mb-4"
@@ -691,8 +736,53 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
 
         <div className="row g-3">
           <div className="col-md-4">
-            <Label>Purchase From</Label>
-            <input name="purchase_from" value={form.purchase_from} onChange={change} className="form-control" />
+            <Label>Purchase From (Client)</Label>
+            <select
+              name="client_id"
+              value={form.client_id}
+              onChange={(e) => {
+                if (e.target.value === "ADD_NEW") {
+                  openModal("client");
+                } else {
+                  change(e);
+                }
+              }}
+              className="form-select"
+            >
+              <option value="">Select Client</option>
+              <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Client</option>
+              <hr />
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.company_name} ({c.contact_name})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="col-md-4">
+            <Label>Broker (Purchase)</Label>
+            <select
+              name="broker_id"
+              value={form.broker_id}
+              onChange={(e) => {
+                if (e.target.value === "ADD_NEW") {
+                  openModal("broker");
+                } else {
+                  change(e);
+                }
+              }}
+              className="form-select"
+            >
+              <option value="">Select Broker</option>
+              <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Broker</option>
+              <hr />
+              {brokers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.company_name})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="col-md-4">
@@ -725,7 +815,15 @@ export default function DiamondsForm({ initial = {}, onSuccess = () => {} }) {
             </div>
           </div>
 
-          <div className="col-md-4">
+          <div className="col-md-2">
+            <Label>Location</Label>
+            <select name="location" value={form.location} onChange={change} className="form-select">
+              <option value="Surat">Surat</option>
+              <option value="Mumbai">Mumbai</option>
+            </select>
+          </div>
+
+          <div className="col-md-2">
             <Label>Availability</Label>
             <select name="availability" value={form.availability} onChange={change} className="form-select">
               {Object.entries(GIA_STANDARDS.AVAILABILITY).map(([value, label]) => (

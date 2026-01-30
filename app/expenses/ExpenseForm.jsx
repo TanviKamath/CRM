@@ -19,6 +19,9 @@ const EXPENSE_CATEGORIES = {
   maintenance: "Repairs & Maintenance",
   professional_fees: "Professional Fees",
   taxes: "Taxes & Licenses",
+  manufacturing: "Manufacturing",
+  labour: "Labour",
+  gia_certification: "GIA Certification",
   miscellaneous: "Miscellaneous",
 };
 

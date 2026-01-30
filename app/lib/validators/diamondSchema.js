@@ -32,6 +32,8 @@ export const diamondSchema = z
     purchase_price: z.preprocess(Number, z.number()).optional().nullable(),
     purchase_conversion_rate: z.preprocess(Number, z.number()).optional().nullable(),
     purchase_price_inr: z.preprocess(Number, z.number()).optional().nullable(),
+    client_id: z.preprocess(Number, z.number()).optional().nullable(),
+    broker_id: z.preprocess(Number, z.number()).optional().nullable(),
     job_no: z.string().optional().nullable(),
     control_no: z.string().optional().nullable(),
     diamond_dossier: z.string().optional().nullable(),
@@ -77,5 +79,6 @@ export const diamondSchema = z
     kimberley_process_number: z.string().optional().nullable(),
     rough_invoice_number: z.string().optional().nullable(),
     agsi_aset: z.string().optional().nullable(),
+    location: z.string().optional().nullable(),
   })
   .strict();

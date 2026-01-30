@@ -117,6 +117,7 @@ const diamondSchema = z.object({
   buying_date: z.string().optional().nullable(),
   terms_days: z.preprocess((v) => toNumberOrNull(v), z.number().nullable().optional()),
   payment_amount_done: z.preprocess((v) => toNumberOrZero(v), z.number().optional()),
+  location: z.string().optional().nullable(),
 });
 
 export async function GET(req) {
@@ -144,6 +145,7 @@ export async function POST(req) {
 
     // Debug log
     console.log("=== API RECEIVED ===");
+    console.log("Location:", body.location);
     console.log("rap_rate:", body.rap_rate);
     console.log("rap_discount:", body.rap_discount);
     console.log("pur_rap_discount:", body.pur_rap_discount);
@@ -211,6 +213,8 @@ export async function POST(req) {
       purchase_price: parsed.purchase_price ?? null,
       purchase_conversion_rate: parsed.purchase_conversion_rate ?? null,
       purchase_price_inr: parsed.purchase_price_inr ?? null,
+      client_id: parsed.client_id ?? null,
+      broker_id: parsed.broker_id ?? null,
       availability: parsed.availability || "available",
 
       // Dimensions
@@ -254,6 +258,7 @@ export async function POST(req) {
       payment_status: parsed.payment_status || null,
       buying_date: parsed.buying_date || null,
       terms_days: parsed.terms_days || 0,
+      location: parsed.location || "Surat",
     };
 
     console.log("=== INSERT DATA ===");
@@ -261,6 +266,16 @@ export async function POST(req) {
     console.log("rap_discount:", insertData.rap_discount);
 
     const [id] = await knex("diamonds").insert(insertData);
+
+    // Track creation history
+    await knex("diamond_history").insert({
+      diamond_id: id,
+      event_type: "CREATED",
+      from_place: null,
+      to_place: insertData.location,
+      notes: "Diamond created",
+      created_at: knex.fn.now()
+    });
 
     // Handle Payment Outstanding if "On Terms"
     if (parsed.payment_status === "On Terms") {

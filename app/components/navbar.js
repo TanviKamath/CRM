@@ -108,6 +108,12 @@ export default function Navbar() {
                   </Link>
                 </li>
                 <li>
+                  <Link className="dropdown-item" href="/diamonds/stock">
+                    <i className="bi bi-box-seam me-2 text-info" />
+                    Stock Maintenance
+                  </Link>
+                </li>
+                <li>
                   <Link className="dropdown-item" href="/diamonds/create">
                     <i className="bi bi-plus-circle me-2 text-success" />
                     Add New Diamond

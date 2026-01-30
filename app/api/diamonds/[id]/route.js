@@ -117,34 +117,35 @@ const diamondSchema = z.object({
   buying_date: z.string().optional().nullable(),
   terms_days: z.preprocess((v) => toNumberOrNull(v), z.number().nullable().optional()),
   payment_amount_done: z.preprocess((v) => toNumberOrZero(v), z.number().optional()),
+  location: z.string().optional().nullable(),
 });
 
 export async function GET(req, { params }) {
   try {
     const { id } = params;
-    
+
     console.log("=== GET DIAMOND ===");
     console.log("ID:", id);
-    
+
     const diamond = await knex("diamonds").where({ id }).first();
-    
+
     if (!diamond) {
       console.log("Diamond not found");
-      return new Response(JSON.stringify({ error: "Diamond not found" }), { 
+      return new Response(JSON.stringify({ error: "Diamond not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" }
       });
     }
-    
+
     console.log("Diamond found:", diamond.certificate_number);
-    
-    return new Response(JSON.stringify(diamond), { 
-      status: 200, 
+
+    return new Response(JSON.stringify(diamond), {
+      status: 200,
       headers: { "Content-Type": "application/json" }
     });
   } catch (e) {
     console.error("GET Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { 
+    return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
@@ -159,12 +160,12 @@ export async function PUT(req, { params }) {
     console.log("=== PUT DIAMOND ===");
     console.log("ID:", id);
     console.log("Body received:", Object.keys(body).length, "fields");
-    
+
     // Check if diamond exists
     const existing = await knex("diamonds").where({ id }).first();
     if (!existing) {
       console.log("Diamond not found for update");
-      return new Response(JSON.stringify({ error: "Diamond not found" }), { 
+      return new Response(JSON.stringify({ error: "Diamond not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" }
       });
@@ -267,10 +268,10 @@ export async function PUT(req, { params }) {
       sorting: parsed.sorting || null,
       basket_status: parsed.basket_status || null,
 
-      // Payment Information
       payment_status: parsed.payment_status || null,
       buying_date: parsed.buying_date || null,
       terms_days: parsed.terms_days ?? null,
+      location: parsed.location || "Surat",
     };
 
     console.log("Updating diamond with data:", {
@@ -279,6 +280,18 @@ export async function PUT(req, { params }) {
       color: updateData.color,
       clarity: updateData.clarity
     });
+
+    // Check if location changed causing a move
+    if (Object.prototype.hasOwnProperty.call(body, "location") && existing.location !== updateData.location) {
+      await knex("diamond_history").insert({
+        diamond_id: id,
+        event_type: "MOVED",
+        from_place: existing.location || "Unknown",
+        to_place: updateData.location,
+        notes: "Location updated manually",
+        created_at: knex.fn.now()
+      });
+    }
 
     // Update the diamond
     await knex("diamonds").where({ id }).update(updateData);
@@ -314,14 +327,14 @@ export async function PUT(req, { params }) {
 
     console.log("Diamond updated successfully:", updated.certificate_number);
 
-    return new Response(JSON.stringify(updated), { 
-      status: 200, 
+    return new Response(JSON.stringify(updated), {
+      status: 200,
       headers: { "Content-Type": "application/json" }
     });
   } catch (e) {
     console.error("PUT Error:", e);
     const msg = e.errors ? JSON.stringify(e.errors) : (e.message || "Bad request");
-    return new Response(JSON.stringify({ error: msg }), { 
+    return new Response(JSON.stringify({ error: msg }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
     });
@@ -331,15 +344,15 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     const { id } = params;
-    
+
     console.log("=== DELETE DIAMOND ===");
     console.log("ID:", id);
-    
+
     // Check if diamond exists
     const existing = await knex("diamonds").where({ id }).first();
     if (!existing) {
       console.log("Diamond not found for deletion");
-      return new Response(JSON.stringify({ error: "Diamond not found" }), { 
+      return new Response(JSON.stringify({ error: "Diamond not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" }
       });
@@ -347,19 +360,19 @@ export async function DELETE(req, { params }) {
 
     // Delete payment outstanding records first (if any)
     await knex("payment_outstanding").where({ diamond_id: id }).del();
-    
+
     // Delete the diamond
     await knex("diamonds").where({ id }).del();
-    
+
     console.log("Diamond deleted successfully");
-    
-    return new Response(JSON.stringify({ message: "Diamond deleted successfully" }), { 
-      status: 200, 
+
+    return new Response(JSON.stringify({ message: "Diamond deleted successfully" }), {
+      status: 200,
       headers: { "Content-Type": "application/json" }
     });
   } catch (e) {
     console.error("DELETE Error:", e);
-    return new Response(JSON.stringify({ error: e.message }), { 
+    return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
     });

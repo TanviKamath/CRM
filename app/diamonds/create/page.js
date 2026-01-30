@@ -3,10 +3,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import DiamondsForm from "../DiamondsForm";
 
 export default function CreateDiamond() {
   const router = useRouter();
+  const [clients, setClients] = useState([]);
+  const [brokers, setBrokers] = useState([]);
+
+  useEffect(() => {
+    // Fetch clients and brokers
+    Promise.all([
+      fetch("/api/clients").then((res) => res.json()),
+      fetch("/api/brokers").then((res) => res.json()),
+    ])
+      .then(([c, b]) => {
+        setClients(Array.isArray(c) ? c : c.data || []);
+        setBrokers(Array.isArray(b) ? b : b.data || []);
+      })
+      .catch((err) => console.error("Failed to fetch dependencies:", err));
+  }, []);
 
   const handleSuccess = (data) => {
     router.push(`/diamonds/show/${data.id}?success=${encodeURIComponent("Diamond added successfully!")}`);
@@ -17,7 +33,7 @@ export default function CreateDiamond() {
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-10 col-xl-9">
-            
+
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div className="d-flex align-items-center gap-3">
@@ -88,7 +104,7 @@ export default function CreateDiamond() {
               </div>
 
               <div className="card-body p-4 p-md-5 bg-white">
-                <DiamondsForm onSuccess={handleSuccess} />
+                <DiamondsForm onSuccess={handleSuccess} clients={clients} brokers={brokers} />
               </div>
             </div>
 

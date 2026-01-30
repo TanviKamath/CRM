@@ -19,6 +19,7 @@ function StatPill({ icon, label, value, tone = "success" }) {
 
 export default function AccountExport() {
     const [selectionType, setSelectionType] = useState("dateRange");
+    const [category, setCategory] = useState("all");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [financialYear, setFinancialYear] = useState("");
@@ -26,6 +27,15 @@ export default function AccountExport() {
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+
+    const categories = [
+        { value: "all", label: "All Transactions", icon: "bi-list-ul", color: "#6366f1" },
+        { value: "stock", label: "Stock Summary", icon: "bi-gem", color: "#ec4899" },
+        { value: "buy", label: "Diamond Purchases (Buy)", icon: "bi-cart-check", color: "#f59e0b" },
+        { value: "expenses", label: "General Expenses", icon: "bi-receipt", color: "#ef4444" },
+        { value: "bank", label: "Bank Statement", icon: "bi-bank", color: "#3b82f6" },
+        { value: "cash", label: "Cash Statement", icon: "bi-wallet2", color: "#10b981" },
+    ];
 
     const currentYear = new Date().getFullYear();
     const financialYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -46,6 +56,7 @@ export default function AccountExport() {
             const params = new URLSearchParams();
             params.append("action", "export");
             params.append("selection_type", selectionType);
+            params.append("category", category);
 
             if (selectionType === "dateRange") {
                 if (!startDate || !endDate) {
@@ -201,6 +212,46 @@ export default function AccountExport() {
                         <button type="button" className="btn-close" onClick={() => setError("")} aria-label="Close" />
                     </div>
                 )}
+
+                {/* Category Selection */}
+                <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>
+                    <div className="card-body p-4">
+                        <label className="form-label text-muted small mb-3">Select Account Category</label>
+                        <div className="row g-3">
+                            {categories.map((cat) => (
+                                <div className="col-md-4 col-lg-2" key={cat.value}>
+                                    <div
+                                        onClick={() => setCategory(cat.value)}
+                                        className="p-3 rounded-3 h-100 text-center d-flex flex-column align-items-center justify-content-center"
+                                        style={{
+                                            cursor: "pointer",
+                                            border: category === cat.value ? `2px solid ${cat.color}` : "2px solid #e5e7eb",
+                                            backgroundColor: category === cat.value ? `${cat.color}0a` : "#fff",
+                                            transition: "all 0.2s ease"
+                                        }}
+                                    >
+                                        <div
+                                            className="rounded-circle d-flex align-items-center justify-content-center mb-2"
+                                            style={{
+                                                width: 40,
+                                                height: 40,
+                                                background: category === cat.value
+                                                    ? `linear-gradient(135deg, ${cat.color} 0%, ${cat.color}cc 100%)`
+                                                    : "#f3f4f6",
+                                            }}
+                                        >
+                                            <i
+                                                className={`bi ${cat.icon} ${category === cat.value ? "text-white" : "text-muted"}`}
+                                                style={{ fontSize: "1.1rem" }}
+                                            />
+                                        </div>
+                                        <h6 className="fw-semibold mb-0" style={{ fontSize: "0.85rem" }}>{cat.label}</h6>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
 
                 {/* Selection Type Card */}
                 <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>

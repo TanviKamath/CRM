@@ -80,19 +80,24 @@ export default function ShowDiamond() {
   const id = params.id;
 
   const [diamond, setDiamond] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    fetch(`/api/diamonds/${id}`)
-      .then((r) => {
+
+    Promise.all([
+      fetch(`/api/diamonds/${id}`).then(r => {
         if (!r.ok) throw new Error("Diamond not found");
         return r.json();
-      })
-      .then((data) => {
+      }),
+      fetch(`/api/diamonds/${id}/history`).then(r => r.ok ? r.json() : [])
+    ])
+      .then(([data, historyData]) => {
         setDiamond(data);
+        setHistory(Array.isArray(historyData) ? historyData : []);
         setLoading(false);
       })
       .catch((err) => {
@@ -215,6 +220,40 @@ export default function ShowDiamond() {
                 <InfoRow label="Purchase Discount" value={formatPercent(diamond.pur_rap_discount)} />
                 <InfoRow label="Purchase Price" value={formatCurrency(diamond.purchase_price)} />
               </div>
+            </SectionCard>
+          </div>
+
+          {/* History Timeline */}
+          <div className="col-12">
+            <SectionCard title="Movement History" icon="bi-clock-history">
+              {history.length === 0 ? (
+                <div className="text-center text-muted py-3">No history recorded yet.</div>
+              ) : (
+                <div className="timeline">
+                  {history.map((h, i) => (
+                    <div key={h.id} className="d-flex mb-3 position-relative">
+                      <div className="me-3 d-flex flex-column align-items-center" style={{ width: 40 }}>
+                        <div className={`rounded-circle d-flex align-items-center justify-content-center ${i === 0 ? 'bg-primary text-white' : 'bg-light text-muted'}`} style={{ width: 36, height: 36, zIndex: 1 }}>
+                          <i className={`bi ${h.event_type === 'CREATED' ? 'bi-plus-lg' : 'bi-arrow-left-right'}`} />
+                        </div>
+                        {i !== history.length - 1 && <div className="bg-light" style={{ width: 2, flex: 1, minHeight: 20 }} />}
+                      </div>
+                      <div>
+                        <div className="fw-bold">{h.event_type}</div>
+                        <div className="text-muted small">{new Date(h.created_at).toLocaleString()}</div>
+                        <div className="mt-1">
+                          {h.event_type === 'CREATED' ? (
+                            <span>Initialized at <strong>{h.to_place || 'Unknown'}</strong></span>
+                          ) : (
+                            <span>Moved from <strong>{h.from_place || 'Unknown'}</strong> to <strong>{h.to_place || 'Unknown'}</strong></span>
+                          )}
+                        </div>
+                        {h.notes && <div className="text-muted small fst-italic mt-1">"{h.notes}"</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </SectionCard>
           </div>
 

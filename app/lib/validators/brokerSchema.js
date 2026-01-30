@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const brokerSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
   phone: z.string().optional().nullable(),
   aadhaar: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
