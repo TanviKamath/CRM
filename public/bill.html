@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tax Invoice</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .invoice {
+            width: 900px;
+            margin: auto;
+            border: 2px solid #000;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        td,
+        th {
+            border: 1px solid #000;
+            padding: 6px;
+            vertical-align: top;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .big {
+            font-size: 20px;
+        }
+
+        .small {
+            font-size: 12px;
+        }
+
+        .no-print {
+            text-align: center;
+            margin: 20px auto;
+            width: 900px;
+        }
+
+        .no-print button {
+            padding: 10px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #1a365d;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            margin: 0 8px;
+        }
+
+        .no-print button:hover {
+            background: #2d4a7a;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .invoice {
+                border: 2px solid #000;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button onclick="window.close()">✕ Close</button>
+    </div>
+
+    <div class="invoice">
+
+        <table>
+            <tr>
+                <td colspan="3" class="center big bold">VARNI DIAM</td>
+            </tr>
+            <tr>
+                <td colspan="3" class="center bold">TAX INVOICE</td>
+            </tr>
+
+            <tr>
+                <td width="40%">
+                    <b>Exporter-Seller</b><br>
+                    VARNI DIAM<br>
+                    5/1105 TO 7 4TH FLOOR OFF 402 TULSI APT<br>
+                    SOMNATH MAHADEV NI SHERI MAHIDHARPURA<br>
+                    NR-BLUE DIAMOND SURAT GUJARAT INDIA-395003<br>
+                    Email: varnidiam@gmail.com<br>
+                    Tel: +91 9727228282<br>
+                    PAN: AAKFV0176E<br>
+                    GST: 24AAKFV0176E1ZA
+                </td>
+
+                <td width="35%">
+                    Invoice Date: {{INVOICE_DATE}}<br>
+                    Invoice No: {{INVOICE_NO}}<br>
+                    Financial Year: {{FINANCIAL_YEAR}}
+                </td>
+
+                <td width="25%">
+                    ORIGINAL<br>
+                    DUPLICATE<br>
+                    TRIPLICATE
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <b>Consignee / Place of Supply</b><br>
+                    {{CONSIGNEE_INFO}}
+                </td>
+
+                <td colspan="2">
+                    <b>Buyer / Place of Supply</b><br>
+                    {{BUYER_NAME}}<br>
+                    {{BUYER_ADDRESS}}<br>
+                    GST: {{BUYER_GST}}<br>
+                    PAN: {{BUYER_PAN}}
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    Pre-Carriage: SELF<br>
+                    Transport Mode: SELF
+                </td>
+
+                <td colspan="2">
+                    Terms: {{TERMS_DAYS}} DAYS<br>
+                    Amount: Rs.{{TOTAL_BILL_AMOUNT}}/-
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    Country of Origin: INDIA
+                </td>
+
+                <td colspan="2">
+                    OUR BANK: INDUSIND BANK<br>
+                    M-2 Empire State Building,<br>
+                    Near Udhana Darwaja, Ring Road,<br>
+                    Surat-395002<br>
+                    A/C No: 259727228282<br>
+                    IFSC: INDB0000023
+                </td>
+            </tr>
+        </table>
+
+        <table>
+            <tr class="bold center">
+                <th>SR.NO</th>
+                <th>Particulars</th>
+                <th>HSN/SAC</th>
+                <th>Cts.</th>
+                <th>Rate/Crt</th>
+                <th>Amount</th>
+            </tr>
+
+            <tr class="center">
+                <td>1</td>
+                <td>CUT & POLISHED NATURAL DIAMOND</td>
+                <td>71023910</td>
+                <td>{{DIAMOND_WEIGHT}}</td>
+                <td>{{RATE_PER_CARAT}}</td>
+                <td>{{NET_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+                <td colspan="3" class="bold">Taxable Value</td>
+                <td class="center">{{DIAMOND_WEIGHT}}</td>
+                <td class="right bold">Net Amount</td>
+                <td class="right">{{NET_AMOUNT}}</td>
+            </tr>
+        </table>
+
+        <table>
+            <tr class="bold center">
+                <th>SR.NO</th>
+                <th>Tax Type</th>
+                <th>Rate</th>
+                <th>Amount</th>
+            </tr>
+
+            <tr>
+                <td>1</td>
+                <td>CGST</td>
+                <td class="center">0.750%</td>
+                <td class="right">{{CGST_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+                <td>2</td>
+                <td>SGST/UTGST</td>
+                <td class="center">0.750%</td>
+                <td class="right">{{SGST_AMOUNT}}</td>
+            </tr>
+
+            <tr>
+                <td>3</td>
+                <td>IGST</td>
+                <td class="center">1.50%</td>
+                <td></td>
+            </tr>
+
+            <tr>
+                <td colspan="3" class="right">Round Off</td>
+                <td class="right">{{ROUND_OFF}}</td>
+            </tr>
+
+            <tr>
+                <td colspan="3" class="right bold">TOTAL BILL AMOUNT (INR)</td>
+                <td class="right bold">{{TOTAL_BILL_AMOUNT}}</td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <td>
+                    <b>Amount in Words:</b><br>
+                    INDIAN RUPEES: {{AMOUNT_IN_WORDS}}
+                </td>
+            </tr>
+
+            <tr>
+                <td class="small">
+                    <b>Declaration:</b><br>
+                    The Diamonds herein invoiced are exclusively of natural origin and untreated based on personal
+                    Knowledge and/or written guarantees provided by the supplier of these diamonds. The acceptance of
+                    goods herein in invoiced will be as
+                    per WFDB guideline.<br>
+                    To the best of our knowledge and / or written assurance from our suppliers, we state that diamonds
+                    herein invoiced have not been obtained in violation of applicable national laws and / or selections
+                    by the US departments of
+                    treasuries office of foreign assets control (OFAC).<br>
+                    The diamonds herein invoiced have been purchased from legitimate sources not invoiced in funding
+                    conflict and in compliance with United Nations Resolutions. The seller hereby guarantees that these
+                    diamonds are conflict free
+                    based on personal knowledge and/or written guarantees provided by supplier of these diamonds.<br>
+                    We declare that this invoice shows the actual price of the goods described and that all particulars
+                    are true and correct. Subject to Surat Jurisdiction.
+                </td>
+            </tr>
+
+            <tr>
+                <td>
+                    <table width="100%">
+                        <tr>
+                            <td>
+                                Buyer/Purchaser<br><br><br>
+                                Stamp & Signature
+                            </td>
+
+                            <td class="right">
+                                FOR VARNI DIAM<br><br><br>
+                                Authorised Signatory<br>
+                                Date: {{INVOICE_DATE}}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+
+</body>
+
+</html>

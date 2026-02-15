@@ -206,7 +206,7 @@ export default function SalesIndex() {
       // Generate PDF
       const invoiceNo = generateInvoicePDF(sale);
 
-      setSuccessMessage(`Invoice ${invoiceNo} downloaded!`);
+      setSuccessMessage(`Invoice ${invoiceNo} opened in new tab!`);
     } catch (err) {
       console.error("Invoice error:", err);
       alert(err.message || "Failed to generate invoice");
