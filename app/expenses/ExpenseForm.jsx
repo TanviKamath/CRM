@@ -21,7 +21,7 @@ const EXPENSE_CATEGORIES = {
   taxes: "Taxes & Licenses",
   manufacturing: "Manufacturing",
   labour: "Labour",
-  gia_certification: "GIA Certification",
+  certification: "Certification",
   miscellaneous: "Miscellaneous",
 };
 

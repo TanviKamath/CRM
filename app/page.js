@@ -8,15 +8,15 @@ import Link from "next/link";
 function StatsCard({ title, count, icon, color, href, loading }) {
   return (
     <div className="col-xl-3 col-md-6 mb-4">
-      <div 
+      <div
         className="card shadow h-100 border-0"
         style={{ borderLeft: `4px solid var(--bs-${color})` }}
       >
         <div className="card-body">
           <div className="row align-items-center">
             <div className="col">
-              <div 
-                className={`text-${color} text-uppercase mb-1`} 
+              <div
+                className={`text-${color} text-uppercase mb-1`}
                 style={{ fontSize: "0.7rem", fontWeight: "700", letterSpacing: "0.5px" }}
               >
                 {title}
@@ -32,7 +32,7 @@ function StatsCard({ title, count, icon, color, href, loading }) {
               </div>
             </div>
             <div className="col-auto">
-              <div 
+              <div
                 className={`rounded-circle d-flex align-items-center justify-content-center bg-${color} bg-opacity-10`}
                 style={{ width: "48px", height: "48px" }}
               >
@@ -55,7 +55,7 @@ function StatsCard({ title, count, icon, color, href, loading }) {
 function QuickActionCard({ title, description, icon, color, href }) {
   return (
     <Link href={href} className="text-decoration-none">
-      <div 
+      <div
         className="card h-100 border-0 shadow-sm quick-action-card"
         style={{ transition: "all 0.3s ease", cursor: "pointer" }}
         onMouseEnter={(e) => {
@@ -68,7 +68,7 @@ function QuickActionCard({ title, description, icon, color, href }) {
         }}
       >
         <div className="card-body text-center p-4">
-          <div 
+          <div
             className={`rounded-circle d-inline-flex align-items-center justify-content-center mb-3 bg-${color}`}
             style={{ width: "64px", height: "64px" }}
           >
@@ -86,7 +86,7 @@ function QuickActionCard({ title, description, icon, color, href }) {
 function ActivityItem({ description, time, icon, color }) {
   return (
     <div className="d-flex align-items-start mb-3 pb-3 border-bottom">
-      <div 
+      <div
         className={`rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0 bg-${color}`}
         style={{ width: "40px", height: "40px" }}
       >
@@ -138,6 +138,15 @@ export default function HomePage() {
     if (hour < 18) return "Good Afternoon";
     return "Good Evening";
   };
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
 
   // Get today's date formatted
   const getTodayDate = () => {
@@ -229,9 +238,9 @@ export default function HomePage() {
   return (
     <div className="min-vh-100" style={{ backgroundColor: "#f8f9fc" }}>
       {/* Bootstrap Icons CDN - Add this to your layout.js head if not already included */}
-      <link 
-        rel="stylesheet" 
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" 
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
       />
 
       <div className="container-fluid py-4">
@@ -253,9 +262,11 @@ export default function HomePage() {
                 <Link href="/diamonds/create" className="btn btn-primary">
                   <i className="bi bi-gem me-1"></i> New Diamond
                 </Link>
-                <Link href="/sales/create" className="btn btn-success">
-                  <i className="bi bi-cash-stack me-1"></i> New Sale
-                </Link>
+                {user?.subscription === "Pro" && (
+                  <Link href="/sales/create" className="btn btn-success">
+                    <i className="bi bi-cash-stack me-1"></i> New Sale
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -287,14 +298,17 @@ export default function HomePage() {
             href="/brokers"
             loading={loading}
           />
-          <StatsCard
-            title="Total Sales"
-            count={stats.sales}
-            icon="bi-graph-up-arrow"
-            color="info"
-            href="/sales"
-            loading={loading}
-          />
+          {/* Sales Stats - Only for Pro Users */}
+          {user?.subscription === "Pro" && (
+            <StatsCard
+              title="Total Sales"
+              count={stats.sales}
+              icon="bi-graph-up-arrow"
+              color="info"
+              href="/sales"
+              loading={loading}
+            />
+          )}
         </div>
 
         {/* Main Content Area */}
@@ -338,15 +352,18 @@ export default function HomePage() {
                       href="/brokers/create"
                     />
                   </div>
-                  <div className="col-md-6 col-lg-3">
-                    <QuickActionCard
-                      title="Record Sale"
-                      description="New transaction"
-                      icon="bi-cash-coin"
-                      color="info"
-                      href="/sales/create"
-                    />
-                  </div>
+                  {/* Sale Action - Only for Pro */}
+                  {user?.subscription === "Pro" && (
+                    <div className="col-md-6 col-lg-3">
+                      <QuickActionCard
+                        title="Record Sale"
+                        description="New transaction"
+                        icon="bi-cash-coin"
+                        color="info"
+                        href="/sales/create"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -378,13 +395,15 @@ export default function HomePage() {
                     icon="bi-hourglass-split"
                     loading={loading}
                   />
-                  <InventoryStatCard
-                    title="Sold This Month"
-                    count={stats.soldThisMonth}
-                    color="info"
-                    icon="bi-bag-check"
-                    loading={loading}
-                  />
+                  {user?.subscription === "Pro" && (
+                    <InventoryStatCard
+                      title="Sold This Month"
+                      count={stats.soldThisMonth}
+                      color="info"
+                      icon="bi-bag-check"
+                      loading={loading}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -392,42 +411,44 @@ export default function HomePage() {
 
           {/* Right Column - Sidebar */}
           <div className="col-lg-4 mb-4">
-            {/* Recent Sales */}
-            <div className="card shadow-sm border-0 mb-4">
-              <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 className="mb-0 fw-bold">
-                  <i className="bi bi-clock-history text-secondary me-2"></i>
-                  Recent Sales
-                </h5>
-                <Link href="/sales" className="btn btn-sm btn-outline-primary">
-                  View All
-                </Link>
-              </div>
-              <div className="card-body">
-                {loading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
+            {/* Recent Sales - Only for Pro */}
+            {user?.subscription === "Pro" && (
+              <div className="card shadow-sm border-0 mb-4">
+                <div className="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                  <h5 className="mb-0 fw-bold">
+                    <i className="bi bi-clock-history text-secondary me-2"></i>
+                    Recent Sales
+                  </h5>
+                  <Link href="/sales" className="btn btn-sm btn-outline-primary">
+                    View All
+                  </Link>
+                </div>
+                <div className="card-body">
+                  {loading ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
                     </div>
-                  </div>
-                ) : recentSales.length === 0 ? (
-                  <div className="text-center py-4 text-muted">
-                    <i className="bi bi-inbox display-4 d-block mb-2"></i>
-                    <p className="mb-0">No recent sales</p>
-                  </div>
-                ) : (
-                  recentSales.map((sale) => (
-                    <ActivityItem
-                      key={sale.id}
-                      description={`Sale #${sale.id} - ${formatCurrency(sale.sale_amount)}`}
-                      time={new Date(sale.created_at).toLocaleDateString()}
-                      icon="bi-receipt"
-                      color="success"
-                    />
-                  ))
-                )}
+                  ) : recentSales.length === 0 ? (
+                    <div className="text-center py-4 text-muted">
+                      <i className="bi bi-inbox display-4 d-block mb-2"></i>
+                      <p className="mb-0">No recent sales</p>
+                    </div>
+                  ) : (
+                    recentSales.map((sale) => (
+                      <ActivityItem
+                        key={sale.id}
+                        description={`Sale #${sale.id} - ${formatCurrency(sale.sale_amount)}`}
+                        time={new Date(sale.created_at).toLocaleDateString()}
+                        icon="bi-receipt"
+                        color="success"
+                      />
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quick Links */}
             <div className="card shadow-sm border-0">
@@ -439,38 +460,41 @@ export default function HomePage() {
               </div>
               <div className="card-body p-0">
                 <div className="list-group list-group-flush">
-                  <Link 
-                    href="/diamonds" 
+                  <Link
+                    href="/diamonds"
                     className="list-group-item list-group-item-action d-flex align-items-center py-3"
                   >
                     <i className="bi bi-gem text-primary me-3"></i>
                     <span className="flex-grow-1">All Diamonds</span>
                     <span className="badge bg-primary rounded-pill">{stats.diamonds}</span>
                   </Link>
-                  <Link 
-                    href="/clients" 
+                  <Link
+                    href="/clients"
                     className="list-group-item list-group-item-action d-flex align-items-center py-3"
                   >
                     <i className="bi bi-people text-success me-3"></i>
                     <span className="flex-grow-1">All Clients</span>
                     <span className="badge bg-success rounded-pill">{stats.clients}</span>
                   </Link>
-                  <Link 
-                    href="/brokers" 
+                  <Link
+                    href="/brokers"
                     className="list-group-item list-group-item-action d-flex align-items-center py-3"
                   >
                     <i className="bi bi-person-badge text-warning me-3"></i>
                     <span className="flex-grow-1">All Brokers</span>
                     <span className="badge bg-warning rounded-pill">{stats.brokers}</span>
                   </Link>
-                  <Link 
-                    href="/sales" 
-                    className="list-group-item list-group-item-action d-flex align-items-center py-3"
-                  >
-                    <i className="bi bi-graph-up-arrow text-info me-3"></i>
-                    <span className="flex-grow-1">All Sales</span>
-                    <span className="badge bg-info rounded-pill">{stats.sales}</span>
-                  </Link>
+                  {/* Sales Link - Only for Pro */}
+                  {user?.subscription === "Pro" && (
+                    <Link
+                      href="/sales"
+                      className="list-group-item list-group-item-action d-flex align-items-center py-3"
+                    >
+                      <i className="bi bi-graph-up-arrow text-info me-3"></i>
+                      <span className="flex-grow-1">All Sales</span>
+                      <span className="badge bg-info rounded-pill">{stats.sales}</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

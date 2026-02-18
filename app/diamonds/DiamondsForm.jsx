@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import QuickAddEntityModal from "../components/QuickAddEntityModal";
 
 /* ------------------------------ Standards ------------------------------ */
 const GIA_STANDARDS = {
@@ -110,6 +109,7 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
     // Basic
     stone_type: initial.stone_type || "",
     lab: initial.lab || "",
+    diamond_id: initial.diamond_id || (initial.id ? "" : `DT${new Date().getFullYear().toString().slice(-2)}`),
     certificate_number: initial.certificate_number || "",
     shape: initial.shape || "",
     weight: initial.weight ?? "",
@@ -224,25 +224,6 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
     setBrokers(initialBrokers);
   }, [initialBrokers]);
 
-  // Quick Add Modal
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState("client"); // "client" or "broker"
-
-  const openModal = (type) => {
-    setModalType(type);
-    setShowModal(true);
-  };
-
-  const handleModalSuccess = (newEntity) => {
-    if (modalType === "client") {
-      setClients((prev) => [newEntity, ...prev]);
-      setForm((prev) => ({ ...prev, client_id: newEntity.id }));
-    } else {
-      setBrokers((prev) => [newEntity, ...prev]);
-      setForm((prev) => ({ ...prev, broker_id: newEntity.id }));
-    }
-  };
-
   // Price calculator
   const calculatePrices = useCallback((f) => {
     const rapRate = toNum(f.rap_rate);
@@ -288,6 +269,14 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
     // Update form and recalculate prices
     setForm((prev) => {
       const updated = { ...prev, [name]: value };
+
+      // Auto-set availability based on location
+      if (name === "location") {
+        if (["GIA Lab", "IGI Lab", "Other Labs"].includes(value)) {
+          updated.availability = "at_lab";
+        }
+      }
+
       const calc = calculatePrices(updated);
       return { ...updated, ...calc };
     });
@@ -479,12 +468,6 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
 
   return (
     <form onSubmit={handleSubmit}>
-      <QuickAddEntityModal
-        show={showModal}
-        type={modalType}
-        onClose={() => setShowModal(false)}
-        onSuccess={handleModalSuccess}
-      />
       {/* Top Summary */}
       <div
         className="p-3 mb-4"
@@ -557,6 +540,11 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+          </div>
+
+          <div className="col-md-4">
+            <Label>Diamond ID</Label>
+            <input name="diamond_id" value={form.diamond_id} onChange={change} className="form-control" placeholder="e.g., DT24" />
           </div>
 
           <div className="col-md-4">
@@ -740,18 +728,10 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
             <select
               name="client_id"
               value={form.client_id}
-              onChange={(e) => {
-                if (e.target.value === "ADD_NEW") {
-                  openModal("client");
-                } else {
-                  change(e);
-                }
-              }}
+              onChange={change}
               className="form-select"
             >
               <option value="">Select Client</option>
-              <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Client</option>
-              <hr />
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.company_name} ({c.contact_name})
@@ -765,18 +745,10 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
             <select
               name="broker_id"
               value={form.broker_id}
-              onChange={(e) => {
-                if (e.target.value === "ADD_NEW") {
-                  openModal("broker");
-                } else {
-                  change(e);
-                }
-              }}
+              onChange={change}
               className="form-select"
             >
               <option value="">Select Broker</option>
-              <option value="ADD_NEW" className="fw-bold text-primary">+ Add New Broker</option>
-              <hr />
               {brokers.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name} ({b.company_name})
@@ -818,11 +790,13 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
           <div className="col-md-2">
             <Label>Location</Label>
             <select name="location" value={form.location} onChange={change} className="form-select">
-              <option value="Surat">Surat</option>
               <option value="Mumbai">Mumbai</option>
+              <option value="Surat">Surat</option>
+              <option value="GIA Lab">GIA Lab</option>
+              <option value="IGI Lab">IGI Lab</option>
+              <option value="Other Labs">Other Labs</option>
             </select>
           </div>
-
           <div className="col-md-2">
             <Label>Availability</Label>
             <select name="availability" value={form.availability} onChange={change} className="form-select">

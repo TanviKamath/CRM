@@ -1,6 +1,8 @@
 // app/api/diamonds/[id]/route.js
 import knex from "../../../lib/db";
 import { z } from "zod";
+import { cookies } from "next/headers";
+import { verifyToken } from "../../../lib/services/authService";
 
 // Helper to convert empty strings to null
 const emptyToNull = (v) => (v === "" || v === undefined ? null : v);
@@ -23,6 +25,7 @@ const diamondSchema = z.object({
   // Basic Information
   stone_type: z.string().optional().nullable(),
   lab: z.string().optional().nullable(),
+  diamond_id: z.string().optional().nullable(),
   certificate_number: z.string().optional().nullable(),
   shape: z.string().min(1, "Shape is required"),
   weight: z.preprocess((v) => Number(v), z.number().positive("Weight must be positive")),
@@ -137,7 +140,7 @@ export async function GET(req, { params }) {
       });
     }
 
-    console.log("Diamond found:", diamond.certificate_number);
+    console.log("Diamond found:", diamond.diamond_id || diamond.certificate_number);
 
     return new Response(JSON.stringify(diamond), {
       status: 200,
@@ -154,6 +157,12 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
+    // Auth check
+    const token = cookies().get("token")?.value;
+    if (!token || !verifyToken(token)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const { id } = params;
     const body = await req.json();
 
@@ -179,6 +188,7 @@ export async function PUT(req, { params }) {
       // Basic Info
       stone_type: parsed.stone_type || null,
       lab: parsed.lab || null,
+      diamond_id: parsed.diamond_id || null,
       certificate_number: parsed.certificate_number || null,
       shape: parsed.shape,
       weight: parsed.weight,
@@ -325,7 +335,7 @@ export async function PUT(req, { params }) {
     // Fetch updated diamond
     const updated = await knex("diamonds").where({ id }).first();
 
-    console.log("Diamond updated successfully:", updated.certificate_number);
+    console.log("Diamond updated successfully:", updated.diamond_id || updated.certificate_number);
 
     return new Response(JSON.stringify(updated), {
       status: 200,
@@ -343,6 +353,12 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
+    // Auth check
+    const token = cookies().get("token")?.value;
+    if (!token || !verifyToken(token)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const { id } = params;
 
     console.log("=== DELETE DIAMOND ===");

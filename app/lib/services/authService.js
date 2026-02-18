@@ -6,6 +6,7 @@ import {
   findUserByEmail,
   createUser,
   findUserById,
+  updateUser,
 } from "../../lib/queries/userQueries";
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -22,8 +23,19 @@ export async function loginUser(email, password) {
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw new Error("Invalid credentials");
 
+  // Check for existing session
+  if (user.current_session_id) {
+    throw new Error("User already logged in on another device. Please logout first.");
+  }
+
+  // Create new session ID
+  const sessionId = require('crypto').randomUUID();
+
+  // Update user with new session ID
+  await updateUser(user.id, { current_session_id: sessionId });
+
   const token = jwt.sign(
-    { id: user.id, email: user.email },
+    { id: user.id, email: user.email, sessionId },
     JWT_SECRET,
     { expiresIn: "1d" }
   );
@@ -37,7 +49,10 @@ export async function loginUser(email, password) {
 // ----------------------------------------------------
 // LOGOUT
 // ----------------------------------------------------
-export function logoutUser() {
+export async function logoutUser(userId) {
+  if (userId) {
+    await updateUser(userId, { current_session_id: null });
+  }
   return { message: "Logged out successfully." };
 }
 

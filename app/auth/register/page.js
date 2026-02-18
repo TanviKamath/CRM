@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const SUBSCRIPTION_OPTIONS = ["Basic", "Basic+", "Pro"];
+
 export default function RegisterPage() {
   const router = useRouter();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [subscription, setSubscription] = useState("Basic");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -20,7 +23,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, subscription }),
       });
 
       if (!res.ok) {
@@ -76,6 +79,25 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                </div>
+
+                <div className="mb-3">
+                  <label>Subscription Plan</label>
+                  <select
+                    className="form-select"
+                    value={subscription}
+                    onChange={(e) => setSubscription(e.target.value)}
+                  >
+                    {SUBSCRIPTION_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="form-text">
+                    <i className="bi bi-info-circle me-1" />
+                    Pro users get access to the Excel Merger tool.
+                  </div>
                 </div>
 
                 <button className="btn btn-primary w-100">Register</button>

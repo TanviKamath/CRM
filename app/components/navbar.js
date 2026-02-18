@@ -141,61 +141,94 @@ export default function Navbar() {
                 </li>
               </DropdownPill>
 
+              {user && (
+                <DropdownPill
+                  id="navSales"
+                  icon="bi-graph-up-arrow"
+                  label="Sales"
+                  active={isActiveGroup("/sales")}
+                >
+                  <li>
+                    <Link className="dropdown-item" href="/sales">
+                      <i className="bi bi-list-ul me-2 text-primary" />
+                      All Sales
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item" href="/sales/create">
+                      <i className="bi bi-plus-circle me-2 text-success" />
+                      New Sale
+                    </Link>
+                  </li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li className="dropdown-header">Filter</li>
+                  <li>
+                    <Link className="dropdown-item" href="/sales?status=pending">
+                      <i className="bi bi-clock me-2 text-warning" />
+                      Pending
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item" href="/sales?status=completed">
+                      <i className="bi bi-check2-circle me-2 text-success" />
+                      Completed
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item" href="/sales?status=cancelled">
+                      <i className="bi bi-x-circle me-2 text-danger" />
+                      Cancelled
+                    </Link>
+                  </li>
+                </DropdownPill>
+              )}
+
               <DropdownPill
-                id="navSales"
-                icon="bi-graph-up-arrow"
-                label="Sales"
-                active={isActiveGroup("/sales")}
+                id="navEntities"
+                icon="bi-people-fill"
+                label="KYC"
+                active={isActiveGroup("/clients") || isActiveGroup("/brokers")}
               >
                 <li>
-                  <Link className="dropdown-item" href="/sales">
-                    <i className="bi bi-list-ul me-2 text-primary" />
-                    All Sales
+                  <Link className="dropdown-item" href="/clients">
+                    <i className="bi bi-person-fill me-2 text-primary" />
+                    Clients
                   </Link>
                 </li>
                 <li>
-                  <Link className="dropdown-item" href="/sales/create">
-                    <i className="bi bi-plus-circle me-2 text-success" />
-                    New Sale
-                  </Link>
-                </li>
-                <li><hr className="dropdown-divider" /></li>
-                <li className="dropdown-header">Filter</li>
-                <li>
-                  <Link className="dropdown-item" href="/sales?status=pending">
-                    <i className="bi bi-clock me-2 text-warning" />
-                    Pending
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" href="/sales?status=completed">
-                    <i className="bi bi-check2-circle me-2 text-success" />
-                    Completed
-                  </Link>
-                </li>
-                <li>
-                  <Link className="dropdown-item" href="/sales?status=cancelled">
-                    <i className="bi bi-x-circle me-2 text-danger" />
-                    Cancelled
+                  <Link className="dropdown-item" href="/brokers">
+                    <i className="bi bi-person-badge-fill me-2 text-info" />
+                    Brokers
                   </Link>
                 </li>
               </DropdownPill>
 
-              <li className="nav-item">
-                <NavPill href="/clients" icon="bi-people-fill" label="Clients" active={isActiveGroup("/clients")} />
-              </li>
+              <DropdownPill
+                id="navAccounting"
+                icon="bi-receipt"
+                label="Accounting"
+                active={isActiveGroup("/accounts") || isActiveGroup("/expenses") || isActiveGroup("/reporting")}
+              >
+                <li>
+                  <Link className="dropdown-item" href="/accounts">
+                    <i className="bi bi-wallet2 me-2 text-success" />
+                    Accounts
+                  </Link>
+                </li>
+                <li>
+                  <Link className="dropdown-item" href="/expenses">
+                    <i className="bi bi-cash-stack me-2 text-danger" />
+                    Expense
+                  </Link>
+                </li>
+              </DropdownPill>
 
-              <li className="nav-item">
-                <NavPill href="/brokers" icon="bi-person-badge-fill" label="Brokers" active={isActiveGroup("/brokers")} />
-              </li>
-
-              <li className="nav-item">
-                <NavPill href="/expenses" icon="bi-receipt" label="Expenses" active={isActiveGroup("/expenses")} />
-              </li>
-
-              <li className="nav-item">
-                <NavPill href="/accounts" icon="bi-receipt" label="Accounts" active={isActiveGroup("/accounts")} />
-              </li>
+              {/* Excel Tool - Only for Pro Users */}
+              {user?.subscription === "Pro" && (
+                <li className="nav-item">
+                  <NavPill href="/excel-tool" icon="bi-file-earmark-excel-fill" label="Excel Tool" active={isActive("/excel-tool")} />
+                </li>
+              )}
             </ul>
 
             {/* Right side */}
@@ -221,7 +254,7 @@ export default function Navbar() {
                   <ul className="dropdown-menu dropdown-menu-dark dropdown-menu-end nav-dropdown shadow-lg border-0">
                     <li className="dropdown-header">
                       <div className="fw-semibold">{user.name}</div>
-                      <div className="text-muted small">{user.email}</div>
+                      {/* <div className="text-white small">{user.email}</div> */}
                     </li>
                     <li><hr className="dropdown-divider" /></li>
                     <li>

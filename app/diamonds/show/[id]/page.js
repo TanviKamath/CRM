@@ -151,7 +151,7 @@ export default function ShowDiamond() {
             </div>
             <div>
               <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.3px" }}>
-                {diamond.certificate_number || "No Cert"}
+                {diamond.diamond_id || "No ID"}
               </h2>
               <div className="text-muted d-flex align-items-center gap-2">
                 <span>{diamond.shape}</span>
@@ -188,7 +188,6 @@ export default function ShowDiamond() {
             <SectionCard title="Basic Information" icon="bi-info-circle">
               <InfoRow label="Stone Type" value={displayValue(diamond.stone_type)} />
               <InfoRow label="Lab" value={displayValue(diamond.lab)} />
-              <InfoRow label="Certificate Number" value={displayValue(diamond.certificate_number)} />
               <InfoRow label="Shape" value={displayValue(diamond.shape)} />
               <InfoRow label="Weight" value={diamond.weight ? `${formatNumber(diamond.weight)} carats` : "-"} />
               <InfoRow label="Color" value={displayValue(diamond.color)} />

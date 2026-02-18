@@ -149,6 +149,7 @@ export default function DiamondsIndexPage() {
     if (!query) return diamonds;
     return diamonds.filter((d) => {
       const hay = [
+        d.diamond_id,
         d.certificate_number,
         d.stone_type,
         d.shape,
@@ -441,7 +442,7 @@ export default function DiamondsIndexPage() {
                     </div>
                   </th>
                   <th className="py-3 text-muted small text-uppercase">Location</th>
-                  <th className="py-3 text-muted small text-uppercase">Certificate</th>
+                  <th className="py-3 text-muted small text-uppercase">ID</th>
                   <th className="py-3 text-muted small text-uppercase">Details</th>
                   <th className="py-3 text-muted small text-uppercase text-end">Weight</th>
                   <th className="py-3 text-muted small text-uppercase text-end">Price</th>
@@ -490,7 +491,7 @@ export default function DiamondsIndexPage() {
                       </td>
                       <td className="py-3">
                         <Link href={`/diamonds/show/${d.id}`} className="text-decoration-none fw-semibold text-dark">
-                          {d.certificate_number || "-"}
+                          {d.diamond_id || "-"}
                         </Link>
                         <div className="small text-muted">{d.lab || "GIA"}</div>
                       </td>

@@ -1,6 +1,8 @@
 // app/api/diamonds/route.js
 import knex from "../../lib/db";
 import { z } from "zod";
+import { cookies } from "next/headers";
+import { verifyToken } from "../../lib/services/authService";
 
 // Helper to convert empty strings to null
 const emptyToNull = (v) => (v === "" || v === undefined ? null : v);
@@ -23,6 +25,7 @@ const diamondSchema = z.object({
   // Basic Information
   stone_type: z.string().optional().nullable(),
   lab: z.string().optional().nullable(),
+  diamond_id: z.string().optional().nullable(),
   certificate_number: z.string().optional().nullable(),
   shape: z.string().min(1, "Shape is required"),
   weight: z.preprocess((v) => Number(v), z.number().positive("Weight must be positive")),
@@ -125,11 +128,27 @@ export async function GET(req) {
     const url = new URL(req.url);
     const availability = url.searchParams.get("availability") || "";
 
+    // Check auth for price visibility
+    const token = cookies().get("token")?.value;
+    const isAuthenticated = !!(token && verifyToken(token));
+
     let q = knex("diamonds").select("*").orderBy("id", "desc");
     if (availability) q = q.where("availability", availability);
 
     const rows = await q;
-    return new Response(JSON.stringify(rows), {
+
+    // Filter prices if not authenticated
+    const processedRows = isAuthenticated ? rows : rows.map(d => {
+      const clean = { ...d };
+      [
+        "rap_rate", "rap_discount", "price_per_carat_usd", "amount_usd", "pur_rap_discount",
+        "conversion_rate", "amount_inr", "purchase_from", "purchase_price",
+        "purchase_conversion_rate", "purchase_price_inr"
+      ].forEach(f => delete clean[f]);
+      return clean;
+    });
+
+    return new Response(JSON.stringify(processedRows), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -141,6 +160,12 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
+    // Auth check
+    const token = cookies().get("token")?.value;
+    if (!token || !verifyToken(token)) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const body = await req.json();
 
     // Debug log
@@ -163,6 +188,7 @@ export async function POST(req) {
       // Basic Info
       stone_type: parsed.stone_type || null,
       lab: parsed.lab || null,
+      diamond_id: parsed.diamond_id || null,
       certificate_number: parsed.certificate_number || null,
       shape: parsed.shape,
       weight: parsed.weight,
@@ -267,7 +293,9 @@ export async function POST(req) {
 
     const [id] = await knex("diamonds").insert(insertData);
 
-    // Track creation history
+    // Track creation history - OPTIMIZED: Removed implicit creation event
+    // The "CREATED" event is now synthesized dynamically in the history API logic
+    /*
     await knex("diamond_history").insert({
       diamond_id: id,
       event_type: "CREATED",
@@ -276,6 +304,7 @@ export async function POST(req) {
       notes: "Diamond created",
       created_at: knex.fn.now()
     });
+    */
 
     // Handle Payment Outstanding if "On Terms"
     if (parsed.payment_status === "On Terms") {

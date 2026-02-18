@@ -20,12 +20,12 @@ export async function POST(request) {
       // but for now, rely on IDs for selection or just dump all if "export all" is clicked without filters)
       // The user requirement says "select the rows too and export", "export particular rows".
       // We will support "Export All" as well.
-      
+
       // Basic filtering support if passed
       if (filters.availability) {
         query = query.where("availability", filters.availability);
       }
-      
+
       // Note: Full text search string 'q' is harder to replicate exactly in one go without duplicate logic,
       // but if the user wants "Export All" while filtered, we should probably pass the IDs of the filtered result 
       // from the frontend to be safe and accurate to what they see. 
@@ -44,7 +44,7 @@ export async function POST(request) {
     // Define Columns
     worksheet.columns = [
       { header: "Date Added", key: "date", width: 12 },
-      { header: "Certificate", key: "certificate_number", width: 15 },
+      { header: "Diamond ID", key: "diamond_id", width: 15 },
       { header: "Lab", key: "lab", width: 10 },
       { header: "Shape", key: "shape", width: 12 },
       { header: "Weight (ct)", key: "weight", width: 12 },
@@ -77,7 +77,7 @@ export async function POST(request) {
     diamonds.forEach((d) => {
       worksheet.addRow({
         date: d.created_at ? new Date(d.created_at).toISOString().split("T")[0] : "",
-        certificate_number: d.certificate_number,
+        diamond_id: d.diamond_id || d.certificate_number,
         lab: d.lab,
         shape: d.shape,
         weight: parseFloat(d.weight) || 0,

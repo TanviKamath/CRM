@@ -15,13 +15,14 @@ export async function POST(req) {
       name: parsed.name,
       email: parsed.email,
       password: hashed,
+      subscription: parsed.subscription || "Basic",
       created_at: new Date(),
       updated_at: new Date(),
     });
 
     const user = await knex("users").where("id", id).first();
     delete user.password;
-    return new Response(JSON.stringify(user), { status: 201, headers: { "Content-Type": "application/json" }});
+    return new Response(JSON.stringify(user), { status: 201, headers: { "Content-Type": "application/json" } });
   } catch (err) {
     const msg = err.errors ? JSON.stringify(err.errors) : err.message;
     return new Response(msg, { status: 400 });

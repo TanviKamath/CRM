@@ -20,6 +20,8 @@ function StatPill({ icon, label, value, tone = "success" }) {
 export default function AccountExport() {
     const [selectionType, setSelectionType] = useState("dateRange");
     const [category, setCategory] = useState("all");
+    const [clientId, setClientId] = useState("");
+    const [clients, setClients] = useState([]);
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [financialYear, setFinancialYear] = useState("");
@@ -28,11 +30,28 @@ export default function AccountExport() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    // Fetch clients on mount
+    useState(() => {
+        fetch("/api/clients")
+            .then(res => res.json())
+            .then(data => setClients(data || []))
+            .catch(err => console.error("Failed to fetch clients", err));
+    }, []);
+
     const categories = [
         { value: "all", label: "All Transactions", icon: "bi-list-ul", color: "#6366f1" },
         { value: "stock", label: "Stock Summary", icon: "bi-gem", color: "#ec4899" },
-        { value: "buy", label: "Diamond Purchases (Buy)", icon: "bi-cart-check", color: "#f59e0b" },
-        { value: "expenses", label: "General Expenses", icon: "bi-receipt", color: "#ef4444" },
+        { value: "buy", label: "Diamond Purchases", icon: "bi-cart-check", color: "#f59e0b" },
+        // Specific Expense Categories
+        { value: "brokerage", label: "Brokerage", icon: "bi-person-badge", color: "#8b5cf6" },
+        { value: "salaries", label: "Salaries & Wages", icon: "bi-cash-coin", color: "#ef4444" },
+        { value: "rent", label: "Rent & Lease", icon: "bi-building", color: "#06b6d4" },
+        { value: "utilities", label: "Utilities", icon: "bi-lightning-charge", color: "#eab308" },
+        { value: "office_supplies", label: "Office Supplies", icon: "bi-printer", color: "#64748b" },
+        { value: "travel", label: "Travel", icon: "bi-airplane", color: "#3b82f6" },
+        { value: "marketing", label: "Marketing", icon: "bi-megaphone", color: "#d946ef" },
+        { value: "miscellaneous", label: "Miscellaneous", icon: "bi-question-circle", color: "#94a3b8" },
+        // Payment Modes
         { value: "bank", label: "Bank Statement", icon: "bi-bank", color: "#3b82f6" },
         { value: "cash", label: "Cash Statement", icon: "bi-wallet2", color: "#10b981" },
     ];
@@ -57,6 +76,7 @@ export default function AccountExport() {
             params.append("action", "export");
             params.append("selection_type", selectionType);
             params.append("category", category);
+            if (clientId) params.append("client_id", clientId);
 
             if (selectionType === "dateRange") {
                 if (!startDate || !endDate) {
@@ -212,6 +232,30 @@ export default function AccountExport() {
                         <button type="button" className="btn-close" onClick={() => setError("")} aria-label="Close" />
                     </div>
                 )}
+
+                {/* Client Selection (Optional) */}
+                <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>
+                    <div className="card-body p-4">
+                        <label className="form-label text-muted small mb-3">Filter by Client (Optional)</label>
+                        <select
+                            className="form-select"
+                            value={clientId}
+                            onChange={(e) => setClientId(e.target.value)}
+                            style={{ borderRadius: 10, padding: "12px 16px" }}
+                        >
+                            <option value="">All Clients</option>
+                            {clients.map(c => (
+                                <option key={c.id} value={c.id}>
+                                    {c.company_name || c.contact_name}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="form-text text-muted small mt-2">
+                            <i className="bi bi-info-circle me-1"></i>
+                            Select a client to see only their sales and transactions.
+                        </div>
+                    </div>
+                </div>
 
                 {/* Category Selection */}
                 <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 16 }}>

@@ -4,7 +4,11 @@ import db from "@/lib/db";
 // GET ALL DIAMONDS (pagination)
 // Laravel: Diamond::latest()->paginate(10)
 // ---------------------------------------------------------
-export async function getAllDiamonds(page = 1, limit = 10) {
+// ---------------------------------------------------------
+// GET ALL DIAMONDS (pagination)
+// Laravel: Diamond::latest()->paginate(10)
+// ---------------------------------------------------------
+export async function getAllDiamonds(page = 1, limit = 10, includePrices = false) {
   const offset = (page - 1) * limit;
 
   const diamonds = await db("diamonds")
@@ -15,8 +19,10 @@ export async function getAllDiamonds(page = 1, limit = 10) {
 
   const total = await db("diamonds").count({ count: "*" }).first();
 
+  const processedDetails = includePrices ? diamonds : diamonds.map(d => removePriceFields(d));
+
   return {
-    data: diamonds,
+    data: processedDetails,
     pagination: {
       total: Number(total.count),
       per_page: limit,
@@ -30,8 +36,21 @@ export async function getAllDiamonds(page = 1, limit = 10) {
 // GET ONE DIAMOND
 // Laravel: Diamond::findOrFail($id)
 // ---------------------------------------------------------
-export async function getDiamondById(id) {
-  return db("diamonds").where({ id }).first();
+export async function getDiamondById(id, includePrices = false) {
+  const diamond = await db("diamonds").where({ id }).first();
+  if (!diamond) return null;
+  return includePrices ? diamond : removePriceFields(diamond);
+}
+
+function removePriceFields(diamond) {
+  const d = { ...diamond };
+  const priceFields = [
+    "rap_rate", "rap_discount", "price_per_carat_usd", "amount_usd", "pur_rap_discount",
+    "conversion_rate", "amount_inr", "purchase_from", "purchase_price",
+    "purchase_conversion_rate", "purchase_price_inr"
+  ];
+  priceFields.forEach(f => delete d[f]);
+  return d;
 }
 
 // ---------------------------------------------------------

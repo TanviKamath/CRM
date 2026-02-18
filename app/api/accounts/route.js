@@ -87,6 +87,7 @@ export async function GET(request) {
 async function handleExport(searchParams) {
     try {
         const category = searchParams.get("category") || "all";
+        const clientId = searchParams.get("client_id"); // Extract client_id
         const { startDate, endDate, error } = getDateRange(searchParams);
 
         if (error || !startDate || !endDate) {
@@ -97,14 +98,14 @@ async function handleExport(searchParams) {
         }
 
         console.log("=".repeat(50));
-        console.log(`Exporting ${category} data from`, startDate, "to", endDate);
+        console.log(`Exporting ${category} data from`, startDate, "to", endDate, clientId ? `for Client ${clientId}` : "");
         console.log("=".repeat(50));
 
         // Array to hold all transactions
         let transactions = [];
 
-        // Special case: Stock Summary (Inventory snapshot)
-        if (category === "stock") {
+        // Special case: Stock Summary (Inventory snapshot) - Client Filter NA
+        if (category === "stock" && !clientId) {
             try {
                 const diamonds = await knex("diamonds")
                     .whereIn("availability", ["available", "memo", "at_lab"])
@@ -142,8 +143,14 @@ async function handleExport(searchParams) {
             }
         }
 
-        // 1. Get Expenses (Debits)
-        if (category === "all" || category === "expenses" || category === "bank" || category === "cash") {
+        // 1. Get Expenses (Debits) - Client Filter usually NA for general expenses
+        // If specific category is selected (e.g., 'salaries'), filter by it.
+        // If 'all', 'bank', 'cash', fetch all.
+        // If client_id is present, we generally skip general expenses unless they are linked to client (which they aren't usually).
+        const expenseCategories = ["brokerage", "salaries", "rent", "utilities", "office_supplies", "travel", "marketing", "insurance", "maintenance", "professional_fees", "taxes", "miscellaneous", "manufacturing", "labour", "certification"];
+        const isExpenseCategory = expenseCategories.includes(category);
+
+        if ((category === "all" || category === "expenses" || category === "bank" || category === "cash" || isExpenseCategory) && !clientId) {
             try {
                 let query = knex("expenses").whereBetween("expense_date", [startDate, endDate]);
 
@@ -151,6 +158,8 @@ async function handleExport(searchParams) {
                     query = query.whereIn("payment_method", ["bank_transfer", "cheque", "credit_card", "debit_card", "upi"]);
                 } else if (category === "cash") {
                     query = query.where("payment_method", "cash");
+                } else if (isExpenseCategory) {
+                    query = query.where("category", category);
                 }
 
                 const expenses = await query.select(
@@ -253,6 +262,10 @@ async function handleExport(searchParams) {
                             .orWhereNot("sale_payments.payment_method", "advance");
                     });
 
+                if (clientId) {
+                    query = query.where("sales.client_id", clientId);
+                }
+
                 if (category === "bank") {
                     query = query.whereIn("sale_payments.payment_method", ["bank_transfer", "cheque", "credit_card", "debit_card", "upi"]);
                 } else if (category === "cash") {
@@ -348,6 +361,10 @@ async function handleExport(searchParams) {
                             "clients.contact_name"
                         );
 
+                    if (clientId) {
+                        advancePayments.where("sales.client_id", clientId); // Filter by client
+                    }
+
                     console.log("Advance payments found:", advancePayments.length);
 
                     advancePayments.forEach((payment) => {
@@ -403,6 +420,10 @@ async function handleExport(searchParams) {
                     "clients.company_name",
                     "clients.contact_name"
                 );
+
+            if (clientId) {
+                advanceFromPaymentsTable.where("sales.client_id", clientId);
+            }
 
             console.log("Advance payments from sale_payments table:", advanceFromPaymentsTable.length);
 
