@@ -1,4 +1,5 @@
 import knex from "../../lib/db";
+import { createClientService } from "../../lib/services/clientService";
 import { clientSchema } from "../../lib/validators/clientSchema";
 
 export async function GET() {
@@ -13,13 +14,12 @@ export async function GET() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const parsed = clientSchema.parse(body);
+    console.log("Creating client with body:", body);
+    const result = await createClientService(body);
 
-    const [id] = await knex("clients").insert(parsed);
-    const created = await knex("clients").where({ id }).first();
-
-    return Response.json(created, { status: 201 });
+    return Response.json(result.client, { status: 201 });
   } catch (e) {
+    console.error("Error creating client:", e);
     return new Response(e.message, { status: 400 });
   }
 }

@@ -36,5 +36,36 @@ export default function ExcelToolPage() {
         );
     }
 
-    return <ExcelMerger />;
+    return (
+        <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>
+            <div className="container">
+                {/* Header */}
+                <div className="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                    <div>
+                        <div className="d-flex align-items-center">
+                            <div
+                                className="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                style={{
+                                    width: 52,
+                                    height: 52,
+                                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                                    boxShadow: "0 6px 18px rgba(102,126,234,0.25)",
+                                }}
+                            >
+                                <i className="bi bi-file-earmark-spreadsheet text-white" style={{ fontSize: "1.3rem" }} />
+                            </div>
+                            <div>
+                                <h2 className="fw-bold mb-1 text-dark" style={{ letterSpacing: "-0.3px" }}>
+                                    Excel Tool
+                                </h2>
+                                <div className="text-muted">Merge multiple Excel files and map columns easily.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <ExcelMerger />
+            </div>
+        </div>
+    );
 }

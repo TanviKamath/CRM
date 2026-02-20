@@ -1,28 +1,3 @@
-.container {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
-  min-height: 100vh; /* fills full screen */
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  align-items: flex-start; /* keeps card at top */
-}
-
-.card {
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-  height:fit-content;
-}
-
-
-
-
-
 .tabs {
   display: flex;
   border-bottom: 2px solid #e5e7eb;
@@ -355,4 +330,140 @@
   color: #2563eb;
   text-decoration: underline;
   font-weight: 600;
+}
+
+/* ─── Merged Pairs Grid ─────────────────────────────────────── */
+
+/* Outer grid that holds all pair cards */
+.mergedPairsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+/* Individual pair card */
+.pairCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Card header row: title + delete button */
+.pairCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* "→ Column Name" title */
+.pairCardTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #2d3748;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Delete (×) button — stays small, never shrinks title */
+.pairCardDelete {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fc8181;
+  border: none;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Divider under the title */
+.pairCardDivider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 0;
+}
+
+/*
+ * Each file-mapping row inside a card.
+ * KEY FIX: Use CSS Grid with a fixed left column for the badge
+ * and a flexible right column for the arrow+text.
+ * This prevents the text from ever floating under the badge.
+ */
+.pairRow {
+  display: grid;
+  grid-template-columns: auto 1fr;  /* badge | arrow+text */
+  align-items: start;
+  gap: 6px;
+  background: #f7fafc;
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* "DiamondX.xlsx" blue pill badge — always on the LEFT, never shrinks */
+.pairFileBadge {
+  grid-column: 1;
+  background: #bee3f8;
+  color: #2c5282;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: start;
+}
+
+/*
+ * Right column: contains "→ OriginalColumnName" and optional MANUAL badge.
+ * Uses flex so MANUAL badge sits inline at the end of the text.
+ */
+.pairArrowLabelWrap {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* "→ OriginalColumnName" text — wraps freely inside its grid column */
+.pairArrowLabel {
+  font-size: 0.78rem;
+  color: #4a5568;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  min-width: 0;
+}
+
+/* MANUAL badge (amber pill) — inline, never causes overflow */
+.pairManualBadge {
+  flex-shrink: 0;
+  background: #f6ad55;
+  color: #7b341e;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
 }

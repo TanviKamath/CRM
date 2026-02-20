@@ -158,7 +158,8 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   try {
     // Auth check
-    const token = cookies().get("token")?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
     if (!token || !verifyToken(token)) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -354,7 +355,8 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     // Auth check
-    const token = cookies().get("token")?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
     if (!token || !verifyToken(token)) {
       return new Response("Unauthorized", { status: 401 });
     }

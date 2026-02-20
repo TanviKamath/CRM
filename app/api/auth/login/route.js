@@ -17,7 +17,8 @@ export async function POST(req) {
     console.log("Login successful, token generated");
 
     // Save cookie
-    cookies().set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: "token",
       value: token,
       httpOnly: true,

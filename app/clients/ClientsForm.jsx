@@ -42,6 +42,8 @@ export default function ClientsForm({
     account_type: initial.account_type || "",
     account_number: initial.account_number || "",
     ifsc_code: initial.ifsc_code || "",
+    password: "",
+    confirm_password: "",
   });
 
   const [error, setError] = useState("");
@@ -69,6 +71,7 @@ export default function ClientsForm({
 
   const validateForm = () => {
     const errors = {};
+    console.log("Validating form with data:", form);
 
     // Required fields
     if (!form.company_name.trim()) errors.company_name = "Company name is required";
@@ -78,6 +81,20 @@ export default function ClientsForm({
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "Please enter a valid email address";
 
     if (!form.owner_name.trim()) errors.owner_name = "Owner name is required";
+
+    // Password validation (Create checks or if field is touched/filled)
+    if (!initial.id && !form.password) {
+      errors.password = "Password is required for new clients";
+    }
+    if (form.password && form.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+    if (form.password !== form.confirm_password) {
+      errors.confirm_password = "Passwords do not match";
+    }
+    if (!initial.id && !form.confirm_password) {
+      errors.confirm_password = "Confirm Password is required";
+    }
 
     // Bank required
     if (!form.bank_name.trim()) errors.bank_name = "Bank name is required";
@@ -101,16 +118,34 @@ export default function ClientsForm({
       errors.pan_no = "Please enter a valid PAN number";
     }
 
+    console.log("Validation errors:", errors);
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form submitted");
     setError("");
 
+    // Identify which fields have errors and expand their section
+    const formErrors = {};
+    // ... (re-running validation or just trust validateForm internal set)
+
     if (!validateForm()) {
+      console.log("Validation failed");
       setError("Please fix the highlighted fields.");
+
+      // Expand sections if they have errors
+      // Basic Info: company_name, contact_name, email, owner_name, password, confirm_password
+      // Address: reg_address, bdb_address
+      // Business: organisation_nature, nature_of_business, gst_no, pan_no, udyam_reg
+      // Bank: bank_name, branch, bank_address, account_type, account_number, ifsc_code
+
+      // For simplicity in this structure, we can just ensure the accordion is open.
+      // Since we don't know exactly which one, let's open all if validation fails? 
+      // Or better, let's just make sure the form doesn't use native constraint validation which causes the "not focusable" error.
+      // We are already doing custom validation in validateForm, so we can add 'noValidate' to the form tag.
       return;
     }
 
@@ -140,6 +175,9 @@ export default function ClientsForm({
         account_type: form.account_type.trim(),
         account_number: form.account_number.trim(),
         ifsc_code: form.ifsc_code.trim().toUpperCase(),
+        ifsc_code: form.ifsc_code.trim().toUpperCase(),
+        password: form.password || undefined, // Send only if set
+        confirm_password: form.confirm_password || undefined,
       };
 
       if (onSubmit) {
@@ -182,7 +220,7 @@ export default function ClientsForm({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} noValidate>
       {/* Error Alert */}
       {error && (
         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
@@ -271,6 +309,7 @@ export default function ClientsForm({
                       className={controlClass("email")}
                       placeholder="name@company.com"
                       required
+                      autoComplete="off"
                     />
                   </div>
                   {hasError("email") && <div className="invalid-feedback d-block">{validationErrors.email}</div>}
@@ -310,6 +349,50 @@ export default function ClientsForm({
                     />
                   </div>
                   {hasError("owner_name") && <div className="invalid-feedback d-block">{validationErrors.owner_name}</div>}
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label fw-medium">
+                    Password {!initial.id && <span className="text-danger">*</span>}
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-white">
+                      <i className="bi bi-lock text-muted" />
+                    </span>
+                    <input
+                      type="password"
+                      name="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      className={controlClass("password")}
+                      placeholder={initial.id ? "Leave blank to keep unchanged" : "Set password"}
+                      required={!initial.id}
+                      minLength={6}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {hasError("password") && <div className="invalid-feedback d-block">{validationErrors.password}</div>}
+                </div>
+
+                <div className="col-md-6">
+                  <label className="form-label fw-medium">
+                    Confirm Password {!initial.id && <span className="text-danger">*</span>}
+                  </label>
+                  <div className="input-group">
+                    <span className="input-group-text bg-white">
+                      <i className="bi bi-lock-fill text-muted" />
+                    </span>
+                    <input
+                      type="password"
+                      name="confirm_password"
+                      value={form.confirm_password}
+                      onChange={handleChange}
+                      className={controlClass("confirm_password")}
+                      placeholder="Confirm password"
+                      required={!initial.id}
+                    />
+                  </div>
+                  {hasError("confirm_password") && <div className="invalid-feedback d-block">{validationErrors.confirm_password}</div>}
                 </div>
               </div>
             </div>
