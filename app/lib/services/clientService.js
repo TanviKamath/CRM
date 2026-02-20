@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import {
   getAllClients,
   getClientById,
@@ -5,9 +6,9 @@ import {
   updateClient,
   deleteClient,
   findClientByEmail,
-} from "@/lib/queries/clientQueries";
+} from "../../lib/queries/clientQueries";
 
-import { clientSchema } from "@/lib/validators/clientSchema";
+import { clientSchema } from "../../lib/validators/clientSchema";
 
 // ---------------------------------------------------------
 // LIST CLIENTS (Laravel: index())
@@ -29,14 +30,27 @@ export async function showClient(id) {
 // CREATE CLIENT (Laravel: store())
 // ---------------------------------------------------------
 export async function createClientService(body) {
+  console.log("Service: Received body:", body);
   const parsed = clientSchema.safeParse(body);
-  if (!parsed.success) throw new Error("Validation failed");
+  if (!parsed.success) {
+    console.error("Service: Validation failed:", parsed.error);
+    throw new Error("Validation failed: " + JSON.stringify(parsed.error.flatten()));
+  }
 
   const data = parsed.data;
+
+  // Remove confirm_password as it's not a DB column
+  if ('confirm_password' in data) {
+    delete data.confirm_password;
+  }
 
   // Laravel: unique:clients,email
   const exists = await findClientByEmail(data.email);
   if (exists) throw new Error("Email already exists");
+
+  if (data.password) {
+    data.password = await bcrypt.hash(data.password, 10);
+  }
 
   const client = await createClient(data);
 
@@ -61,6 +75,10 @@ export async function updateClientService(id, body) {
   // Laravel: unique:clients,email,$id
   const exists = await findClientByEmail(data.email, id);
   if (exists) throw new Error("Email already exists");
+
+  if (data.password) {
+    data.password = await bcrypt.hash(data.password, 10);
+  }
 
   const updated = await updateClient(id, data);
 

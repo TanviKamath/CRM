@@ -20,4 +20,15 @@ export const clientSchema = z.object({
   account_type: z.string().optional().nullable(),
   account_number: z.string().optional().nullable(),
   ifsc_code: z.string().optional().nullable(),
+  password: z.string().min(6).optional().nullable(),
+  confirm_password: z.string().optional().nullable(),
+}).refine((data) => {
+  // If password is set, confirm_password must match
+  if (data.password && data.password !== data.confirm_password) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords do not match",
+  path: ["confirm_password"],
 });
