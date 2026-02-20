@@ -1,6 +1,5 @@
 .uploadSection {
   padding: 0;
-;
 }
 
 .uploadArea {
@@ -11,7 +10,6 @@
   cursor: pointer;
   transition: all 0.3s;
   margin-bottom: 2rem;
-
 }
 
 .uploadArea:hover {
@@ -214,113 +212,168 @@
   box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
 }
 
-/* ========================================
-   MERGED PAIRS - MASONRY COLUMNS LAYOUT
-   ======================================== */
+/* ============================================================
+   MERGED PAIRS CSS
+   ============================================================ */
 
 .mergedPairsSection {
-  margin-top: 20px;
+  margin-top: 24px;
   padding: 0;
-  background: transparent;
-  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b95a5;
+}
+
+.mergedPairsCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef1ff;
+  color: #4f6ef7;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 20px;
+  margin-left: 8px;
+  border: 1px solid #d4dbff;
 }
 
 .mergedPairsGrid {
-  column-count: 5;
-  column-gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: start;
 }
 
-@media (max-width: 1400px) {
-  .mergedPairsGrid {
-    column-count: 4;
-  }
+.rowBreak {
+  flex-basis: 100%;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
-@media (max-width: 1100px) {
-  .mergedPairsGrid {
-    column-count: 3;
-  }
-}
-
-@media (max-width: 800px) {
-  .mergedPairsGrid {
-    column-count: 2;
-  }
-}
-
-@media (max-width: 500px) {
-  .mergedPairsGrid {
-    column-count: 1;
-  }
-}
+.rowBreak[data-after="2"] { order: 15; }
+.rowBreak[data-after="3"] { order: 25; }
+.rowBreak[data-after="4"] { order: 35; }
+.rowBreak[data-after="5"] { order: 45; }
+.rowBreak[data-after="6"] { order: 55; }
+.rowBreak[data-after="7"] { order: 65; }
 
 .pairGroup {
-  background: white;
-  border-radius: 20px;
-  padding: 14px 16px;
-  border: 2px solid #e0e0e0;
-  transition: all 0.2s;
-  display: inline-block;
-  width: 100%;
-  margin-bottom: 10px;
-  break-inside: auto;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px 15px 13px;
+  border: 1.5px solid #eaecf0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
+  animation: cardIn 0.28s ease both;
+  flex: 0 0 calc(20% - 10px);
+  min-width: 220px;
+  box-sizing: border-box;
+  margin-top: 12px;
+}
+
+.pairGroup[data-count="2"] { order: 10; }
+.pairGroup[data-count="3"] { order: 20; }
+.pairGroup[data-count="4"] { order: 30; }
+.pairGroup[data-count="5"] { order: 40; }
+.pairGroup[data-count="6"] { order: 50; }
+.pairGroup[data-count="7"] { order: 60; }
+.pairGroup[data-count="8"] { order: 70; }
+
+.pairGroup::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4f6ef7 0%, #7c9fff 100%);
+  border-radius: 14px 14px 0 0;
+  opacity: 0;
+  transition: opacity 0.22s ease;
 }
 
 .pairGroup:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05), 0 8px 24px rgba(79,110,247,0.12);
+  border-color: #c3cffe;
   transform: translateY(-2px);
-  border-color: #667eea;
 }
+
+.pairGroup:hover::before { opacity: 1; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pairGroup:nth-child(1)    { animation-delay: 0.02s; }
+.pairGroup:nth-child(2)    { animation-delay: 0.05s; }
+.pairGroup:nth-child(3)    { animation-delay: 0.08s; }
+.pairGroup:nth-child(4)    { animation-delay: 0.11s; }
+.pairGroup:nth-child(5)    { animation-delay: 0.14s; }
+.pairGroup:nth-child(6)    { animation-delay: 0.17s; }
+.pairGroup:nth-child(7)    { animation-delay: 0.20s; }
+.pairGroup:nth-child(8)    { animation-delay: 0.23s; }
+.pairGroup:nth-child(9)    { animation-delay: 0.26s; }
+.pairGroup:nth-child(10)   { animation-delay: 0.29s; }
+.pairGroup:nth-child(n+11) { animation-delay: 0.32s; }
 
 .pairGroupHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #2d3748;
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #667eea;
-  white-space: nowrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 11px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .pairGroupHeader strong {
+  font-size: 13.5px;
   font-weight: 600;
-  flex: 1;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  color: #1a2030;
   line-height: 1.4;
+  flex: 1;
+  word-break: break-word;
 }
 
+/* ── Group-level Remove Button ───────────────────────────── */
 .removeGroupBtn {
-  background: #f44336;
-  color: white;
-  border: none;
+  background: #fff1f0;
+  color: #e03e30;
+  border: 1.5px solid #ffd6d3;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  min-width: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 24px; height: 24px; min-width: 24px;
+  display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  font-size: 13px; font-weight: 700; line-height: 1;
+  transition: all 0.18s ease;
+  flex-shrink: 0; margin-top: 1px;
 }
 
 .removeGroupBtn:hover {
-  background: #d32f2f;
-  transform: scale(1.15);
+  background: #e03e30; color: #fff; border-color: #e03e30;
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgba(224,62,48,0.35);
 }
 
-.removeGroupBtn:active {
-  transform: scale(0.9);
-}
+.removeGroupBtn:active { transform: scale(0.92); }
 
 .pairItems {
   display: flex;
@@ -328,59 +381,129 @@
   gap: 6px;
 }
 
+/* Each row: relative so ✕ can be absolute top-right */
 .pairItem {
-  display: flex;
-  align-items: center;
-  width: fit-content;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 16px;
-  border: 1px solid #dee2e6;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  padding: 8px 10px 8px 10px;
+  background: #f8f9fc;
+  border-radius: 9px;
+  border: 1px solid #eef0f5;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  /* make room on right for ✕ button when visible */
 }
 
+.pairItem:hover { background: #f0f3ff; border-color: #d6deff; }
 
+/* Two-line layout inside each item */
+.pairInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* right padding so text never slides under the ✕ button */
+  padding-right: 22px;
+}
 
+/* LINE 1: Filename pill — full width, ellipsis */
 .pairFileName {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #1565c0;
-  padding: 4px 10px;
-  border-radius: 12px;
+  display: block;
+  font-size: 11px;
   font-weight: 600;
-  font-size: 12px;
+  color: #3558c7;
+  background: #e8eeff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #ccd8ff;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(21, 101, 192, 0.15);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* LINE 2: arrow + column name + optional manual badge */
+.pairItemBottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .pairArrow {
-  color: #667eea;
-  font-weight: bold;
-  font-size: 14px;
+  color: #9baaf0;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
+/* Column name — wraps naturally, never squishes */
 .pairOriginal {
-  color: #495057;
+  font-size: 12px;
   font-weight: 500;
-  font-size: 13px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
+  color: #3d4a5e;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
   flex: 1;
   min-width: 0;
 }
 
 .manualBadge {
-  background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%);
-  color: #e65100;
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 2px 6px;
+  border-radius: 20px;
   white-space: nowrap;
-  box-shadow: 0 1px 2px rgba(230, 81, 0, 0.2);
   flex-shrink: 0;
+}
+
+/* ── Per-item ✕ — absolute top-right, only when group > 2 ── */
+.removeItemBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  color: #c0392b;
+  border: 1px solid #f5c6c2;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  transition: all 0.16s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.removeItemBtn:hover {
+  background: #e03e30;
+  color: #fff;
+  border-color: #e03e30;
+  transform: scale(1.18);
+  box-shadow: 0 2px 6px rgba(224,62,48,0.3);
+}
+
+.removeItemBtn:active { transform: scale(0.88); }
+
+/* ── Empty State ─────────────────────────────────────────── */
+.mergedPairsEmpty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ba5b5;
+  font-size: 14px;
+  font-style: italic;
+  background: #f9fafc;
+  border-radius: 14px;
+  border: 1.5px dashed #e0e4ec;
 }
 
 /* ========================================
@@ -426,7 +549,6 @@
   transform: scale(1.05);
 }
 
-/* Drop arrow text */
 .dropArrow {
   position: absolute;
   bottom: -18px;
@@ -447,7 +569,6 @@
   to { transform: translate(-50%, 4px); }
 }
 
-/* Uploaded files list */
 .uploadedFilesList {
   display: flex;
   flex-direction: column;
