@@ -23,16 +23,15 @@ export default function UploadSection({
   const [dragItem, setDragItem] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null);
 
-  // ✅ NEW: Success notification state
+  // Success notification state
   const [successNotification, setSuccessNotification] = useState(null);
 
-  // ✅ Auto-hide notification after 3-4 seconds
+  // Auto-hide notification after 3.5 seconds
   useEffect(() => {
     if (successNotification) {
       const timer = setTimeout(() => {
         setSuccessNotification(null);
-      }, 3500); // 3.5 seconds
-
+      }, 3500);
       return () => clearTimeout(timer);
     }
   }, [successNotification]);
@@ -61,7 +60,6 @@ export default function UploadSection({
       `Map "${dragItem.header}" with "${targetHeader}"\n\nType:\n1 → keep first name\n2 → keep second name\n3 → custom name`
     );
 
-    // If user cancels the prompt, exit
     if (option === null) {
       setDragItem(null);
       return;
@@ -76,20 +74,17 @@ export default function UploadSection({
       if (custom && custom.trim()) {
         finalName = custom.trim();
       } else {
-        // If cancelled or empty, exit
         setDragItem(null);
         return;
       }
     }
 
-    // Update column mappings
     setColumnMappings((prev) => ({
       ...prev,
       [sourceKey]: finalName,
       [targetKey]: finalName,
     }));
 
-    // Update manual mapped state
     const updatedManual = {
       ...manualMapped,
       [sourceKey]: finalName,
@@ -98,22 +93,18 @@ export default function UploadSection({
 
     setManualMapped(updatedManual);
 
-    // ✅ INSTANT UPDATE: Add to mergedPairsData immediately
     setMergedPairsData((prev) => {
       const updated = { ...prev };
-      
-      // Get file names
+
       const sourceFile = files.find(f => f.id === dragItem.fileId);
       const targetFile = files.find(f => f.id === targetFileId);
-      
+
       if (!sourceFile || !targetFile) return prev;
-      
-      // Initialize array for this merged column if it doesn't exist
+
       if (!updated[finalName]) {
         updated[finalName] = [];
       }
-      
-      // Check if source key already exists
+
       const sourceExists = updated[finalName].some(p => p.key === sourceKey);
       if (!sourceExists) {
         updated[finalName].push({
@@ -123,13 +114,11 @@ export default function UploadSection({
           isManual: true
         });
       } else {
-        // Update existing entry to mark as manual
         updated[finalName] = updated[finalName].map(p =>
           p.key === sourceKey ? { ...p, isManual: true } : p
         );
       }
-      
-      // Check if target key already exists
+
       const targetExists = updated[finalName].some(p => p.key === targetKey);
       if (!targetExists) {
         updated[finalName].push({
@@ -139,34 +128,57 @@ export default function UploadSection({
           isManual: true
         });
       } else {
-        // Update existing entry to mark as manual
         updated[finalName] = updated[finalName].map(p =>
           p.key === targetKey ? { ...p, isManual: true } : p
         );
       }
-      
+
       return updated;
     });
 
-    // Save to localStorage using provided function
     saveMappingsToStorage(updatedManual);
-
     setDragItem(null);
   };
 
-  // ✅ NEW: Handle delete with success notification
+  // Remove entire merged group
   const handleDecombine = (mergedColumnName) => {
     const result = decombineMapping(mergedColumnName);
-    
-    // If decombineMapping returned a value (merged column name), show success notification
     if (result) {
       setSuccessNotification(`Mapping "${result}" removed successfully!`);
     }
   };
 
+  // ✅ NEW: Remove a single item from a merged group (only when group has > 2 items)
+  const handleRemoveSinglePair = (mergedColumnName, pairKey) => {
+    setMergedPairsData((prev) => {
+      const updated = { ...prev };
+      const group = updated[mergedColumnName];
+      if (!group) return prev;
+
+      // Remove the specific pair
+      updated[mergedColumnName] = group.filter(p => p.key !== pairKey);
+
+      return updated;
+    });
+
+    // Also remove from columnMappings and manualMapped
+    setColumnMappings((prev) => {
+      const updated = { ...prev };
+      delete updated[pairKey];
+      return updated;
+    });
+
+    const updatedManual = { ...manualMapped };
+    delete updatedManual[pairKey];
+    setManualMapped(updatedManual);
+    saveMappingsToStorage(updatedManual);
+
+    setSuccessNotification(`Column removed from mapping successfully!`);
+  };
+
   return (
     <div className={styles.uploadSection}>
-      {/* ✅ NEW: Success notification banner */}
+      {/* Success notification banner */}
       {successNotification && (
         <div style={{
           position: 'fixed',
@@ -200,7 +212,6 @@ export default function UploadSection({
             <div style={{ fontWeight: '600', marginBottom: '2px' }}>Success!</div>
             <div style={{ fontSize: '14px', opacity: 0.95 }}>{successNotification}</div>
           </div>
-          {/* Progress bar */}
           <div style={{
             position: 'absolute',
             bottom: 0,
@@ -222,23 +233,12 @@ export default function UploadSection({
 
       <style jsx>{`
         @keyframes slideIn {
-          from {
-            transform: translateX(400px);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          from { transform: translateX(400px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
-        
         @keyframes progressBar {
-          from {
-            width: 100%;
-          }
-          to {
-            width: 0%;
-          }
+          from { width: 100%; }
+          to { width: 0%; }
         }
       `}</style>
 
@@ -269,9 +269,8 @@ export default function UploadSection({
             </button>
           </div>
 
-          {/* ✅ NEW: Show uploaded file names with individual remove buttons */}
           <div className={styles.uploadedFilesList}>
-            {files.map((file, idx) => (
+            {files.map((file) => (
               <div key={file.id} className={styles.uploadedFileItem}>
                 <span className={styles.fileIcon}>📄</span>
                 <span className={styles.fileNameText}>{file.name}</span>
@@ -285,12 +284,12 @@ export default function UploadSection({
               </div>
             ))}
           </div>
-          
+
           <div style={{marginBottom:"8px",fontSize:"13px"}}>
             Drag & drop columns to merge manually
           </div>
 
-          {/*  Legend */}
+          {/* Legend */}
           <div className={styles.legendRow}>
             <div className={styles.legend}>
               <div className={styles.legendItem}>
@@ -314,10 +313,7 @@ export default function UploadSection({
                 <div className={styles.headersList}>
                   {Array.isArray(file.headers) && file.headers.map((header) => {
                     const key = `${file.id}::${header}`;
-                    const mapped = columnMappings?.[key];
-                    
                     let highlight = "";
-
                     if (autoMapped[key]) highlight = styles.auto;
                     if (manualMapped[key]) highlight = styles.manual;
 
@@ -333,14 +329,12 @@ export default function UploadSection({
                         onDragLeave={onDragLeaveHeader}
                         onDrop={() => onDrop(file.id, header)}
                         className={`
-                          ${styles.headerTag} 
+                          ${styles.headerTag}
                           ${highlight}
                           ${dragOverTarget === `${file.id}::${header}` ? styles.dragTarget : ""}
                         `}
                       >
                         {header}
-
-                        {/*  Arrow indicator */}
                         {dragOverTarget === `${file.id}::${header}` && dragItem && (
                           <span className={styles.dropArrow}>⬇ Drop Here</span>
                         )}
@@ -356,24 +350,32 @@ export default function UploadSection({
             <button onClick={autoMapHeaders} className={styles.autoMapBtn}>
               ⚡ Auto Map Similar Columns
             </button>
-
             <button onClick={mergeFiles} className={styles.mergeBtn}>
               Merge Files
             </button>
           </div>
 
-          {/*  Merged Pairs - ALWAYS VISIBLE with dynamic grid layout */}
+          {/* Merged Pairs */}
           {Object.keys(mergedPairsData).length > 0 && (
-            <div className={styles.mergedPairsSection}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 700, color: '#2d3748' }}>
-                Merged Column Pairs ({Object.keys(mergedPairsData).length})
-              </h4>
-              <div className={styles.mergedPairsGrid}>
-                {Object.keys(mergedPairsData).map((mergedColumn) => (
-                  <div key={mergedColumn} className={styles.pairGroup}>
+            <div className={styles.mergedPairsGrid}>
+              <div className={styles.rowBreak} data-after="2" />
+              <div className={styles.rowBreak} data-after="3" />
+              <div className={styles.rowBreak} data-after="4" />
+              <div className={styles.rowBreak} data-after="5" />
+
+              {Object.keys(mergedPairsData).map((mergedColumn) => {
+                const pairs = mergedPairsData[mergedColumn];
+                const hasMoreThanTwo = pairs.length > 2;
+
+                return (
+                  <div
+                    key={mergedColumn}
+                    className={styles.pairGroup}
+                    data-count={pairs.length}
+                  >
                     <div className={styles.pairGroupHeader}>
                       <strong>→ {mergedColumn}</strong>
-                      {/* ✅ Use handleDecombine instead of direct call */}
+                      {/* Group-level ✕ — always visible */}
                       <button
                         onClick={() => handleDecombine(mergedColumn)}
                         className={styles.removeGroupBtn}
@@ -382,23 +384,38 @@ export default function UploadSection({
                         ✕
                       </button>
                     </div>
+
                     <div className={styles.pairItems}>
-                      {mergedPairsData[mergedColumn].map((pair, idx) => (
+                      {pairs.map((pair, idx) => (
                         <div key={idx} className={styles.pairItem}>
+                          {/* Per-item ✕ — absolutely positioned, only when group > 2 */}
+                          {hasMoreThanTwo && (
+                            <button
+                              onClick={() => handleRemoveSinglePair(mergedColumn, pair.key)}
+                              className={styles.removeItemBtn}
+                              title="Remove this column from mapping"
+                            >
+                              ✕
+                            </button>
+                          )}
                           <div className={styles.pairInfo}>
+                            {/* LINE 1: filename pill */}
                             <span className={styles.pairFileName}>{pair.fileName}</span>
-                            <span className={styles.pairArrow}>→</span>
-                            <span className={styles.pairOriginal}>{pair.originalHeader}</span>
-                            {pair.isManual && (
-                              <span className={styles.manualBadge}>Manual</span>
-                            )}
+                            {/* LINE 2: arrow + column name + optional manual badge */}
+                            <div className={styles.pairItemBottom}>
+                              <span className={styles.pairArrow}>→</span>
+                              <span className={styles.pairOriginal}>{pair.originalHeader}</span>
+                              {pair.isManual && (
+                                <span className={styles.manualBadge}>Manual</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
