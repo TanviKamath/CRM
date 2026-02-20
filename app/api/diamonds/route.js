@@ -129,7 +129,8 @@ export async function GET(req) {
     const availability = url.searchParams.get("availability") || "";
 
     // Check auth for price visibility
-    const token = cookies().get("token")?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
     const isAuthenticated = !!(token && verifyToken(token));
 
     let q = knex("diamonds").select("*").orderBy("id", "desc");
@@ -161,7 +162,8 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     // Auth check
-    const token = cookies().get("token")?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get("token")?.value;
     if (!token || !verifyToken(token)) {
       return new Response("Unauthorized", { status: 401 });
     }

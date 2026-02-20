@@ -261,7 +261,8 @@ export async function POST(req) {
             .offset(offset);
 
         // Auth check – strip price fields for unauthenticated callers
-        const token = cookies().get("token")?.value;
+        const cookieStore = await cookies();
+        const token = cookieStore.get("token")?.value;
         const isAuthenticated = !!(token && verifyToken(token));
 
         const data = isAuthenticated
