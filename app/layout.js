@@ -25,7 +25,7 @@ export default function Layout({ children }) {
 
       <body className="font-sans antialiased bg-light">
         <Navbar />
-        <main className="py-4">{children}</main>
+        <main>{children}</main>
       </body>
     </html>
   );
