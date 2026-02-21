@@ -28,7 +28,7 @@ export default function Navbar() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setUser)
       .catch(() => setUser(null));
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -86,9 +86,11 @@ export default function Navbar() {
 
   /* ── nav config ── */
   const navItems = useMemo(() => {
-    const items = [
-      { type: "link", href: "/", icon: "bi-grid-1x2-fill", label: "Dashboard", active: isActive("/") },
-      {
+    const items = [];
+
+    if (user) {
+      items.push({ type: "link", href: "/", icon: "bi-grid-1x2-fill", label: "Dashboard", active: isActive("/") });
+      items.push({
         type: "dropdown",
         id: "diamonds",
         icon: "bi-gem",
@@ -111,10 +113,8 @@ export default function Navbar() {
             ],
           },
         ],
-      },
-    ];
+      });
 
-    if (user) {
       items.push({
         type: "dropdown",
         id: "sales",
@@ -138,48 +138,48 @@ export default function Navbar() {
           },
         ],
       });
-    }
 
-    items.push({
-      type: "dropdown",
-      id: "kyc",
-      icon: "bi-people-fill",
-      label: "KYC",
-      active: isActiveGroup("/clients") || isActiveGroup("/brokers"),
-      sections: [
-        {
-          items: [
-            { href: "/clients", icon: "bi-person-fill", label: "Clients", color: "#0071e3" },
-            { href: "/brokers", icon: "bi-person-badge-fill", label: "Brokers", color: "#5ac8fa" },
-          ],
-        },
-      ],
-    });
-
-    items.push({
-      type: "dropdown",
-      id: "accounting",
-      icon: "bi-receipt",
-      label: "Accounting",
-      active: isActiveGroup("/accounts") || isActiveGroup("/expenses") || isActiveGroup("/reporting"),
-      sections: [
-        {
-          items: [
-            { href: "/accounts", icon: "bi-wallet2", label: "Accounts", color: "#34c759" },
-            { href: "/expenses", icon: "bi-cash-stack", label: "Expenses", color: "#ff3b30" },
-          ],
-        },
-      ],
-    });
-
-    if (pro) {
       items.push({
-        type: "link",
-        href: "/excel-tool",
-        icon: "bi-file-earmark-spreadsheet",
-        label: "Excel Tool",
-        active: isActive("/excel-tool"),
+        type: "dropdown",
+        id: "kyc",
+        icon: "bi-people-fill",
+        label: "KYC",
+        active: isActiveGroup("/clients") || isActiveGroup("/brokers"),
+        sections: [
+          {
+            items: [
+              { href: "/clients", icon: "bi-person-fill", label: "Clients", color: "#0071e3" },
+              { href: "/brokers", icon: "bi-person-badge-fill", label: "Brokers", color: "#5ac8fa" },
+            ],
+          },
+        ],
       });
+
+      items.push({
+        type: "dropdown",
+        id: "accounting",
+        icon: "bi-receipt",
+        label: "Accounting",
+        active: isActiveGroup("/accounts") || isActiveGroup("/expenses") || isActiveGroup("/reporting"),
+        sections: [
+          {
+            items: [
+              { href: "/accounts", icon: "bi-wallet2", label: "Accounts", color: "#34c759" },
+              { href: "/expenses", icon: "bi-cash-stack", label: "Expenses", color: "#ff3b30" },
+            ],
+          },
+        ],
+      });
+
+      if (pro) {
+        items.push({
+          type: "link",
+          href: "/excel-tool",
+          icon: "bi-file-earmark-spreadsheet",
+          label: "Excel Tool",
+          active: isActive("/excel-tool"),
+        });
+      }
     }
 
     return items;

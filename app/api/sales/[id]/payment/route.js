@@ -4,7 +4,7 @@ import knex from "../../../../lib/db";
 // GET - Fetch payment details for a sale
 export async function GET(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Get sale details with related data
     const sale = await knex("sales")
@@ -99,7 +99,7 @@ export async function GET(req, { params }) {
 // POST - Record a new payment (in INR)
 export async function POST(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { amount, payment_date, payment_method, reference, notes } = body;
 

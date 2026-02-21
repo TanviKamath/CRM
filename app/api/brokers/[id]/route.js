@@ -3,7 +3,8 @@ import { brokerSchema } from "../../../lib/validators/brokerSchema";
 
 export async function GET(req, { params }) {
   try {
-    const broker = await knex("brokers").where({ id: params.id }).first();
+    const { id } = await params;
+    const broker = await knex("brokers").where({ id }).first();
     if (!broker) return new Response("Not found", { status: 404 });
 
     // MySQL auto-parses JSON columns, so reference is already an object
@@ -16,11 +17,12 @@ export async function GET(req, { params }) {
 
 export async function PUT(req, { params }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const parsed = brokerSchema.parse(body);
 
-    await knex("brokers").where({ id: params.id }).update(parsed);
-    const updated = await knex("brokers").where({ id: params.id }).first();
+    await knex("brokers").where({ id }).update(parsed);
+    const updated = await knex("brokers").where({ id }).first();
 
     // MySQL auto-parses JSON columns, so reference is already an object
 
@@ -46,7 +48,8 @@ export async function PUT(req, { params }) {
 
 export async function DELETE(req, { params }) {
   try {
-    await knex("brokers").where({ id: params.id }).del();
+    const { id } = await params;
+    await knex("brokers").where({ id }).del();
     return Response.json({ message: "Deleted" });
   } catch (e) {
     return new Response(e.message, { status: 500 });

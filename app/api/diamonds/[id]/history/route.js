@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Fetch history and diamond details in parallel
         const [history, diamond] = await Promise.all([

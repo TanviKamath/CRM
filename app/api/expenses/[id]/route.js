@@ -16,7 +16,7 @@ const expenseSchema = z.object({
 // GET - Get single expense
 export async function GET(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const expense = await knex("expenses").where({ id }).first();
 
     if (!expense) {
@@ -36,7 +36,7 @@ export async function GET(req, { params }) {
 // PUT - Update expense
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const parsed = expenseSchema.parse(body);
 
@@ -68,7 +68,7 @@ export async function PUT(req, { params }) {
 // DELETE - Delete expense
 export async function DELETE(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await knex("expenses").where({ id }).delete();
 

@@ -1,9 +1,8 @@
-// app/api/inventory/search/route.js
+import { NextResponse } from 'next/server';
 import knex from "../../../lib/db";
 import { cookies } from "next/headers";
 import { verifyToken } from "../../../lib/services/authService";
 
-// Fields that are hidden from unauthenticated callers
 const PRICE_FIELDS = [
     "rap_rate",
     "rap_discount",
@@ -18,59 +17,22 @@ const PRICE_FIELDS = [
     "purchase_price_inr",
 ];
 
-/**
- * Parse size-range button labels like "0.30-0.39" or "10.00 Up"
- * into { min, max } pairs. max === null means unbounded upper limit.
- */
 function parseSizeOption(opt) {
     if (!opt) return null;
     const upMatch = opt.match(/^([\d.]+)\s*Up$/i);
     if (upMatch) return { min: parseFloat(upMatch[1]), max: null };
     const rangeMatch = opt.match(/^([\d.]+)-([\d.]+)$/);
-    if (rangeMatch)
-        return { min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
+    if (rangeMatch) return { min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
     return null;
 }
 
-/**
- * POST /api/inventory/search
- *
- * Body (all fields optional):
- * {
- *   shapes:       string[],          // e.g. ["Round", "Oval"]
- *   sizeOptions:  string[],          // e.g. ["0.50-0.59", "1.00-1.49", "10.00 Up"]
- *   sizeFrom:     string | number,   // manual lower bound on weight
- *   sizeTo:       string | number,   // manual upper bound on weight
- *   color:        string[],          // e.g. ["D","E"] or ["Pink","Yellow"]
- *   colorType:    string[],          // ["White Color"] or ["Fancy Color"]
- *   clarity:      string[],          // e.g. ["VVS1","VS1"]
- *   cut:          string[],          // e.g. ["EX","VG"]
- *   polish:       string[],          // e.g. ["EX"]
- *   symmetry:     string[],          // e.g. ["EX","VG"]
- *   fluorescence: string[],          // e.g. ["None","Faint"]
- *   lab:          string[],          // e.g. ["GIA","IGI"]
- *   ha:           string[],          // e.g. ["EX"]
- *   bgm:          string[],          // ["YES"] | ["NO"] | []
- *   eyeClean:     string[],          // ["YES"] | ["NO"] | []
- *   location:     string[],          // e.g. ["India","USA"]
- *   refNo:        string,            // diamond_id or report_no substring search
- *   priceFrom:    string | number,   // lower bound on price_per_carat_usd
- *   priceTo:      string | number,   // upper bound on price_per_carat_usd
- *   backFrom:     string | number,   // lower bound on rap_discount
- *   backTo:       string | number,   // upper bound on rap_discount
- *   page:         number,            // default 1
- *   limit:        number,            // default 50, max 200
- * }
- *
- * Response:
- * { total: number, page: number, limit: number, data: Diamond[] }
- */
 export async function POST(req) {
     try {
         const body = await req.json().catch(() => ({}));
 
+        // Exact names coming from handleSearch
         const {
-            shapes = [],
+            selectedShapes = [],
             sizeOptions = [],
             sizeFrom,
             sizeTo,
@@ -93,47 +55,57 @@ export async function POST(req) {
             backTo,
             page: rawPage = 1,
             limit: rawLimit = 50,
+            sortField = "id",
+            sortDir = "desc",
+            availability,
         } = body;
 
-        // Validate pagination
         const page = Math.max(1, parseInt(rawPage) || 1);
         const limit = Math.min(200, Math.max(1, parseInt(rawLimit) || 50));
         const offset = (page - 1) * limit;
 
-        // Helper: ignore "All" toggle and empty arrays
+        const allowedSortFields = [
+            'id', 'diamond_id', 'location', 'lab', 'shape', 'weight',
+            'color', 'clarity', 'cut', 'rap_rate', 'rap_discount',
+            'price_per_carat_usd', 'amount_usd'
+        ];
+        const finalSortField = allowedSortFields.includes(sortField) ? sortField : 'id';
+        const finalSortDir = sortDir.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
         const activeValues = (arr) =>
             Array.isArray(arr) ? arr.filter((v) => v && v !== "All") : [];
 
-        // Build base query
         const buildQuery = () => {
-            let q = knex("diamonds").where("availability", "available");
+            let q = knex("diamonds");
+            if (availability) {
+                q = q.where("availability", availability);
+            }
 
-            // ── Shape ────────────────────────────────────────────────────────────
-            const activeShapes = activeValues(shapes);
+            // Shape
+            const activeShapes = activeValues(selectedShapes);
             if (activeShapes.length > 0) {
                 q = q.whereIn("shape", activeShapes);
             }
 
-            // ── Size / Weight ─────────────────────────────────────────────────────
-            const parsedSizeFrom = sizeFrom !== "" && sizeFrom != null ? parseFloat(sizeFrom) : null;
-            const parsedSizeTo = sizeTo !== "" && sizeTo != null ? parseFloat(sizeTo) : null;
+            // Size
+            const parsedSizeFrom = sizeFrom ? parseFloat(sizeFrom) : null;
+            const parsedSizeTo = sizeTo ? parseFloat(sizeTo) : null;
 
             if (sizeOptions.length > 0) {
-                // Button-based range selection
                 const ranges = sizeOptions.map(parseSizeOption).filter(Boolean);
                 if (ranges.length > 0) {
                     q = q.where((builder) => {
-                        ranges.forEach(({ min, max }) => {
-                            if (max === null) {
-                                builder.orWhere("weight", ">=", min);
+                        ranges.forEach((r) => {
+                            if (!r) return;
+                            if (r.max === null) {
+                                builder.orWhere("weight", ">=", r.min);
                             } else {
-                                builder.orWhereBetween("weight", [min, max]);
+                                builder.orWhereBetween("weight", [r.min, r.max]);
                             }
                         });
                     });
                 }
             } else {
-                // Manual input
                 if (parsedSizeFrom !== null && !isNaN(parsedSizeFrom)) {
                     q = q.where("weight", ">=", parsedSizeFrom);
                 }
@@ -142,91 +114,86 @@ export async function POST(req) {
                 }
             }
 
-            // ── Color ─────────────────────────────────────────────────────────────
+            // Color
             const activeColors = activeValues(color);
             if (activeColors.length > 0) {
                 q = q.whereIn("color", activeColors);
             }
 
-            // ── Clarity ───────────────────────────────────────────────────────────
+            // Clarity
             const activeClarities = activeValues(clarity);
             if (activeClarities.length > 0) {
                 q = q.whereIn("clarity", activeClarities);
             }
 
-            // ── Cut ───────────────────────────────────────────────────────────────
+            // Cut
             const activeCut = activeValues(cut);
             if (activeCut.length > 0) {
                 q = q.whereIn("cut", activeCut);
             }
 
-            // ── Polish ────────────────────────────────────────────────────────────
+            // Polish
             const activePolish = activeValues(polish);
             if (activePolish.length > 0) {
                 q = q.whereIn("pol", activePolish);
             }
 
-            // ── Symmetry ──────────────────────────────────────────────────────────
+            // Symmetry
             const activeSymmetry = activeValues(symmetry);
             if (activeSymmetry.length > 0) {
                 q = q.whereIn("sym", activeSymmetry);
             }
 
-            // ── Fluorescence ──────────────────────────────────────────────────────
+            // Fluorescence
             const activeFluorescence = activeValues(fluorescence);
             if (activeFluorescence.length > 0) {
                 q = q.whereIn("flor", activeFluorescence);
             }
 
-            // ── Lab ───────────────────────────────────────────────────────────────
+            // Lab
             const activeLabs = activeValues(lab);
             if (activeLabs.length > 0) {
                 q = q.whereIn("lab", activeLabs);
             }
 
-            // ── H&A (Hearts & Arrows – mapped to agsi_aset column) ───────────────
+            // H&A mapped to agsi_aset
             const activeHa = activeValues(ha);
             if (activeHa.length > 0) {
                 q = q.whereIn("agsi_aset", activeHa);
             }
 
-            // ── BGM ───────────────────────────────────────────────────────────────
-            // In DB: no_bgm = "Y" means NO BGM (no brown/green/milky)
-            //                 "N" means BGM present
-            // UI: "YES" = user wants stones WITHOUT bgm → no_bgm = "Y"
-            //     "NO"  = user wants stones WITH bgm    → no_bgm = "N"
-            if (bgm.length === 1) {
+            // BGM
+            if (bgm.length === 1 && bgm[0] !== "All") {
                 const dbVal = bgm[0].toUpperCase() === "YES" ? "Y" : "N";
                 q = q.where("no_bgm", dbVal);
             }
 
-            // ── Eye Clean ─────────────────────────────────────────────────────────
-            if (eyeClean.length === 1) {
+            // Eye Clean
+            if (eyeClean.length === 1 && eyeClean[0] !== "All") {
                 const dbVal = eyeClean[0].toUpperCase() === "YES" ? "Y" : "N";
                 q = q.where("eye_clean", dbVal);
             }
 
-            // ── Location ──────────────────────────────────────────────────────────
+            // Location
             const activeLocations = activeValues(location);
             if (activeLocations.length > 0) {
                 q = q.whereIn("location", activeLocations);
             }
 
-            // ── Ref No / Report No ───────────────────────────────────────────────
+            // Ref No
             const trimmedRef = (refNo || "").trim();
             if (trimmedRef) {
                 q = q.where((builder) => {
                     builder
                         .where("diamond_id", "like", `%${trimmedRef}%`)
+                        .orWhere("certificate_number", "like", `%${trimmedRef}%`)
                         .orWhere("report_no", "like", `%${trimmedRef}%`);
                 });
             }
 
-            // ── Price / Carat ─────────────────────────────────────────────────────
-            const parsedPriceFrom =
-                priceFrom !== "" && priceFrom != null ? parseFloat(priceFrom) : null;
-            const parsedPriceTo =
-                priceTo !== "" && priceTo != null ? parseFloat(priceTo) : null;
+            // Price / Carat
+            const parsedPriceFrom = priceFrom ? parseFloat(priceFrom) : null;
+            const parsedPriceTo = priceTo ? parseFloat(priceTo) : null;
             if (parsedPriceFrom !== null && !isNaN(parsedPriceFrom)) {
                 q = q.where("price_per_carat_usd", ">=", parsedPriceFrom);
             }
@@ -234,11 +201,9 @@ export async function POST(req) {
                 q = q.where("price_per_carat_usd", "<=", parsedPriceTo);
             }
 
-            // ── Back (%) / rap_discount ───────────────────────────────────────────
-            const parsedBackFrom =
-                backFrom !== "" && backFrom != null ? parseFloat(backFrom) : null;
-            const parsedBackTo =
-                backTo !== "" && backTo != null ? parseFloat(backTo) : null;
+            // Back / Rap Discount
+            const parsedBackFrom = backFrom ? parseFloat(backFrom) : null;
+            const parsedBackTo = backTo ? parseFloat(backTo) : null;
             if (parsedBackFrom !== null && !isNaN(parsedBackFrom)) {
                 q = q.where("rap_discount", ">=", parsedBackFrom);
             }
@@ -249,18 +214,16 @@ export async function POST(req) {
             return q;
         };
 
-        // Total count
         const [{ count }] = await buildQuery().count("* as count");
         const total = parseInt(count) || 0;
 
-        // Paginated data
         const rows = await buildQuery()
             .select("*")
-            .orderBy("id", "desc")
+            .orderBy(finalSortField, finalSortDir)
             .limit(limit)
             .offset(offset);
 
-        // Auth check – strip price fields for unauthenticated callers
+        // Security check
         const cookieStore = await cookies();
         const token = cookieStore.get("token")?.value;
         const isAuthenticated = !!(token && verifyToken(token));
@@ -273,15 +236,12 @@ export async function POST(req) {
                 return clean;
             });
 
-        return new Response(
-            JSON.stringify({ total, page, limit, data }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-        );
+        return NextResponse.json({ total, page, limit, data, isAuthenticated }, { status: 200 });
     } catch (e) {
         console.error("Inventory Search Error:", e);
-        return new Response(
-            JSON.stringify({ error: e.message || "Internal server error" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+        return NextResponse.json(
+            { error: e.message || "Internal server error" },
+            { status: 500 }
         );
     }
 }

@@ -514,7 +514,7 @@ export default function HomePage() {
     );
   }
 
-  const pro = user?.subscription === "Pro";
+  const pro = true; // Show all metrics regardless of subscription
 
   /* ═══════════════════════════════════════════
      RENDER

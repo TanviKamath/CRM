@@ -4,7 +4,7 @@ import knex from "../../../lib/db";
 // GET single sale
 export async function GET(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const sale = await knex("sales")
       .select(
@@ -82,7 +82,7 @@ export async function GET(req, { params }) {
 // PUT update sale
 export async function PUT(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     // Check if sale exists
@@ -138,7 +138,7 @@ export async function PUT(req, { params }) {
 // DELETE sale
 export async function DELETE(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const sale = await knex("sales").where("id", id).first();
 

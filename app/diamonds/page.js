@@ -628,6 +628,7 @@ export default function DiamondsIndexPage() {
   const [availability, setAvailability] = useState(urlAvailability);
   const [showModal, setShowModal] = useState(false);
   const [filters, setFilters] = useState({ ...INITIAL_FILTERS });
+  const [activeFilters, setActiveFilters] = useState({ ...INITIAL_FILTERS });
   const [sort, setSort] = useState({ key: null, dir: "asc" });
   const [selected, setSelected] = useState(new Set());
 
@@ -639,14 +640,35 @@ export default function DiamondsIndexPage() {
     (async () => {
       setLoading(true);
       try {
-        const url = availability ? `/api/diamonds?availability=${availability}` : "/api/diamonds";
-        const res = await fetch(url);
+        const payload = {
+          selectedShapes: activeFilters.shapes,
+          sizeFrom: activeFilters.caratMin,
+          sizeTo: activeFilters.caratMax,
+          color: activeFilters.colors,
+          clarity: activeFilters.clarities,
+          cut: activeFilters.cuts,
+          polish: activeFilters.polish,
+          symmetry: activeFilters.symmetry,
+          fluorescence: activeFilters.fluorescence,
+          lab: activeFilters.labs,
+          priceFrom: activeFilters.priceMin,
+          priceTo: activeFilters.priceMax,
+          refNo: activeFilters.certificate,
+          availability: availability,
+          limit: 1000
+        };
+
+        const res = await fetch("/api/inventory/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
         const data = await res.json();
         setDiamonds(Array.isArray(data) ? data : data.data || []);
       } catch { setDiamonds([]); }
       setLoading(false);
     })();
-  }, [availability]);
+  }, [availability, activeFilters]);
 
   const changeAvail = (id) => {
     setAvailability(id);
@@ -692,29 +714,31 @@ export default function DiamondsIndexPage() {
 
   const chips = useMemo(() => {
     const list = [];
-    if (filters.shapes.length) list.push({ key: "shapes", label: `Shape: ${filters.shapes.map(cap).join(", ")}` });
-    if (filters.caratMin || filters.caratMax) list.push({ key: "carat", label: `Carat: ${filters.caratMin || "0"} – ${filters.caratMax || "∞"}` });
-    if (filters.colors.length) list.push({ key: "colors", label: `Color: ${filters.colors.join(", ")}` });
-    if (filters.clarities.length) list.push({ key: "clarities", label: `Clarity: ${filters.clarities.join(", ")}` });
-    if (filters.cuts.length) list.push({ key: "cuts", label: `Cut: ${filters.cuts.join(", ")}` });
-    if (filters.polish.length) list.push({ key: "polish", label: `Polish: ${filters.polish.join(", ")}` });
-    if (filters.symmetry.length) list.push({ key: "symmetry", label: `Sym: ${filters.symmetry.join(", ")}` });
-    if (filters.fluorescence.length) list.push({ key: "fluorescence", label: `Fluor: ${filters.fluorescence.join(", ")}` });
-    if (filters.labs.length) list.push({ key: "labs", label: `Lab: ${filters.labs.join(", ")}` });
-    if (filters.priceMin || filters.priceMax) list.push({ key: "price", label: `Price: $${filters.priceMin || "0"} – $${filters.priceMax || "∞"}` });
-    if (filters.certificate) list.push({ key: "certificate", label: `Cert: ${filters.certificate}` });
+    if (activeFilters.shapes.length) list.push({ key: "shapes", label: `Shape: ${activeFilters.shapes.map(cap).join(", ")}` });
+    if (activeFilters.caratMin || activeFilters.caratMax) list.push({ key: "carat", label: `Carat: ${activeFilters.caratMin || "0"} – ${activeFilters.caratMax || "∞"}` });
+    if (activeFilters.colors.length) list.push({ key: "colors", label: `Color: ${activeFilters.colors.join(", ")}` });
+    if (activeFilters.clarities.length) list.push({ key: "clarities", label: `Clarity: ${activeFilters.clarities.join(", ")}` });
+    if (activeFilters.cuts.length) list.push({ key: "cuts", label: `Cut: ${activeFilters.cuts.join(", ")}` });
+    if (activeFilters.polish.length) list.push({ key: "polish", label: `Polish: ${activeFilters.polish.join(", ")}` });
+    if (activeFilters.symmetry.length) list.push({ key: "symmetry", label: `Sym: ${activeFilters.symmetry.join(", ")}` });
+    if (activeFilters.fluorescence.length) list.push({ key: "fluorescence", label: `Fluor: ${activeFilters.fluorescence.join(", ")}` });
+    if (activeFilters.labs.length) list.push({ key: "labs", label: `Lab: ${activeFilters.labs.join(", ")}` });
+    if (activeFilters.priceMin || activeFilters.priceMax) list.push({ key: "price", label: `Price: $${activeFilters.priceMin || "0"} – $${activeFilters.priceMax || "∞"}` });
+    if (activeFilters.certificate) list.push({ key: "certificate", label: `Cert: ${activeFilters.certificate}` });
     return list;
-  }, [filters]);
+  }, [activeFilters]);
 
   const removeChip = (key) => {
-    setFilters((f) => {
+    const removeFn = (f) => {
       const n = { ...f };
       if (key === "carat") { n.caratMin = ""; n.caratMax = ""; }
       else if (key === "price") { n.priceMin = ""; n.priceMax = ""; }
       else if (key === "certificate") { n.certificate = ""; }
       else { n[key] = []; }
       return n;
-    });
+    };
+    setFilters(removeFn);
+    setActiveFilters(removeFn);
   };
 
   const handleDelete = async (id) => {
@@ -894,7 +918,10 @@ export default function DiamondsIndexPage() {
                 background: "none", border: "none", cursor: "pointer", fontSize: ".7rem",
                 fontWeight: 600, color: C.red, padding: "4px 8px"
               }}
-              onClick={() => setFilters({ ...INITIAL_FILTERS })}
+              onClick={() => {
+                setFilters({ ...INITIAL_FILTERS });
+                setActiveFilters({ ...INITIAL_FILTERS });
+              }}
             >
               Clear all
             </button>
@@ -984,7 +1011,7 @@ export default function DiamondsIndexPage() {
                           {query || advFilterCount > 0 ? "Try adjusting your filters" : "Add your first diamond to get started"}
                         </div>
                         {query || advFilterCount > 0 ? (
-                          <button className="m-btn ghost" onClick={() => { setQuery(""); setFilters({ ...INITIAL_FILTERS }); changeAvail(""); }}>
+                          <button className="m-btn ghost" onClick={() => { setQuery(""); setFilters({ ...INITIAL_FILTERS }); setActiveFilters({ ...INITIAL_FILTERS }); changeAvail(""); }}>
                             Clear Filters
                           </button>
                         ) : (
@@ -1041,7 +1068,7 @@ export default function DiamondsIndexPage() {
                           <Link href={`/diamonds/show/${d.id}`} className="act-btn view act-tooltip" data-tip="View Details" title="View">
                             <i className="bi bi-eye" />
                           </Link>
-                          <Link href={`/diamonds/${d.id}/edit`} className="act-btn edit act-tooltip" data-tip="Edit" title="Edit">
+                          <Link href={`/diamonds/edit/${d.id}`} className="act-btn edit act-tooltip" data-tip="Edit" title="Edit">
                             <i className="bi bi-pencil" />
                           </Link>
                           {d.availability === "available" && (
@@ -1090,10 +1117,16 @@ export default function DiamondsIndexPage() {
 
       <SearchModal
         show={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setFilters(activeFilters); // revert modal state if closed without applying
+          setShowModal(false);
+        }}
         filters={filters}
         setFilters={setFilters}
-        onApply={() => setShowModal(false)}
+        onApply={() => {
+          setActiveFilters(filters);
+          setShowModal(false);
+        }}
       />
     </div>
   );

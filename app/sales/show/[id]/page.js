@@ -111,6 +111,15 @@ export default function SalesShow() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Auth guard
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => {
+        if (!r.ok) router.replace("/auth/login");
+      })
+      .catch(() => router.replace("/auth/login"));
+  }, [router]);
+
   useEffect(() => {
     if (!id) return;
 

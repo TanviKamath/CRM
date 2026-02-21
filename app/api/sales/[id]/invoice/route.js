@@ -3,7 +3,7 @@ import knex from "../../../../lib/db";
 
 export async function GET(request, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Simple query - only get what we need
         const sale = await knex("sales")

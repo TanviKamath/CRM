@@ -2,7 +2,7 @@ import knex from "../../../../lib/db";
 
 export async function GET(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Fetch diamond details (purchase price, buying date, terms)
         const diamond = await knex("diamonds")
@@ -11,9 +11,9 @@ export async function GET(req, { params }) {
             .first();
 
         if (!diamond) {
-            return Response.json({ 
-                error: true, 
-                message: "Diamond not found" 
+            return Response.json({
+                error: true,
+                message: "Diamond not found"
             }, { status: 404 });
         }
 
@@ -38,23 +38,23 @@ export async function GET(req, { params }) {
 
     } catch (e) {
         console.error("GET Payment Error:", e);
-        return Response.json({ 
-            error: true, 
-            message: e.message || "Failed to fetch payment details" 
+        return Response.json({
+            error: true,
+            message: e.message || "Failed to fetch payment details"
         }, { status: 500 });
     }
 }
 
 export async function POST(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const body = await req.json();
 
         const amount = Number(body.amount);
         if (isNaN(amount) || amount <= 0) {
-            return Response.json({ 
-                error: true, 
-                message: "Invalid payment amount" 
+            return Response.json({
+                error: true,
+                message: "Invalid payment amount"
             }, { status: 400 });
         }
 
@@ -68,9 +68,9 @@ export async function POST(req, { params }) {
 
     } catch (e) {
         console.error("POST Payment Error:", e);
-        return Response.json({ 
-            error: true, 
-            message: e.message || "Failed to record payment" 
+        return Response.json({
+            error: true,
+            message: e.message || "Failed to record payment"
         }, { status: 500 });
     }
 }

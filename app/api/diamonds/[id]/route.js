@@ -125,7 +125,7 @@ const diamondSchema = z.object({
 
 export async function GET(req, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     console.log("=== GET DIAMOND ===");
     console.log("ID:", id);
@@ -164,7 +164,7 @@ export async function PUT(req, { params }) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
 
     console.log("=== PUT DIAMOND ===");
@@ -361,7 +361,7 @@ export async function DELETE(req, { params }) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     console.log("=== DELETE DIAMOND ===");
     console.log("ID:", id);

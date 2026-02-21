@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 function StatusPill({ status }) {
   const map = {
@@ -77,12 +77,22 @@ function InfoRow({ label, value }) {
 
 export default function ShowDiamond() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id;
 
   const [diamond, setDiamond] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Auth guard
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => {
+        if (!r.ok) router.replace("/auth/login");
+      })
+      .catch(() => router.replace("/auth/login"));
+  }, [router]);
 
   useEffect(() => {
     if (!id) return;
