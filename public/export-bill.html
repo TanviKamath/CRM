@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Export Invoice - {{INVOICE_NO}}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #fff;
+            padding: 20px;
+            font-size: 11px;
+        }
+        .invoice {
+            width: 980px;
+            margin: auto;
+            border: 1px solid #000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        td, th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            vertical-align: top;
+        }
+        .center { text-align: center; }
+        .right  { text-align: right; }
+        .bold   { font-weight: bold; }
+        .lbl    { font-size: 9px; font-style: italic; display: block; margin-bottom: 2px; }
+        .small  { font-size: 9.5px; }
+        .no-print {
+            text-align: center;
+            margin: 20px auto;
+            width: 980px;
+        }
+        .no-print button {
+            padding: 10px 30px;
+            font-size: 15px;
+            cursor: pointer;
+            background: #1a365d;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            margin: 0 8px;
+        }
+        .no-print button:hover { background: #2d4a7a; }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">&#128438; Print / Save as PDF</button>
+    <button onclick="window.close()">&#10005; Close</button>
+</div>
+
+<div class="invoice">
+
+    <!-- ROW 1: Exporter (left) | IE/GST/PAN + INVOICE (right) -->
+    <table>
+        <tr>
+            <td width="62%" style="padding:6px;">
+                <span class="bold" style="font-size:13px;">VARNI DIAM</span><br>
+                BLOCK NO. : 5/1105 TO 7, 4TH FLOOR, OFF 402 TULSI APT,<br>
+                SOMNATH MAHADEV NI SHERI, MAHIDHARPURA,<br>
+                NR-BLUE DIAMOND, SURAT-395003 GUJARAT, INDIA.<br>
+                STATE : GUJARAT &nbsp;&nbsp;&nbsp; STATE CODE : 24<br>
+                Tel No.: +91 9727228282<br>
+                E-Mail: varnidiam@gmail.com
+            </td>
+            <td width="38%" style="padding:6px; border-left:1px solid #000;">
+                <table style="border:none; width:100%; font-size:11px;">
+                    <tr>
+                        <td style="border:none; padding:1px 4px; width:40%;">IE Code :</td>
+                        <td style="border:none; padding:1px 4px;">[YOUR IE CODE]</td>
+                    </tr>
+                    <tr>
+                        <td style="border:none; padding:1px 4px;">GST No. :</td>
+                        <td style="border:none; padding:1px 4px;">24AAKFV0176E1ZA</td>
+                    </tr>
+                    <tr>
+                        <td style="border:none; padding:1px 4px;">PAN No. :</td>
+                        <td style="border:none; padding:1px 4px;">AAKFV0176E</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="border:none; text-align:center; font-size:22px; font-weight:bold; padding-top:8px;">
+                            INVOICE
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 2: Invoice No & Date | Exporter's Ref | Buyer's Order No | Other Ref -->
+    <table>
+        <tr>
+            <td width="28%">
+                <span class="lbl">Invoice No. &amp; Date</span>
+                <b>{{INVOICE_NO}}</b><br>
+                Dt.: {{INVOICE_DATE}}
+            </td>
+            <td width="24%">
+                <span class="lbl">Exporter's Ref.</span>
+                &nbsp;
+            </td>
+            <td width="24%">
+                <span class="lbl">Buyer's Order No. &amp; Date</span>
+                &nbsp;
+            </td>
+            <td width="24%">
+                <span class="lbl">Other Reference(s)</span>
+                EDF No. : &nbsp;&nbsp; Dt.: {{INVOICE_DATE}}
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 3: Consignee | Buyer -->
+    <table>
+        <tr>
+            <td width="38%">
+                <span class="lbl">Consignee</span>
+                DIRECT - PARCEL<br>
+                {{BUYER_CITY}}, {{BUYER_COUNTRY}}
+            </td>
+            <td width="62%">
+                <span class="lbl">Buyer (if other than consignee)</span>
+                <b>{{BUYER_NAME}}</b><br>
+                {{BUYER_ADDRESS}}<br>
+                Tel No.: {{BUYER_PHONE}}
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 4: Terms | Bank -->
+    <table>
+        <tr>
+            <td width="28%">
+                <span class="lbl">Terms of Delivery and Payment</span>
+                ON OR BEFORE {{TERMS_DAYS}} DAYS
+            </td>
+            <td width="72%">
+                <span class="lbl">Our Banker :</span>
+                <b>INDUSIND BANK</b><br>
+                M-2 EMPIRE STATE BUILDING, NEAR UDHANA DARWAJA, RING ROAD, SURAT - 395002<br>
+                Bank A/c No.: 259727228282 &nbsp;&nbsp; IFSC Code: INDB0000023<br>
+                Swift Code: [YOUR SWIFT CODE] &nbsp;&nbsp; AD Code: [YOUR AD CODE]
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 5: Country of Origin | Final Dest | Pre-Carriage | Vessel | Port Loading | Port Discharge | Final Dest -->
+    <table>
+        <tr>
+            <td width="14%">
+                <span class="lbl">Country of Origin of Goods</span>
+                INDIA
+            </td>
+            <td width="14%">
+                <span class="lbl">Country of Final Destination</span>
+                {{BUYER_COUNTRY}}
+            </td>
+            <td width="16%">
+                <span class="lbl">Pre-Carriage by</span>
+                AIR FREIGHT
+            </td>
+            <td width="18%">
+                <span class="lbl">Vessel / Flight No.</span>
+                &nbsp;
+            </td>
+            <td width="14%">
+                <span class="lbl">Port of Loading</span>
+                MUMBAI
+            </td>
+            <td width="12%">
+                <span class="lbl">Port of Discharge</span>
+                &nbsp;
+            </td>
+            <td width="12%">
+                <span class="lbl">Final Destination</span>
+                {{BUYER_CITY}}
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <span class="lbl">Place of Receipt by Pre-carrier</span>
+                &nbsp;
+            </td>
+            <td colspan="5">
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="lbl" style="display:inline;">District<br>Code</span>
+                &nbsp; <b>459</b>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <span class="lbl" style="display:inline;">State<br>Code</span>
+                &nbsp; <b>24</b>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 6: Goods Table -->
+    <table>
+        <tr class="bold center">
+            <th width="8%" style="vertical-align:middle;">Marks &amp; Nos.<br>Container No.</th>
+            <th width="10%" style="vertical-align:middle;">No. &amp; Kind of Pkgs.</th>
+            <th width="40%" style="vertical-align:middle;">Description of Goods</th>
+            <th width="9%" style="vertical-align:middle;">Carats</th>
+            <th width="10%" style="vertical-align:middle;">Rate<br>Per Crts<br>US$</th>
+            <th width="10%" style="vertical-align:middle;">Amount<br>in<br>US$</th>
+        </tr>
+        <tr>
+            <td class="center">Add.<br>1 Tin Box</td>
+            <td class="center">{{DIAMOND_PCS}} PCS</td>
+            <td>
+                CUT &amp; POLISHED LAB GROWN DIAMONDS (CVD)(LGD001) [ HSN CODE : 71049120 ]<br><br>
+                <table style="width:auto; font-size:10px;">
+                    <tr>
+                        <th style="border:1px solid #000; padding:2px 5px;">Shape</th>
+                        <th style="border:1px solid #000; padding:2px 5px;">Color</th>
+                        <th style="border:1px solid #000; padding:2px 5px;">Clarity</th>
+                        <th style="border:1px solid #000; padding:2px 5px;">Measurement</th>
+                        <th style="border:1px solid #000; padding:2px 5px;">Certificate Id.No.</th>
+                    </tr>
+                    <tr>
+                        <td style="border:1px solid #000; padding:2px 5px;">{{DIAMOND_SHAPE}}</td>
+                        <td style="border:1px solid #000; padding:2px 5px;">{{DIAMOND_COLOR}}</td>
+                        <td style="border:1px solid #000; padding:2px 5px;">{{DIAMOND_CLARITY}}</td>
+                        <td style="border:1px solid #000; padding:2px 5px;">{{DIAMOND_MEASUREMENT}}</td>
+                        <td style="border:1px solid #000; padding:2px 5px;">{{DIAMOND_CERT}}</td>
+                    </tr>
+                </table>
+            </td>
+            <td class="center">{{DIAMOND_WEIGHT}}</td>
+            <td class="right">{{RATE_PER_CARAT}}</td>
+            <td class="right">{{SALE_AMOUNT}}</td>
+        </tr>
+        <tr>
+            <td colspan="3" class="right bold" style="padding-right:8px;">PAGE TOTAL</td>
+            <td class="center bold">{{DIAMOND_WEIGHT}}</td>
+            <td></td>
+            <td class="right bold">{{SALE_AMOUNT}}</td>
+        </tr>
+    </table>
+
+    <!-- ROW 7: Amount in words | Total -->
+    <table>
+        <tr>
+            <td width="62%">
+                <span class="lbl">Amount Chargeable (in words)</span>
+                TOTAL : C&amp;F US$ {{AMOUNT_IN_WORDS}}
+            </td>
+            <td width="38%" class="right bold" style="vertical-align:middle; font-size:12px;">
+                TOTAL : {{DIAMOND_WEIGHT}} &nbsp;&nbsp; C&amp;F US$ {{SALE_AMOUNT}}
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 8: Declaration | Signature -->
+    <table>
+        <tr>
+            <td width="72%" class="small" style="padding:6px;">
+                <b>Declaration :</b>
+                (1) We declare that this Invoice shows the actual price of the goods described and that all particulars are true and correct.
+                (2) I/ We hereby declare that all the goods mentioned in this invoice are Lab Grown Diamonds/man-made diamonds.
+                (3) The buyer agrees to purchase these with the clear understanding that he/she is buying Lab Grown Diamonds/Man-made diamonds.
+                (4) Buyer also agrees explicitly to sell them as lab Grown Diamonds/Man-made diamonds, by making full and clear disclosure in their invoice to their customers.
+                The goods mentioned in this invoice ARE NOT natural diamonds/mined-diamonds.
+                (5) These diamonds are grown by man. The origins of these diamonds as well as process to grow these diamonds are conflict free and ecology friendly environment.
+                (6) The seller hereby guarantees that no diamonds or precious metals of Russian origin purchased after February 24, 2022 are present in the products supplied
+                herein, based on personal knowledge and /or written guarantees provided by the supplier of these diamonds and precious metals.
+                (7) The diamonds herein invoiced have been purchased from legitimate sources not involved in funding conflict, in compliance with United Nations Resolutions
+                and corresponding nation laws. The seller hereby guarantees that these diamonds are conflict free and confirms.
+            </td>
+            <td width="28%" class="center" style="padding:6px; vertical-align:top;">
+                <b>For VARNI DIAM</b><br><br><br><br>
+                Authorised Signatory<br><br>
+                <div class="small">
+                    TERMS :<br>
+                    SOLD ON OUTRIGHT SALE BASIS
+                </div><br>
+                {{INVOICE_DATE}}<br>
+                Signature &amp; Date
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 9: Mode of Payment + Sustainability -->
+    <table>
+        <tr>
+            <td style="padding:5px 8px;">
+                <b>Mode of Payment: {{PAYMENT_MODE}}</b>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <b>SUSTAINABILITY :</b> OUR LAB CREATED DIAMONDS GROWN WITH RENEWABLE GREEN ENERGY - SOLAR POWER.
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 10: Total Gross Wt -->
+    <table>
+        <tr>
+            <td style="padding:4px 8px;">
+                Total Gross Wt. : {{GROSS_WEIGHT}} Kgs
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 11: NOTE -->
+    <table>
+        <tr>
+            <td class="small bold" style="padding:4px 8px;">
+                NOTE : MAKE PAYMENT STRICTLY AS PER BELOW BANK INSTRUCTIONS AND EXACT CO.NAME AS MENTIONED IN ORIGINAL SIGNED INVOICE ONLY.
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 12: Payment Instruction -->
+    <table>
+        <tr>
+            <td class="small" style="padding:5px 8px;">
+                <b>PAYMENT INSTRUCTION :</b> PLEASE ARRANGE TO REMIT BY CABLE / TT THE PROCEED OF THIS INVOICE AMOUNT
+                US$ {{SALE_AMOUNT}} INDUSIND BANK, M-2 EMPIRE STATE BUILDING, NEAR UDHANA DARWAJA, RING ROAD,
+                SURAT - 395002 (SWIFT CODE - [YOUR SWIFT CODE]) FOR FURTHER CREDIT TO ACCOUNT OF M/S. VARNI DIAM
+                A/C NO. 259727228282.
+            </td>
+        </tr>
+    </table>
+
+    <!-- ROW 13: LUT / Export Declaration -->
+    <table>
+        <tr>
+            <td class="small" style="padding:5px 8px;">
+                This Lab Grown Diamonds herein invoiced have been manufactured by us and not involved in funding conflict and in compliance with United Nations resolutions.
+                The seller hereby guarantees that these Synthetic Diamonds are conflict free, based on personal knowledge and/or written guarantees provided by the manufacturer of these Lab Grown Diamonds.
+                The diamond herein invoiced are Artificially manufactured Indian origin on personal knowledge and/or written guarantees provided by the manufacturer of these Lab Grown Diamonds.<br><br>
+                "SUPPLY MEANT FOR EXPORT UNDER BOND OR LETTER OF UNDERTAKING WITHOUT PAYMENT OF INTEGRATED TAX"<br>
+                LUT : [YOUR LUT NO] &nbsp;&nbsp; ARN NO. : [YOUR ARN NO]<br><br>
+                The State of Origin of Goods : 24<br>
+                District of Origin of Goods : 459<br>
+                Details of Preferential Agreement : NCPTI , Standard Unit Quantity Code : CTM<br>
+                We do not want to claim RoDTEPN on the export items Listed under this Invoice No. : {{INVOICE_NO}}
+            </td>
+        </tr>
+    </table>
+
+</div>
+</body>
+</html>
