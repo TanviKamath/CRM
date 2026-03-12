@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordSalePaymentModal from "./RecordSalePaymentModal";
+import PaymentModeModal from "./PaymentModeModal";
 import { generateInvoicePDF } from "../lib/generateInvoice";
 
 function StatusPill({ status }) {
@@ -41,14 +42,12 @@ function PaymentStatusPill({ status, outstanding }) {
   );
 }
 
-// Format currency in INR
 const formatINR = (value) => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
   return Number.isNaN(num) ? "-" : `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-// Format currency in USD (for reference display)
 const formatUSD = (value) => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
@@ -65,7 +64,6 @@ function StatPill({ icon, label, value, tone = "info" }) {
   );
 }
 
-// Reusable Action Button Component with bigger icons
 function ActionButton({ href, onClick, variant, icon, title, disabled = false, loading = false }) {
   const baseStyle = {
     borderRadius: 10,
@@ -86,12 +84,7 @@ function ActionButton({ href, onClick, variant, icon, title, disabled = false, l
 
   if (href) {
     return (
-      <Link
-        href={href}
-        className={`btn btn-${variant}`}
-        style={baseStyle}
-        title={title}
-      >
+      <Link href={href} className={`btn btn-${variant}`} style={baseStyle} title={title}>
         {content}
       </Link>
     );
@@ -124,6 +117,10 @@ export default function SalesIndex() {
 
   // Invoice generation state
   const [generatingInvoice, setGeneratingInvoice] = useState(null);
+
+  // Payment mode modal state
+  const [paymentModeModalOpen, setPaymentModeModalOpen] = useState(false);
+  const [pendingInvoiceSaleId, setPendingInvoiceSaleId] = useState(null);
 
   // Search
   const [q, setQ] = useState("");
@@ -188,13 +185,19 @@ export default function SalesIndex() {
     fetchSales();
   };
 
-  // Generate Invoice Handler
-  const handleGenerateInvoice = async (saleId) => {
-    setGeneratingInvoice(saleId);
+  // Step 1: Open the payment mode modal
+  const handleGenerateInvoice = (saleId) => {
+    setPendingInvoiceSaleId(saleId);
+    setPaymentModeModalOpen(true);
+  };
+
+  // Step 2: User picked a mode — now fetch sale data and generate
+  const handlePaymentModeConfirm = async (paymentMode) => {
+    setPaymentModeModalOpen(false);
+    setGeneratingInvoice(pendingInvoiceSaleId);
 
     try {
-      // Fetch from invoice endpoint (separate from main sale route)
-      const response = await fetch(`/api/sales/${saleId}/invoice`);
+      const response = await fetch(`/api/sales/${pendingInvoiceSaleId}/invoice`);
 
       if (!response.ok) {
         const err = await response.json();
@@ -202,9 +205,7 @@ export default function SalesIndex() {
       }
 
       const sale = await response.json();
-
-      // Generate PDF
-      const invoiceNo = generateInvoicePDF(sale);
+      const invoiceNo = generateInvoicePDF(sale, paymentMode);
 
       setSuccessMessage(`Invoice ${invoiceNo} opened in new tab!`);
     } catch (err) {
@@ -212,6 +213,7 @@ export default function SalesIndex() {
       alert(err.message || "Failed to generate invoice");
     } finally {
       setGeneratingInvoice(null);
+      setPendingInvoiceSaleId(null);
     }
   };
 
@@ -230,7 +232,6 @@ export default function SalesIndex() {
     });
   }, [sales, q]);
 
-  // Calculate totals in INR
   const totals = useMemo(() => {
     let totalInr = 0;
     let outstandingInr = 0;
@@ -439,7 +440,6 @@ export default function SalesIndex() {
                       const diamondCert = sale?.diamond?.certificate_number || sale?.diamond_certificate || "-";
                       const clientName = sale?.client?.company_name || sale?.client_company || "-";
 
-                      // Use INR values for payment tracking
                       const saleAmountInr = parseFloat(sale.sale_amount_inr) || 0;
                       const totalReceivedInr = parseFloat(sale.total_received_inr) || 0;
                       const outstandingInr = Math.max(0, saleAmountInr - totalReceivedInr);
@@ -508,23 +508,18 @@ export default function SalesIndex() {
 
                           <td className="py-3 text-center">
                             <div className="d-flex gap-2 justify-content-center">
-                              {/* View Button */}
                               <ActionButton
                                 href={`/sales/show/${sale.id}`}
                                 variant="outline-info"
                                 icon="bi-eye-fill"
                                 title="View Sale"
                               />
-
-                              {/* Edit Button */}
                               <ActionButton
                                 href={`/sales/edit/${sale.id}`}
                                 variant="outline-warning"
                                 icon="bi-pencil-fill"
                                 title="Edit Sale"
                               />
-
-                              {/* Invoice Button */}
                               <ActionButton
                                 onClick={() => handleGenerateInvoice(sale.id)}
                                 variant="outline-primary"
@@ -533,8 +528,6 @@ export default function SalesIndex() {
                                 loading={generatingInvoice === sale.id}
                                 disabled={generatingInvoice === sale.id}
                               />
-
-                              {/* Record Payment Button */}
                               {outstandingInr > 0 && sale.status !== "cancelled" && (
                                 <ActionButton
                                   onClick={() => handleRecordPayment(sale.id)}
@@ -543,8 +536,6 @@ export default function SalesIndex() {
                                   title="Record Payment"
                                 />
                               )}
-
-                              {/* Delete Button */}
                               <ActionButton
                                 onClick={() => handleDelete(sale.id)}
                                 variant="outline-danger"
@@ -583,7 +574,7 @@ export default function SalesIndex() {
           </div>
         </div>
 
-        {/* Payment Modal */}
+        {/* Record Payment Modal */}
         <RecordSalePaymentModal
           saleId={selectedSaleId}
           show={paymentModalOpen}
@@ -592,6 +583,17 @@ export default function SalesIndex() {
             setSelectedSaleId(null);
           }}
           onSuccess={handlePaymentSuccess}
+        />
+
+        {/* Payment Mode Modal (for invoice generation) */}
+        <PaymentModeModal
+          show={paymentModeModalOpen}
+          loading={generatingInvoice !== null}
+          onClose={() => {
+            setPaymentModeModalOpen(false);
+            setPendingInvoiceSaleId(null);
+          }}
+          onConfirm={handlePaymentModeConfirm}
         />
 
         <style jsx global>{`
