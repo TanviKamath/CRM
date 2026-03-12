@@ -23,7 +23,7 @@ export async function POST(req) {
       value: token,
       httpOnly: true,
       path: "/",
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 30, // 30 minutes
       sameSite: "lax",
     });
 

@@ -23,21 +23,16 @@ export async function loginUser(email, password) {
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw new Error("Invalid credentials");
 
-  // Check for existing session
-  if (user.current_session_id) {
-    throw new Error("User already logged in on another device. Please logout first.");
-  }
-
-  // Create new session ID
+  // Create new session ID and always allow login (replaces stale sessions)
   const sessionId = require('crypto').randomUUID();
 
-  // Update user with new session ID
+  // Update user with new session ID (overrides previous session if any)
   await updateUser(user.id, { current_session_id: sessionId });
 
   const token = jwt.sign(
     { id: user.id, email: user.email, sessionId },
     JWT_SECRET,
-    { expiresIn: "1d" }
+    { expiresIn: "30m" }
   );
 
   return {
