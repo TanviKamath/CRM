@@ -1,3 +1,10 @@
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load .env.local from project root
+dotenv.config({ path: path.join(__dirname, '../.env.local') });
+console.log('.env.local loaded successfully');
+
 const db = require('../app/lib/db');
 
 async function cleanup() {
