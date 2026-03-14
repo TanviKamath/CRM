@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const COLOR_CATEGORIES = ["White", "White Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
@@ -17,11 +17,9 @@ const GRADE_MAP = {
   Green: ["Standard"],
 };
 
-export default function EditMixLot() {
+export default function CreateLooseDiamondLot() {
   const router = useRouter();
-  const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
 
   // Lot Info
   const [lotInfo, setLotInfo] = useState({
@@ -37,29 +35,6 @@ export default function EditMixLot() {
   // Bifurcation Items
   const [items, setItems] = useState([]);
   const [targetProfitInput, setTargetProfitInput] = useState("");
-
-  // Fetch existing data
-  useEffect(() => {
-    fetch(`/api/mix-lots/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setLotInfo({
-          lot_number: data.lot_number,
-          supplier_name: data.supplier_name,
-          total_carats: data.total_carats,
-          original_price_per_carat: data.original_price_per_carat,
-          total_purchase_value: data.total_purchase_value,
-          purchase_date: data.purchase_date ? new Date(data.purchase_date).toISOString().split("T")[0] : "",
-          remarks: data.remarks || "",
-        });
-        setItems(data.items.map(i => ({
-          ...i,
-          id: i.id || Date.now() + Math.random() // Ensure local unique ID
-        })));
-      })
-      .catch(() => router.push("/mix-lots"))
-      .finally(() => setFetching(false));
-  }, [id, router]);
 
   // Auto-calculate Total Purchase Value
   useEffect(() => {
@@ -142,11 +117,16 @@ export default function EditMixLot() {
         return prevItems;
       }
 
+      const currentSplitTotalAtBase = sumBaseValue; // If all disc were 0
+      // We want to find a single Delta for all items
+      // (TargetTotal / sumBaseValue) - 1 = Delta_Percentage
       const targetMultiplier = targetTotalValue / sumBaseValue;
       const targetDisc = (targetMultiplier - 1) * 100;
 
       return preparedItems.map(item => {
         const base = parseFloat(item.base_price);
+        // We set the discount so that FinalPrice = Base * (1 + targetDisc/100)
+        // Which means FinalPrice = Base * targetMultiplier
         const finalPrice = base * targetMultiplier;
         return {
           ...item,
@@ -167,30 +147,24 @@ export default function EditMixLot() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/mix-lots/${id}`, {
-        method: "PUT",
+      const res = await fetch("/api/loose-diamonds", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...lotInfo, items }),
       });
 
       if (res.ok) {
-        router.push(`/mix-lots/${id}`);
+        router.push("/loose-diamonds");
       } else {
         const err = await res.text();
         alert("Error: " + err);
       }
     } catch (err) {
-      alert("Failed to update lot");
+      alert("Failed to save lot");
     } finally {
       setLoading(false);
     }
   };
-
-  if (fetching) return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: "#f8f9fc" }}>
-      <div className="spinner-border text-primary" />
-    </div>
-  );
 
   return (
     <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>
@@ -201,7 +175,7 @@ export default function EditMixLot() {
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div className="d-flex align-items-center gap-3">
-                <Link href="/mix-lots" className="btn btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-primary me-2" style={{ width: 40, height: 40 }}>
+                <Link href="/loose-diamonds" className="btn btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-primary me-2" style={{ width: 40, height: 40 }}>
                    <i className="bi bi-arrow-left text-primary"></i>
                 </Link>
                 <div
@@ -213,33 +187,32 @@ export default function EditMixLot() {
                     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.15)",
                   }}
                 >
-                  <i className="bi bi-pencil-square text-white" style={{ fontSize: "1.2rem" }} />
+                  <i className="bi bi-layers-half text-white" style={{ fontSize: "1.2rem" }} />
                 </div>
                 <div>
                   <h2 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "-0.5px" }}>
-                    Edit Mix Lot: {lotInfo.lot_number}
+                    Create Loose Diamond Lot
                   </h2>
-                  <div className="text-muted small">Update parcel details and bifurcations</div>
+                  <div className="text-muted small">Buy Loose Diamond Parcel and bifurcate diamonds</div>
                 </div>
               </div>
-
-              <Link
-                href={`/mix-lots/${id}`}
-                className="btn btn-outline-secondary px-4 d-flex align-items-center"
-                style={{ borderRadius: 10 }}
-              >
-                <i className="bi bi-arrow-left me-2" />
-                Cancel Edit
-              </Link>
             </div>
-
-            {/* Breadcrumb */}
             <nav aria-label="breadcrumb" className="mb-4">
               <ol className="breadcrumb mb-0">
-                <li className="breadcrumb-item"><Link href="/" className="text-decoration-none text-muted">Dashboard</Link></li>
-                <li className="breadcrumb-item"><Link href="/mix-lots" className="text-decoration-none text-muted">Mix Lots</Link></li>
-                <li className="breadcrumb-item"><Link href={`/mix-lots/${id}`} className="text-decoration-none text-muted">{lotInfo.lot_number}</Link></li>
-                <li className="breadcrumb-item active text-primary" aria-current="page">Edit</li>
+                <li className="breadcrumb-item">
+                  <Link href="/" className="text-decoration-none text-muted">
+                    <i className="bi bi-house-door me-1" />
+                    Dashboard
+                  </Link>
+                </li>
+                <li className="breadcrumb-item">
+                  <Link href="/loose-diamonds" className="text-decoration-none text-muted">
+                    Loose Diamonds
+                  </Link>
+                </li>
+                <li className="breadcrumb-item active text-primary" aria-current="page">
+                  New Loose Diamond Lot
+                </li>
               </ol>
             </nav>
 
@@ -434,7 +407,7 @@ export default function EditMixLot() {
                                 ${parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td className="py-3">
-                                <div className="fw-bold text-primary">${(item.total_value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                <div className="fw-bold text-primary">${item.total_value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                               </td>
                               <td className="pe-5 py-3 text-end">
                                 <button type="button" className="btn btn-light btn-sm rounded-circle shadow-sm" onClick={() => removeItem(item.id)} style={{ width: 32, height: 32 }}>
@@ -561,7 +534,7 @@ export default function EditMixLot() {
 
               {/* Actions */}
               <div className="d-flex justify-content-end align-items-center gap-3 mb-5">
-                <Link href={`/mix-lots/${id}`} className="btn btn-light px-5 py-3 fw-bold shadow-sm" style={{ borderRadius: 15, border: "0.5px solid #eee" }}>
+                <Link href="/loose-diamonds" className="btn btn-light px-5 py-3 fw-bold shadow-sm" style={{ borderRadius: 15, border: "0.5px solid #eee" }}>
                   Cancel
                 </Link>
                 <button 
@@ -573,10 +546,10 @@ export default function EditMixLot() {
                   {loading ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Updating Lot...
+                      Saving Lot...
                     </>
                   ) : (
-                    "Update Mix Lot"
+                    "Finalize & Save Lot"
                   )}
                 </button>
               </div>

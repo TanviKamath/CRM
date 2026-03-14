@@ -11,7 +11,7 @@ export async function GET() {
     const decoded = verifyToken(token);
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
-    const lots = await db("mix_lots")
+    const lots = await db("loose_diamond")
       .where("user_id", decoded.id)
       .orderBy("created_at", "desc");
 
@@ -50,7 +50,7 @@ export async function POST(req) {
     // Wrap in transaction
     const result = await db.transaction(async (trx) => {
       // 1. Create the Lot
-      const [lotId] = await trx("mix_lots").insert({
+      const [lotId] = await trx("loose_diamond").insert({
         user_id: decoded.id,
         lot_number,
         supplier_name,
@@ -71,7 +71,7 @@ export async function POST(req) {
         }
 
         const itemsToInsert = items.map(item => ({
-          mix_lot_id: lotId,
+          loose_diamond_id: lotId,
           color_category: item.color_category,
           size_category: item.size_category,
           grade: item.grade,
@@ -82,7 +82,7 @@ export async function POST(req) {
           total_value: item.total_value
         }));
 
-        await trx("mix_lot_items").insert(itemsToInsert);
+        await trx("loose_diamond_items").insert(itemsToInsert);
       }
 
       return lotId;

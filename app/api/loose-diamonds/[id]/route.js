@@ -12,14 +12,14 @@ export async function GET(req, { params }) {
     const decoded = verifyToken(token);
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
-    const lot = await db("mix_lots")
+    const lot = await db("loose_diamond")
       .where({ id, user_id: decoded.id })
       .first();
 
     if (!lot) return new Response("Lot not found", { status: 404 });
 
-    const items = await db("mix_lot_items")
-      .where("mix_lot_id", id)
+    const items = await db("loose_diamond_items")
+      .where("loose_diamond_id", id)
       .orderBy("id", "asc");
 
     return Response.json({ ...lot, items });
@@ -39,14 +39,14 @@ export async function DELETE(req, { params }) {
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
     // Verify ownership
-    const lot = await db("mix_lots")
+    const lot = await db("loose_diamond")
       .where({ id, user_id: decoded.id })
       .first();
 
     if (!lot) return new Response("Lot not found", { status: 404 });
 
-    // Delete (Cascade will handle mix_lot_items)
-    await db("mix_lots").where({ id }).delete();
+    // Delete (Cascade will handle loose_diamond_items)
+    await db("loose_diamond").where({ id }).delete();
 
     return Response.json({ success: true });
   } catch (err) {
@@ -68,12 +68,12 @@ export async function PUT(req, { params }) {
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
     // Verify ownership
-    const existingLot = await db("mix_lots").where({ id, user_id: decoded.id }).first();
+    const existingLot = await db("loose_diamond").where({ id, user_id: decoded.id }).first();
     if (!existingLot) return new Response("Lot not found", { status: 404 });
 
     await db.transaction(async (trx) => {
       // 1. Update Lot Details
-      await trx("mix_lots").where({ id }).update({
+      await trx("loose_diamond").where({ id }).update({
         lot_number,
         supplier_name,
         total_carats,
@@ -85,12 +85,12 @@ export async function PUT(req, { params }) {
       });
 
       // 2. Clear existing items
-      await trx("mix_lot_items").where("mix_lot_id", id).delete();
+      await trx("loose_diamond_items").where("loose_diamond_id", id).delete();
 
       // 3. Insert fresh items
       if (items && items.length > 0) {
         const itemsToInsert = items.map((item) => ({
-          mix_lot_id: id,
+          loose_diamond_id: id,
           color_category: item.color_category,
           size_category: item.size_category,
           grade: item.grade,
@@ -100,7 +100,7 @@ export async function PUT(req, { params }) {
           final_price_per_carat: item.final_price_per_carat,
           total_value: item.total_value,
         }));
-        await trx("mix_lot_items").insert(itemsToInsert);
+        await trx("loose_diamond_items").insert(itemsToInsert);
       }
     });
 

@@ -174,10 +174,10 @@ export default function Navbar() {
       if (user?.client_type === "Loose") {
         items.push({
           type: "link",
-          href: "/mix-lots",
+          href: "/loose-diamonds",
           icon: "bi-layers-half",
-          label: "Mix Lots",
-          active: isActiveGroup("/mix-lots"),
+          label: "Loose Diamonds",
+          active: isActiveGroup("/loose-diamonds"),
         });
       }
 

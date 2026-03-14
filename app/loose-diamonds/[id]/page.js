@@ -10,20 +10,20 @@ import {
 
 const CHART_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ff7300"];
 
-export default function MixLotDetail() {
+export default function LooseDiamondDetail() {
   const { id } = useParams();
   const router = useRouter();
   const [lot, setLot] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/mix-lots/${id}`)
+    fetch(`/api/loose-diamonds/${id}`)
       .then((res) => {
         if (!res.ok) throw new Error();
         return res.json();
       })
       .then(setLot)
-      .catch(() => router.push("/mix-lots"))
+      .catch(() => router.push("/loose-diamonds"))
       .finally(() => setLoading(false));
   }, [id, router]);
 
@@ -46,9 +46,9 @@ export default function MixLotDetail() {
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this lot and all its sub-lots?")) return;
     
-    const res = await fetch(`/api/mix-lots/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/loose-diamonds/${id}`, { method: "DELETE" });
     if (res.ok) {
-      router.push("/mix-lots");
+      router.push("/loose-diamonds");
     }
   };
 
@@ -86,7 +86,7 @@ export default function MixLotDetail() {
         {/* Header */}
         <div className="d-flex justify-content-between align-items-start mb-4">
           <div className="d-flex align-items-center gap-3">
-             <Link href="/mix-lots" className="btn btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-primary me-2" style={{ width: 40, height: 40 }}>
+             <Link href="/loose-diamonds" className="btn btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-primary me-2" style={{ width: 40, height: 40 }}>
                 <i className="bi bi-arrow-left text-primary"></i>
              </Link>
              <div
@@ -115,7 +115,7 @@ export default function MixLotDetail() {
             <button className="btn btn-outline-danger px-3 shadow-sm border-0 bg-white" onClick={handleDelete} style={{ borderRadius: "10px" }}>
               <i className="bi bi-trash"></i>
             </button>
-            <Link href={`/mix-lots/edit/${id}`} className="btn btn-outline-primary px-3 shadow-sm border-0 bg-white" style={{ borderRadius: "10px" }}>
+            <Link href={`/loose-diamonds/edit/${id}`} className="btn btn-outline-primary px-3 shadow-sm border-0 bg-white" style={{ borderRadius: "10px" }}>
               <i className="bi bi-pencil me-2"></i>Edit Lot
             </Link>
             <button className="btn btn-primary px-3 shadow-lg" onClick={() => window.print()} style={{ borderRadius: "10px" }}>
@@ -128,7 +128,7 @@ export default function MixLotDetail() {
         <nav aria-label="breadcrumb" className="mb-5 ms-1">
           <ol className="breadcrumb mb-0">
             <li className="breadcrumb-item"><Link href="/" className="text-decoration-none text-muted">Dashboard</Link></li>
-            <li className="breadcrumb-item"><Link href="/mix-lots" className="text-decoration-none text-muted">Mix Lots</Link></li>
+            <li className="breadcrumb-item"><Link href="/loose-diamonds" className="text-decoration-none text-muted">Loose Diamonds</Link></li>
             <li className="breadcrumb-item active text-primary" aria-current="page">{lot.lot_number} Details</li>
           </ol>
         </nav>

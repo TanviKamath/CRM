@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 
-export default function MixLotDashboard() {
+export default function LooseDiamondDashboard() {
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -102,7 +102,7 @@ export default function MixLotDashboard() {
         }));
 
         // 4. Submit
-        const res = await fetch("/api/mix-lots/bulk", {
+        const res = await fetch("/api/loose-diamonds/bulk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lots: finalLots }),
@@ -145,7 +145,7 @@ export default function MixLotDashboard() {
   const fetchAndShowLots = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/mix-lots");
+      const res = await fetch("/api/loose-diamonds");
       if (res.ok) {
         const data = await res.json();
         setLots(data);
@@ -181,7 +181,7 @@ export default function MixLotDashboard() {
               <i className="bi bi-layers-half text-white" style={{ fontSize: "1.5rem" }} />
             </div>
             <div>
-              <h1 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "-1px" }}>Mix Lot Management</h1>
+              <h1 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "-1px" }}>Loose Diamond Management</h1>
               <p className="text-muted mb-0 small uppercase fw-bold ls-1">Inventory & Bifurcation</p>
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function MixLotDashboard() {
               )}
               Bulk Import Excel
             </button>
-            <Link href="/mix-lots/create" className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2" style={{ borderRadius: "12px", fontWeight: "600", boxShadow: "0 4px 12px rgba(13, 110, 253, 0.2)" }}>
+            <Link href="/loose-diamonds/create" className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2" style={{ borderRadius: "12px", fontWeight: "600", boxShadow: "0 4px 12px rgba(13, 110, 253, 0.2)" }}>
               <i className="bi bi-plus-lg"></i>Create New Lot
             </Link>
           </div>
@@ -246,7 +246,7 @@ export default function MixLotDashboard() {
         {/* Lots List */}
         <div className="bg-white shadow-lg border-0" style={{ borderRadius: "25px", overflow: "hidden" }}>
           <div className="px-4 py-4 border-bottom bg-white d-flex justify-content-between align-items-center">
-            <h5 className="fw-bold mb-0">Active Mix Inventory</h5>
+            <h5 className="fw-bold mb-0">Active Loose Inventory</h5>
             <div className="badge bg-light text-muted p-2 rounded-3 border">{lots.length} Records Found</div>
           </div>
           <div className="table-responsive">
@@ -266,14 +266,14 @@ export default function MixLotDashboard() {
                     <td colSpan="6" className="text-center py-5">
                         <div className="py-2">
                             <i className="bi bi-inboxes text-muted opacity-25" style={{ fontSize: "3rem" }}></i>
-                            <p className="mt-3 text-muted">No lots found. Creation your first mix lot!</p>
-                            <Link href="/mix-lots/create" className="btn btn-sm btn-outline-primary rounded-pill">Add Lot</Link>
+                            <p className="mt-3 text-muted">No lots found. Creation your first loose diamond lot!</p>
+                            <Link href="/loose-diamonds/create" className="btn btn-sm btn-outline-primary rounded-pill">Add Lot</Link>
                         </div>
                     </td>
                   </tr>
                 ) : (
                   lots.map((lot) => (
-                    <tr key={lot.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/mix-lots/${lot.id}`)}>
+                    <tr key={lot.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/loose-diamonds/${lot.id}`)}>
                       <td className="px-4 py-4">
                         <div className="fw-bold text-dark">{lot.lot_number}</div>
                         <div className="text-muted small">{lot.purchase_date ? new Date(lot.purchase_date).toLocaleDateString() : "-"}</div>

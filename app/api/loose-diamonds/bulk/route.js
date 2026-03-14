@@ -23,7 +23,7 @@ export async function POST(req) {
 
       for (const lotData of lots) {
         // 1. Insert Lot
-        const [lotId] = await trx("mix_lots").insert({
+        const [lotId] = await trx("loose_diamond").insert({
           user_id: decoded.id,
           lot_number: lotData.lot_number,
           supplier_name: lotData.supplier_name || "Excel Import",
@@ -39,7 +39,7 @@ export async function POST(req) {
         // 2. Insert Items
         if (lotData.items && lotData.items.length > 0) {
           const itemsToInsert = lotData.items.map((item) => ({
-            mix_lot_id: lotId,
+            loose_diamond_id: lotId,
             color_category: item.color_category,
             size_category: item.size_category,
             grade: item.grade,
@@ -51,7 +51,7 @@ export async function POST(req) {
             created_at: db.fn.now(),
             updated_at: db.fn.now(),
           }));
-          await trx("mix_lot_items").insert(itemsToInsert);
+          await trx("loose_diamond_items").insert(itemsToInsert);
         }
         
         createdLots.push(lotId);

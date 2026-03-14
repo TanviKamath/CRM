@@ -23,12 +23,12 @@ const db = require('../app/lib/db');
 async function migrate() {
     try {
         console.log('Cleaning up existing tables if any...');
-        await db.schema.dropTableIfExists('mix_lot_items');
-        await db.schema.dropTableIfExists('mix_lots');
+        await db.schema.dropTableIfExists('loose_diamond_items');
+        await db.schema.dropTableIfExists('loose_diamond');
 
-        // 1. Create mix_lots table
-        console.log('Creating mix_lots table...');
-        await db.schema.createTable('mix_lots', (table) => {
+        // 1. Create loose_diamond table
+        console.log('Creating loose_diamond table...');
+        await db.schema.createTable('loose_diamond', (table) => {
             table.bigIncrements('id').primary();
             table.bigInteger('user_id').unsigned().notNullable(); // Owner of the lot
             table.string('lot_number').notNullable().unique();
@@ -43,13 +43,13 @@ async function migrate() {
             
             table.foreign('user_id').references('users.id');
         });
-        console.log('mix_lots table created.');
+        console.log('loose_diamond table created.');
 
-        // 2. Create mix_lot_items (bifurcations) table
-        console.log('Creating mix_lot_items table...');
-        await db.schema.createTable('mix_lot_items', (table) => {
+        // 2. Create loose_diamond_items (bifurcations) table
+        console.log('Creating loose_diamond_items table...');
+        await db.schema.createTable('loose_diamond_items', (table) => {
             table.bigIncrements('id').primary();
-            table.bigInteger('mix_lot_id').unsigned().notNullable();
+            table.bigInteger('loose_diamond_id').unsigned().notNullable();
             table.string('color_category').nullable();
             table.string('size_category').nullable();
             table.string('grade').nullable();
@@ -60,9 +60,9 @@ async function migrate() {
             table.decimal('total_value', 15, 2).notNullable();
             table.timestamps(true, true);
 
-            table.foreign('mix_lot_id').references('mix_lots.id').onDelete('CASCADE');
+            table.foreign('loose_diamond_id').references('loose_diamond.id').onDelete('CASCADE');
         });
-        console.log('mix_lot_items table created.');
+        console.log('loose_diamond_items table created.');
 
         process.exit(0);
     } catch (e) {
