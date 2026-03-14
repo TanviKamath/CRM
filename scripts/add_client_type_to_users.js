@@ -41,7 +41,7 @@ async function migrate() {
         if (!hasColumn) {
             console.log('Adding client_type column to users table...');
             await db.schema.alterTable('users', (table) => {
-                table.string('client_type').nullable().after('subscription');
+                table.string('client_type').defaultTo('Gia').after('subscription');
             });
             console.log('client_type column added successfully.');
         } else {

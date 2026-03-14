@@ -28,7 +28,7 @@ export async function POST(req) {
       email: parsed.email,
       password: hashed,
       subscription: finalSubscription,
-      client_type: parsed.client_type || "Gia",
+      client_type: "Gia",
       created_at: new Date(),
       updated_at: new Date(),
     });

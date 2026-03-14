@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [subscription, setSubscription] = useState("Basic");
-  const [clientType, setClientType] = useState("Gia");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -24,7 +23,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, email, password, subscription, client_type: clientType }),
+        body: JSON.stringify({ name, email, password, subscription }),
       });
 
       if (!res.ok) {
@@ -128,24 +127,6 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {/* Client Type */}
-          <label className="fw-semibold" style={{ color: "#222" }}>
-            Client Type
-          </label>
-          <select
-            className="form-select mb-3"
-            style={{
-              borderRadius: "14px",
-              padding: "12px 14px",
-              border: "1px solid #ddd",
-              fontSize: "15px",
-            }}
-            value={clientType}
-            onChange={(e) => setClientType(e.target.value)}
-          >
-            <option value="Gia">Gia</option>
-            <option value="Loose">Loose</option>
-          </select>
 
           {/* Subscription */}
           <label className="fw-semibold" style={{ color: "#222" }}>
@@ -180,7 +161,7 @@ export default function RegisterPage() {
           >
             <div className="text-muted small mb-1">Your Final Offer:</div>
             <div className="fw-bold text-primary" style={{ fontSize: "18px" }}>
-              {clientType} {subscription}
+              {subscription}
             </div>
           </div>
 
