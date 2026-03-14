@@ -6,7 +6,6 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start"
-    
   },
   "dependencies": {
     "aws-sdk": "^2.1529.0",
@@ -21,6 +20,7 @@
     "mysql2": "^3.15.3",
     "nodemailer": "^7.0.10",
     "pdfkit": "^0.17.2",
+    "recharts": "^3.8.0",
     "xlsx": "^0.18.5",
     "xlsx-js-style": "^1.2.0",
     "zod": "^3.25.76"

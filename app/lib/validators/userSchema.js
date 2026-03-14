@@ -5,4 +5,5 @@ export const userSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   subscription: z.enum(["Basic", "Basic+", "Pro"]).optional().default("Basic"),
+  client_type: z.enum(["Gia", "Loose"]).optional().default("Gia"),
 });

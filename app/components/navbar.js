@@ -82,7 +82,7 @@ export default function Navbar() {
     clearTimeout(dropdownTimeout.current);
   }, []);
 
-  const pro = user?.subscription === "Pro";
+  const pro = user?.subscription === "Pro" && user?.client_type !== "Loose";
 
   /* ── nav config ── */
   const navItems = useMemo(() => {
@@ -170,6 +170,16 @@ export default function Navbar() {
           },
         ],
       });
+
+      if (user?.client_type === "Loose") {
+        items.push({
+          type: "link",
+          href: "/mix-lots",
+          icon: "bi-layers-half",
+          label: "Mix Lots",
+          active: isActiveGroup("/mix-lots"),
+        });
+      }
 
       if (pro) {
         items.push({

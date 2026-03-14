@@ -15,7 +15,7 @@ export default function ExcelToolPage() {
                 return res.json();
             })
             .then((user) => {
-                if (user?.subscription !== "Pro") {
+                if (user?.subscription !== "Pro" || user?.client_type === "Loose") {
                     router.push("/");
                 } else {
                     setAuthorized(true);

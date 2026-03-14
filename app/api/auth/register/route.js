@@ -11,11 +11,24 @@ export async function POST(req) {
     if (existing) return new Response("Email already exists", { status: 400 });
 
     const hashed = await bcrypt.hash(parsed.password, 10);
+
+    // Explicit logic for determining the subscription "Offer"
+    let finalSubscription = parsed.subscription || "Basic";
+    if (parsed.client_type === "Gia") {
+      if (parsed.subscription === "Basic") finalSubscription = "Basic";
+      else if (parsed.subscription === "Basic+") finalSubscription = "Basic+";
+      else if (parsed.subscription === "Pro") finalSubscription = "Pro";
+    } else if (parsed.client_type === "Loose") {
+      // Assuming standard mapping for 'Loose' for now, can be customized later
+      finalSubscription = parsed.subscription || "Basic";
+    }
+
     const [id] = await knex("users").insert({
       name: parsed.name,
       email: parsed.email,
       password: hashed,
-      subscription: parsed.subscription || "Basic",
+      subscription: finalSubscription,
+      client_type: parsed.client_type || "Gia",
       created_at: new Date(),
       updated_at: new Date(),
     });
