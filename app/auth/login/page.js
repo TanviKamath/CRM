@@ -83,6 +83,7 @@ export default function LoginPage() {
               fontSize: "15px",
             }}
             required
+            suppressHydrationWarning
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -100,6 +101,7 @@ export default function LoginPage() {
               fontSize: "15px",
             }}
             required
+            suppressHydrationWarning
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -118,6 +120,7 @@ export default function LoginPage() {
             }}
             onMouseEnter={(e) => (e.target.style.opacity = "0.85")}
             onMouseLeave={(e) => (e.target.style.opacity = "1")}
+            suppressHydrationWarning
           >
             Login
           </button>

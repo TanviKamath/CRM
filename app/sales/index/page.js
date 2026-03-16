@@ -71,7 +71,7 @@ export default function SalesIndex() {
                                     <th>Diamond</th>
                                     <th>Client</th>
                                     <th>Date</th>
-                                    <th>Amount (USD)</th>
+                                    <th>Amount (INR)</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -91,7 +91,7 @@ export default function SalesIndex() {
                                             <td>{sale.diamond?.certificate_number}</td>
                                             <td>{sale.client?.company_name}</td>
                                             <td>{sale.created_at?.substring(0, 10)}</td>
-                                            <td>${Number(sale.sale_amount).toFixed(2)}</td>
+                                            <td>₹{Number(sale.sale_amount_inr || sale.sale_amount).toLocaleString('en-IN')}</td>
                                             <td>
                                                 <span
                                                     className={`badge bg-${sale.status === "completed"

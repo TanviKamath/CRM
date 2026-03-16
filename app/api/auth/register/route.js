@@ -12,23 +12,12 @@ export async function POST(req) {
 
     const hashed = await bcrypt.hash(parsed.password, 10);
 
-    // Explicit logic for determining the subscription "Offer"
-    let finalSubscription = parsed.subscription || "Basic";
-    if (parsed.client_type === "Gia") {
-      if (parsed.subscription === "Basic") finalSubscription = "Basic";
-      else if (parsed.subscription === "Basic+") finalSubscription = "Basic+";
-      else if (parsed.subscription === "Pro") finalSubscription = "Pro";
-    } else if (parsed.client_type === "Loose") {
-      // Assuming standard mapping for 'Loose' for now, can be customized later
-      finalSubscription = parsed.subscription || "Basic";
-    }
-
     const [id] = await knex("users").insert({
       name: parsed.name,
       email: parsed.email,
       password: hashed,
-      subscription: finalSubscription,
-      client_type: "Gia",
+      subscription: parsed.subscription,
+      client_type: parsed.client_type,
       created_at: new Date(),
       updated_at: new Date(),
     });

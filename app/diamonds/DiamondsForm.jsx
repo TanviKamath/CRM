@@ -458,10 +458,10 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
   // Summary for display
   const summary = useMemo(() => {
     return {
-      ppc: form.price_per_carat_usd,
-      usd: form.amount_usd,
+      ppc: form.price_per_carat_inr || form.price_per_carat_usd,
+      usd: form.amount_inr || form.amount_usd,
       inr: form.amount_inr || "-",
-      pUsd: form.purchase_price,
+      pUsd: form.purchase_price_inr || form.purchase_price,
       pInr: form.purchase_price_inr || "-",
     };
   }, [form.price_per_carat_usd, form.amount_usd, form.amount_inr, form.purchase_price, form.purchase_price_inr]);
@@ -480,20 +480,16 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div className="d-flex flex-wrap gap-2">
             <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
-              <i className="bi bi-currency-dollar me-2" />
-              $/ct: <span className="fw-semibold ms-1">{summary.ppc}</span>
-            </span>
-            <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
-              <i className="bi bi-cash-stack me-2" />
-              USD: <span className="fw-semibold ms-1">{summary.usd}</span>
+              <i className="bi bi-currency-rupee me-2" />
+              ₹/ct: <span className="fw-semibold ms-1">{summary.ppc}</span>
             </span>
             <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
-              <i className="bi bi-currency-rupee me-2" />
+              <i className="bi bi-cash-stack me-2" />
               INR: <span className="fw-semibold ms-1">{summary.inr}</span>
             </span>
             <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2" style={{ borderRadius: 999 }}>
               <i className="bi bi-bag-check me-2" />
-              Purchase USD: <span className="fw-semibold ms-1">{summary.pUsd}</span>
+              Purchase INR: <span className="fw-semibold ms-1">{summary.pInr}</span>
             </span>
           </div>
           <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
@@ -670,9 +666,9 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
 
         <div className="row g-3">
           <div className="col-md-4">
-            <Label required>Rap Rate</Label>
+            <Label required>Rap Rate (₹)</Label>
             <div className="input-group">
-              <span className="input-group-text">$</span>
+              <span className="input-group-text">₹</span>
               <input name="rap_rate" value={form.rap_rate} onChange={change} type="number" step="0.01" min="0" className={inputClass("rap_rate")} placeholder="e.g., 5000" />
             </div>
             {hasError("rap_rate") && <div className="invalid-feedback d-block">{validationErrors.rap_rate}</div>}
@@ -688,23 +684,23 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
           </div>
 
           <div className="col-md-4">
-            <Label>Price per Carat (USD)</Label>
+            <Label>Price per Carat (INR)</Label>
             <div className="input-group">
-              <span className="input-group-text">$</span>
+              <span className="input-group-text">₹</span>
               <input readOnly className="form-control bg-light" value={form.price_per_carat_usd} />
             </div>
           </div>
 
           <div className="col-md-4">
-            <Label>Amount (USD)</Label>
+            <Label>Amount (INR)</Label>
             <div className="input-group">
-              <span className="input-group-text">$</span>
+              <span className="input-group-text">₹</span>
               <input readOnly className="form-control bg-light" value={form.amount_usd} />
             </div>
           </div>
 
           <div className="col-md-4">
-            <Label>Conversion Rate (USD to INR)</Label>
+            <Label>Conversion Rate (Optional)</Label>
             <div className="input-group">
               <span className="input-group-text"><i className="bi bi-arrow-left-right" /></span>
               <input name="conversion_rate" value={form.conversion_rate} onChange={change} type="number" step="0.01" className="form-control" placeholder="e.g., 83.50" />
@@ -767,9 +763,9 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
           </div>
 
           <div className="col-md-4">
-            <Label>Purchase Price (USD)</Label>
+            <Label>Purchase Price (INR)</Label>
             <div className="input-group">
-              <span className="input-group-text">$</span>
+              <span className="input-group-text">₹</span>
               <input readOnly className="form-control bg-light" value={form.purchase_price} />
             </div>
           </div>

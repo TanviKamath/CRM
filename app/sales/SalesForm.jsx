@@ -6,6 +6,7 @@ import Link from "next/link";
 import QuickAddEntityModal from "../components/QuickAddEntityModal";
 
 export default function SalesForm({
+  user,
   initial = {},
   diamonds = [],
   clients = [],
@@ -15,13 +16,12 @@ export default function SalesForm({
   onSubmit,
 }) {
   const [form, setForm] = useState({
-    diamond_id: initial.diamond_id || preSelectedDiamondId || "",
+    diamond_id: (user?.client_type === "Loose" ? initial.loose_diamond_item_id : initial.diamond_id) || preSelectedDiamondId || "",
     client_id: initial.client_id || "",
     broker_id: initial.broker_id || "",
     status: initial.status || "pending",
     sale_rap_discount: initial.sale_rap_discount ?? "",
     sale_amount: initial.sale_amount ?? "",
-    conversion_rate: initial.conversion_rate ?? "",
     sale_amount_inr: initial.sale_amount_inr ?? "",
     brokerage_rate: initial.brokerage_rate ?? "",
     brokerage_amount: initial.brokerage_amount ?? "", // Now in INR
@@ -97,11 +97,9 @@ export default function SalesForm({
   };
 
   // Calculate sale amount in INR
-  const calculateSaleAmountInr = useCallback((saleAmount, conversionRate) => {
+  const calculateSaleAmountInr = useCallback((saleAmount) => {
     const amount = parseFloat(saleAmount) || 0;
-    const rate = parseFloat(conversionRate) || 0;
-    if (rate > 0) return (amount * rate).toFixed(2);
-    return "";
+    return amount > 0 ? amount.toFixed(2) : "";
   }, []);
 
   // Calculate brokerage amount in INR (based on INR sale amount)
@@ -128,7 +126,6 @@ export default function SalesForm({
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  // Calculate outstanding
   const outstandingAmount = useMemo(() => {
     const saleAmount = parseFloat(form.sale_amount) || 0;
     const advance = parseFloat(form.advance_amount) || 0;
@@ -138,12 +135,21 @@ export default function SalesForm({
   // Update diamond info when diamond changes
   useEffect(() => {
     if (selectedDiamond) {
+      const isLoose = user?.client_type === "Loose";
+      
       setDiamondInfo({
-        weight: selectedDiamond.weight || "",
-        rap_rate: selectedDiamond.rap_rate || "",
+        weight: isLoose ? selectedDiamond.carats : (selectedDiamond.weight || ""),
+        rap_rate: isLoose ? "" : (selectedDiamond.rap_rate || ""),
       });
-      const saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
-      const saleAmountInr = calculateSaleAmountInr(saleAmount, form.conversion_rate);
+
+      let saleAmount = 0;
+      if (isLoose) {
+        saleAmount = parseFloat(selectedDiamond.total_value) || 0;
+      } else {
+        saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
+      }
+
+      const saleAmountInr = calculateSaleAmountInr(saleAmount);
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
 
       setForm(prev => ({
@@ -155,7 +161,7 @@ export default function SalesForm({
     } else {
       setDiamondInfo({ weight: "", rap_rate: "" });
     }
-  }, [form.diamond_id, diamonds, form.conversion_rate, form.brokerage_rate]);
+  }, [form.diamond_id, diamonds, form.brokerage_rate, user, form.sale_rap_discount]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -171,20 +177,9 @@ export default function SalesForm({
 
     const updated = { ...form, [name]: value };
 
-    // Discount changes -> recompute amounts
-    if (name === "sale_rap_discount") {
-      const d = selectedDiamond;
-      if (d) {
-        const saleAmount = calculateSaleAmount(d.weight, d.rap_rate, value);
-        updated.sale_amount = saleAmount > 0 ? saleAmount.toFixed(2) : "";
-        updated.sale_amount_inr = calculateSaleAmountInr(saleAmount, updated.conversion_rate);
-        updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
-      }
-    }
-
-    // Conversion rate changes -> recalculate INR amounts
-    if (name === "conversion_rate") {
-      updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount, value);
+    // Amount changes -> recompute INR
+    if (name === "sale_amount") {
+      updated.sale_amount_inr = calculateSaleAmountInr(value);
       updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
     }
 
@@ -210,11 +205,13 @@ export default function SalesForm({
 
   const validateForm = () => {
     const errors = {};
-    if (!form.diamond_id) errors.diamond_id = "Diamond is required";
+    if (!form.diamond_id) errors.diamond_id = "Item is required";
     if (!form.client_id) errors.client_id = "Client is required";
     if (!form.status) errors.status = "Status is required";
-    if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
-      errors.sale_rap_discount = "Sale RAP Discount is required";
+    if (user?.client_type !== "Loose") {
+      if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
+        errors.sale_rap_discount = "Sale RAP Discount is required";
+      }
     }
     if (!form.selling_date) errors.selling_date = "Selling date is required";
     if (!form.payment_status) errors.payment_status = "Payment status is required";
@@ -223,11 +220,6 @@ export default function SalesForm({
       if (!form.terms_days || parseInt(form.terms_days) <= 0) {
         errors.terms_days = "Terms days is required for On Terms payment";
       }
-    }
-
-    // Warn if brokerage rate is set but no conversion rate
-    if (form.brokerage_rate && !form.conversion_rate) {
-      errors.conversion_rate = "Conversion rate is required to calculate brokerage in INR";
     }
 
     setValidationErrors(errors);
@@ -255,23 +247,25 @@ export default function SalesForm({
       }
 
       const dataToSend = {
-        diamond_id: parseInt(form.diamond_id),
+        diamond_id: user?.client_type === "Loose" ? null : parseInt(form.diamond_id),
+        loose_diamond_item_id: user?.client_type === "Loose" ? parseInt(form.diamond_id) : null,
         client_id: parseInt(form.client_id),
         broker_id: form.broker_id ? parseInt(form.broker_id) : null,
         status: form.status,
-        sale_rap_discount: parseFloat(form.sale_rap_discount) || 0,
+        sale_rap_discount: 0,
         sale_amount: parseFloat(form.sale_amount) || 0,
-        conversion_rate: form.conversion_rate ? parseFloat(form.conversion_rate) : null,
-        sale_amount_inr: form.sale_amount_inr ? parseFloat(form.sale_amount_inr) : null,
+        conversion_rate: 1,
+        sale_amount_inr: parseFloat(form.sale_amount) || 0,
         brokerage_rate: form.brokerage_rate ? parseFloat(form.brokerage_rate) : null,
-        brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null, // Now in INR
+        brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null,
         notes: form.notes || null,
 
         // Payment fields
         selling_date: form.selling_date || null,
         payment_status: form.payment_status,
         terms_days: form.payment_status === 'on_terms' ? parseInt(form.terms_days) || 30 : null,
-        advance_amount: form.payment_status === 'on_terms' ? (parseFloat(form.advance_amount) || 0) : parseFloat(form.sale_amount) || 0,
+        // Backend expects advance_amount in INR
+        advance_amount: parseFloat(form.advance_amount) || 0,
         due_date: dueDate,
       };
 
@@ -288,20 +282,18 @@ export default function SalesForm({
   const selectClass = (field) => `form-select ${hasError(field) ? "is-invalid" : ""}`;
 
   const summary = useMemo(() => {
-    const usd = parseFloat(form.sale_amount);
-    const inr = parseFloat(form.sale_amount_inr);
-    const bro = parseFloat(form.brokerage_amount); // Now in INR
+    const amt = parseFloat(form.sale_amount) || 0;
+    const bro = parseFloat(form.brokerage_amount) || 0;
     const adv = parseFloat(form.advance_amount) || 0;
-    const out = Math.max(0, (usd || 0) - adv);
+    const out = Math.max(0, amt - adv);
 
     return {
-      usd: Number.isNaN(usd) ? "-" : `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      inr: Number.isNaN(inr) ? "-" : `₹${inr.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      bro: Number.isNaN(bro) ? "-" : `₹${bro.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      advance: `$${adv.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      outstanding: `$${out.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      amt: `₹${amt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      bro: `₹${bro.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      advance: `₹${adv.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      outstanding: `₹${out.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
     };
-  }, [form.sale_amount, form.sale_amount_inr, form.brokerage_amount, form.advance_amount]);
+  }, [form.sale_amount, form.brokerage_amount, form.advance_amount]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -339,14 +331,9 @@ export default function SalesForm({
         }}
       >
         <div className="d-flex flex-wrap gap-2">
-          <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-currency-dollar me-2" />
-            Sale (USD): <span className="fw-semibold ms-1">{summary.usd}</span>
-          </span>
-
           <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
             <i className="bi bi-currency-rupee me-2" />
-            Sale (INR): <span className="fw-semibold ms-1">{summary.inr}</span>
+            Total Sale: <span className="fw-semibold ms-1">{summary.amt}</span>
           </span>
 
           <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
@@ -362,7 +349,7 @@ export default function SalesForm({
           {form.brokerage_amount && (
             <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
               <i className="bi bi-percent me-2" />
-              Brokerage (INR): <span className="fw-semibold ms-1">{summary.bro}</span>
+              Brokerage: <span className="fw-semibold ms-1">{summary.bro}</span>
             </span>
           )}
         </div>
@@ -405,10 +392,13 @@ export default function SalesForm({
                 className={selectClass("diamond_id")}
                 required
               >
-                <option value="">Select Diamond</option>
+                <option value="">Select {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}</option>
                 {diamonds.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.certificate_number} ({d.shape} {d.weight}ct {d.color}/{d.clarity})
+                    {user?.client_type === "Loose" 
+                      ? `${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${d.carats}ct)`
+                      : `${d.certificate_number} (${d.shape} ${d.weight}ct ${d.color}/${d.clarity})`
+                    }
                   </option>
                 ))}
               </select>
@@ -527,76 +517,56 @@ export default function SalesForm({
             </div>
           </div>
 
-          <div className="col-md-3">
-            <label className="form-label fw-medium">RAP Rate</label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">$</span>
-              <input value={diamondInfo.rap_rate} className="form-control bg-light" readOnly />
-            </div>
-          </div>
+          {user?.client_type !== "Loose" && (
+            <>
+              <div className="col-md-3">
+                <label className="form-label fw-medium">RAP Rate</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">₹</span>
+                  <input value={diamondInfo.rap_rate} className="form-control bg-light" readOnly />
+                </div>
+              </div>
 
-          <div className="col-md-6">
-            <label htmlFor="sale_rap_discount" className="form-label fw-medium">
-              Sale RAP Discount (%) <span className="text-danger">*</span>
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-percent text-muted" />
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                id="sale_rap_discount"
-                name="sale_rap_discount"
-                value={form.sale_rap_discount}
-                onChange={handleChange}
-                className={controlClass("sale_rap_discount")}
-                placeholder="e.g., 35"
-                required
-              />
-            </div>
-            {hasError("sale_rap_discount") && <div className="invalid-feedback d-block">{validationErrors.sale_rap_discount}</div>}
-          </div>
+              <div className="col-md-3">
+                <label htmlFor="sale_rap_discount" className="form-label fw-medium">
+                  Sale RAP Discount (%) <span className="text-danger">*</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">
+                    <i className="bi bi-percent text-muted" />
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="sale_rap_discount"
+                    name="sale_rap_discount"
+                    value={form.sale_rap_discount}
+                    onChange={handleChange}
+                    className={controlClass("sale_rap_discount")}
+                    placeholder="e.g., 35"
+                    required
+                  />
+                </div>
+                {hasError("sale_rap_discount") && <div className="invalid-feedback d-block">{validationErrors.sale_rap_discount}</div>}
+              </div>
+            </>
+          )}
 
-          <div className="col-md-4">
-            <label className="form-label fw-medium">Sale Amount (USD)</label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">$</span>
-              <input value={form.sale_amount} className="form-control bg-light fw-semibold" readOnly />
-            </div>
-            <div className="text-muted small mt-1">Auto-calculated</div>
-          </div>
-
-          <div className="col-md-4">
-            <label htmlFor="conversion_rate" className="form-label fw-medium">
-              Conversion Rate (USD → INR) <span className="text-danger">*</span>
-            </label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-arrow-left-right text-muted" />
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                id="conversion_rate"
-                name="conversion_rate"
-                value={form.conversion_rate}
-                onChange={handleChange}
-                className={controlClass("conversion_rate")}
-                placeholder="e.g., 83.50"
-              />
-            </div>
-            {hasError("conversion_rate") && <div className="invalid-feedback d-block">{validationErrors.conversion_rate}</div>}
-          </div>
-
-          <div className="col-md-4">
+          <div className="col-md-12">
             <label className="form-label fw-medium">Sale Amount (INR)</label>
             <div className="input-group">
               <span className="input-group-text bg-white">₹</span>
-              <input value={form.sale_amount_inr} className="form-control bg-light fw-semibold" readOnly />
+              <input 
+                type="number"
+                step="0.01"
+                name="sale_amount"
+                value={form.sale_amount} 
+                onChange={handleChange}
+                className="form-control fw-semibold" 
+              />
             </div>
-            <div className="text-muted small mt-1">Auto-calculated</div>
           </div>
+
         </div>
 
         {/* Brokerage Section */}
@@ -738,10 +708,10 @@ export default function SalesForm({
 
               <div className="col-md-4">
                 <label htmlFor="advance_amount" className="form-label fw-medium">
-                  Advance Amount (USD)
+                  Advance Amount (INR)
                 </label>
                 <div className="input-group">
-                  <span className="input-group-text bg-white">$</span>
+                  <span className="input-group-text bg-white">₹</span>
                   <input
                     type="number"
                     step="0.01"
@@ -773,12 +743,12 @@ export default function SalesForm({
               </div>
 
               <div className="col-md-4">
-                <label className="form-label fw-medium">Outstanding Amount (USD)</label>
+                <label className="form-label fw-medium">Outstanding Amount (INR)</label>
                 <div className="input-group">
-                  <span className="input-group-text bg-warning bg-opacity-25">$</span>
+                  <span className="input-group-text bg-warning bg-opacity-25">₹</span>
                   <input
                     type="text"
-                    value={outstandingAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    value={outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     className="form-control bg-warning bg-opacity-10 fw-bold text-warning"
                     readOnly
                   />
@@ -807,7 +777,7 @@ export default function SalesForm({
                 <div>
                   <div className="fw-semibold text-success">Full Payment Received</div>
                   <div className="text-muted small">
-                    Amount: ${parseFloat(form.sale_amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} - No outstanding balance
+                    Amount: ₹{parseFloat(form.sale_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} - No outstanding balance
                   </div>
                 </div>
               </div>

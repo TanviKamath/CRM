@@ -10,6 +10,7 @@ export default function CreateSalePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const [user, setUser] = useState(null);
   const [diamonds, setDiamonds] = useState([]);
   const [clients, setClients] = useState([]);
   const [brokers, setBrokers] = useState([]);
@@ -31,23 +32,33 @@ export default function CreateSalePage() {
       setError(null);
 
       try {
-        const [diamondsRes, clientsRes, brokersRes] = await Promise.all([
-          fetch("/api/diamonds?availability=available"),
+        // First get user to know which items to fetch
+        const userRes = await fetch("/api/auth/me");
+        if (!userRes.ok) throw new Error("Authentication failed");
+        const userData = await userRes.json();
+        setUser(userData);
+
+        const itemsEndpoint = userData.client_type === "Loose" 
+          ? "/api/loose-diamonds/items?available=true" 
+          : "/api/diamonds?availability=available";
+
+        const [itemsRes, clientsRes, brokersRes] = await Promise.all([
+          fetch(itemsEndpoint),
           fetch("/api/clients"),
           fetch("/api/brokers"),
         ]);
 
-        if (!diamondsRes.ok || !clientsRes.ok || !brokersRes.ok) {
+        if (!itemsRes.ok || !clientsRes.ok || !brokersRes.ok) {
           throw new Error("Failed to load form data");
         }
 
-        const [diamondsData, clientsData, brokersData] = await Promise.all([
-          diamondsRes.json(),
+        const [itemsData, clientsData, brokersData] = await Promise.all([
+          itemsRes.json(),
           clientsRes.json(),
           brokersRes.json(),
         ]);
 
-        setDiamonds(Array.isArray(diamondsData) ? diamondsData : diamondsData.data || []);
+        setDiamonds(Array.isArray(itemsData) ? itemsData : itemsData.data || []);
         setClients(Array.isArray(clientsData) ? clientsData : clientsData.data || []);
         setBrokers(Array.isArray(brokersData) ? brokersData : brokersData.data || []);
       } catch (err) {
@@ -176,8 +187,10 @@ export default function CreateSalePage() {
                       style={{ borderRadius: 999 }}
                     >
                       <i className="bi bi-gem me-2" />
-                      Pre-selected Diamond: {preSelectedDiamond.certificate_number} ({preSelectedDiamond.shape}{" "}
-                      {preSelectedDiamond.weight}ct {preSelectedDiamond.color}/{preSelectedDiamond.clarity})
+                      Pre-selected {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}: {user?.client_type === "Loose" ? preSelectedDiamond.lot_number : preSelectedDiamond.certificate_number} 
+                      ({user?.client_type === "Loose" 
+                        ? `${preSelectedDiamond.color_category} ${preSelectedDiamond.size_category} / ${preSelectedDiamond.grade}` 
+                        : `${preSelectedDiamond.shape} ${preSelectedDiamond.weight}ct ${preSelectedDiamond.color}/${preSelectedDiamond.clarity}`})
                     </span>
                   </div>
                 )}
@@ -237,6 +250,7 @@ export default function CreateSalePage() {
 
               <div className="card-body p-4">
                 <SalesForm
+                  user={user}
                   diamonds={diamonds}
                   clients={clients}
                   brokers={brokers}

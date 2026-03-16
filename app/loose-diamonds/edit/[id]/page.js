@@ -30,7 +30,7 @@ export default function EditLooseDiamondLot() {
     total_carats: "",
     original_price_per_carat: "",
     total_purchase_value: 0,
-    purchase_date: new Date().toISOString().split("T")[0],
+    purchase_date: "", // Initialize as empty to avoid hydration mismatch
     remarks: "",
   });
 
@@ -272,6 +272,7 @@ export default function EditLooseDiamondLot() {
                         value={lotInfo.lot_number} 
                         onChange={(e) => setLotInfo({ ...lotInfo, lot_number: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }} 
+                        suppressHydrationWarning
                       />
                     </div>
                     <div className="col-md-4">
@@ -283,6 +284,7 @@ export default function EditLooseDiamondLot() {
                         value={lotInfo.supplier_name} 
                         onChange={(e) => setLotInfo({ ...lotInfo, supplier_name: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }} 
+                        suppressHydrationWarning
                       />
                     </div>
                     <div className="col-md-4">
@@ -307,6 +309,7 @@ export default function EditLooseDiamondLot() {
                           value={lotInfo.total_carats} 
                           onChange={(e) => setLotInfo({ ...lotInfo, total_carats: e.target.value })} 
                           style={{ padding: "12px" }}
+                          suppressHydrationWarning
                         />
                         <span className="input-group-text bg-light text-muted small">cts</span>
                       </div>
@@ -314,7 +317,7 @@ export default function EditLooseDiamondLot() {
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Original Price / Carat <span className="text-danger">*</span></label>
                       <div className="input-group" style={{ borderRadius: "10px", overflow: "hidden" }}>
-                        <span className="input-group-text bg-light text-muted small">$</span>
+                        <span className="input-group-text bg-light text-muted small">₹</span>
                         <input 
                           type="number" 
                           step="0.01" 
@@ -324,13 +327,14 @@ export default function EditLooseDiamondLot() {
                           value={lotInfo.original_price_per_carat} 
                           onChange={(e) => setLotInfo({ ...lotInfo, original_price_per_carat: e.target.value })} 
                           style={{ padding: "12px" }}
+                          suppressHydrationWarning
                         />
                       </div>
                     </div>
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Total Purchase Value</label>
                       <div className="input-group" style={{ borderRadius: "10px", overflow: "hidden" }}>
-                        <span className="input-group-text bg-light text-muted small">$</span>
+                        <span className="input-group-text bg-light text-muted small">₹</span>
                         <input 
                           type="text" 
                           className="form-control bg-light border-0 fw-bold" 
@@ -395,9 +399,9 @@ export default function EditLooseDiamondLot() {
                             <th className="border-0 py-3">Size</th>
                             <th className="border-0 py-3">Grade</th>
                             <th className="border-0 py-3" style={{ width: "130px" }}>Carats</th>
-                            <th className="border-0 py-3" style={{ width: "130px" }}>Base Price ($)</th>
+                            <th className="border-0 py-3" style={{ width: "130px" }}>Base Price (₹)</th>
                             <th className="border-0 py-3" style={{ width: "120px" }}>Disc/Prem%</th>
-                            <th className="border-0 py-3" style={{ width: "130px" }}>Final Price ($)</th>
+                            <th className="border-0 py-3" style={{ width: "130px" }}>Final Price (₹)</th>
                             <th className="border-0 py-3">Total Value</th>
                             <th className="pe-5 border-0 py-3 text-end">Action</th>
                           </tr>
@@ -430,10 +434,10 @@ export default function EditLooseDiamondLot() {
                                 <input type="number" step="0.1" className="form-control border-0 bg-light" value={item.discount_pct} onChange={(e) => updateItem(item.id, "discount_pct", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} />
                               </td>
                               <td className="py-3 fw-bold text-dark">
-                                ${parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ₹{parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td className="py-3">
-                                <div className="fw-bold text-primary">${(item.total_value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                <div className="fw-bold text-primary">₹{(item.total_value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                               </td>
                               <td className="pe-5 py-3 text-end">
                                 <button type="button" className="btn btn-light btn-sm rounded-circle shadow-sm" onClick={() => removeItem(item.id)} style={{ width: 32, height: 32 }}>
@@ -473,14 +477,14 @@ export default function EditLooseDiamondLot() {
                         <div className="col-md-4">
                           <div className="p-4 rounded-4 bg-light border-0">
                             <div className="text-muted small fw-bold text-uppercase mb-1">Total Sale Value</div>
-                            <div className="h3 fw-bold mb-0 text-primary">${splitTotalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <div className="h3 fw-bold mb-0 text-primary">₹{splitTotalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
                             <div className="small text-muted mt-1">Estimated revenue</div>
                           </div>
                         </div>
                         <div className="col-md-4">
                           <div className="p-4 rounded-4 bg-light border-0">
                             <div className="text-muted small fw-bold text-uppercase mb-1">Avg Sale Price</div>
-                            <div className="h3 fw-bold mb-0">${avgPrice.toFixed(0)}</div>
+                            <div className="h3 fw-bold mb-0">₹{avgPrice.toFixed(0)}</div>
                             <div className="small text-muted mt-1">Per carat</div>
                           </div>
                         </div>
@@ -505,7 +509,7 @@ export default function EditLooseDiamondLot() {
                             </div>
                             <div className="d-flex gap-2">
                                 <div className="input-group" style={{ width: "200px" }}>
-                                    <span className="input-group-text bg-white border-0">$</span>
+                                    <span className="input-group-text bg-white border-0">₹</span>
                                     <input 
                                         type="number" 
                                         className="form-control border-0" 
@@ -513,6 +517,7 @@ export default function EditLooseDiamondLot() {
                                         value={targetProfitInput}
                                         onChange={(e) => setTargetProfitInput(e.target.value)}
                                         style={{ height: "45px" }}
+                                        suppressHydrationWarning
                                     />
                                 </div>
                                 <button 
@@ -520,6 +525,7 @@ export default function EditLooseDiamondLot() {
                                     className="btn btn-primary px-4"
                                     onClick={() => applyTargetProfit(targetProfitInput)}
                                     style={{ borderRadius: "10px" }}
+                                    suppressHydrationWarning
                                 >
                                     Apply
                                 </button>
@@ -535,7 +541,7 @@ export default function EditLooseDiamondLot() {
                     <div className="card-body p-4 d-flex flex-column justify-content-center text-white">
                       <div className="text-white-50 small fw-bold text-uppercase mb-2">Estimated Gross Profit</div>
                       <div className="display-5 fw-bold mb-1">
-                        {profitLoss >= 0 ? "+" : ""}${Math.abs(profitLoss).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {profitLoss >= 0 ? "+" : ""}₹{Math.abs(profitLoss).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
                       <div className="text-white-50 small">
                         {profitLoss >= 0 
@@ -547,11 +553,11 @@ export default function EditLooseDiamondLot() {
                       
                       <div className="d-flex justify-content-between small text-white-50">
                         <span>Original Cost</span>
-                        <span className="text-white fw-bold">${lotInfo.total_purchase_value.toLocaleString()}</span>
+                        <span className="text-white fw-bold">₹{lotInfo.total_purchase_value.toLocaleString()}</span>
                       </div>
                       <div className="d-flex justify-content-between small text-white-50 mt-2">
                         <span>Bifurcated Value</span>
-                        <span className="text-white fw-bold">${splitTotalValue.toLocaleString()}</span>
+                        <span className="text-white fw-bold">₹{splitTotalValue.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

@@ -48,11 +48,6 @@ const formatINR = (value) => {
   return Number.isNaN(num) ? "-" : `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-const formatUSD = (value) => {
-  if (value === null || value === undefined || value === "") return "-";
-  const num = parseFloat(value);
-  return Number.isNaN(num) ? "-" : `$${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
 
 function StatPill({ icon, label, value, tone = "info" }) {
   return (
@@ -107,6 +102,7 @@ function ActionButton({ href, onClick, variant, icon, title, disabled = false, l
 export default function SalesIndex() {
   const searchParams = useSearchParams();
 
+  const [user, setUser] = useState(null);
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
@@ -128,6 +124,18 @@ export default function SalesIndex() {
   const activeStatus = searchParams.get("status") || "";
   const paymentFilter = searchParams.get("payment") || "";
 
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchSales = async () => {
     setLoading(true);
     try {
@@ -147,6 +155,10 @@ export default function SalesIndex() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     fetchSales();
@@ -219,18 +231,21 @@ export default function SalesIndex() {
 
   const filteredSales = useMemo(() => {
     const query = q.trim().toLowerCase();
+    const isLoose = user?.client_type === "Loose";
     if (!query) return sales;
 
     return sales.filter((s) => {
-      const diamondCert = s?.diamond?.certificate_number || s?.diamond_certificate || "";
+      const itemKey = isLoose 
+        ? (s?.loose_item?.lot_number || s?.loose_lot_number || "")
+        : (s?.diamond?.certificate_number || s?.diamond_certificate || "");
       const clientName = s?.client?.company_name || s?.client_company || "";
-      const hay = [String(s.id ?? ""), diamondCert, clientName, String(s.sale_amount_inr ?? ""), s.status]
+      const hay = [String(s.id ?? ""), itemKey, clientName, String(s.sale_amount_inr ?? ""), s.status]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(query);
     });
-  }, [sales, q]);
+  }, [sales, q, user]);
 
   const totals = useMemo(() => {
     let totalInr = 0;
@@ -329,6 +344,7 @@ export default function SalesIndex() {
                     className="form-control border-0"
                     placeholder="Search sales..."
                     style={{ boxShadow: "none" }}
+                    suppressHydrationWarning
                   />
                   {q && (
                     <button type="button" className="btn btn-outline-secondary border-0" onClick={() => setQ("")}>
@@ -345,6 +361,7 @@ export default function SalesIndex() {
                   value={activeStatus}
                   onChange={(e) => setFilter("status", e.target.value)}
                   style={{ borderRadius: 12 }}
+                  suppressHydrationWarning
                 >
                   <option value="">All Status</option>
                   <option value="pending">Pending</option>
@@ -360,6 +377,7 @@ export default function SalesIndex() {
                   value={paymentFilter}
                   onChange={(e) => setFilter("payment", e.target.value)}
                   style={{ borderRadius: 12 }}
+                  suppressHydrationWarning
                 >
                   <option value="">All Payments</option>
                   <option value="on_terms">On Terms</option>
@@ -398,7 +416,7 @@ export default function SalesIndex() {
                 <thead style={{ backgroundColor: "#ffffff" }}>
                   <tr>
                     <th className="px-4 py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>SALE</th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>DIAMOND</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>{user?.client_type === "Loose" ? "LOT ITEM" : "DIAMOND"}</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT (₹)</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED (₹)</th>
@@ -461,13 +479,23 @@ export default function SalesIndex() {
                           </td>
 
                           <td className="py-3">
-                            {sale.diamond_id ? (
-                              <Link className="text-decoration-none" href={`/diamonds/show/${sale.diamond_id}`}>
-                                <i className="bi bi-gem me-2 text-info" />
-                                {diamondCert}
+                            {sale.loose_diamond_item_id ? (
+                              <Link className="text-decoration-none" href={`/loose-diamonds/${sale.loose_diamond_id || (sale.loose_item?.loose_diamond_id)}`}>
+                                <i className="bi bi-box-seam me-2 text-info" />
+                                {sale?.loose_item?.lot_number || sale?.loose_lot_number || "Lot Item"}
+                                <div className="small text-muted ms-4">
+                                  {sale?.loose_item?.color_category} {sale?.loose_item?.size_category} / {sale?.loose_item?.grade}
+                                </div>
                               </Link>
                             ) : (
-                              <span className="text-muted">{diamondCert}</span>
+                              sale.diamond_id ? (
+                                <Link className="text-decoration-none" href={`/diamonds/show/${sale.diamond_id}`}>
+                                  <i className="bi bi-gem me-2 text-info" />
+                                  {diamondCert}
+                                </Link>
+                              ) : (
+                                <span className="text-muted">{diamondCert}</span>
+                              )
                             )}
                           </td>
 
@@ -484,9 +512,6 @@ export default function SalesIndex() {
 
                           <td className="py-3 text-end">
                             <div className="fw-semibold">{formatINR(saleAmountInr)}</div>
-                            {sale.sale_amount && (
-                              <div className="text-muted small">{formatUSD(sale.sale_amount)}</div>
-                            )}
                           </td>
 
                           <td className="py-3 text-end">
@@ -528,7 +553,7 @@ export default function SalesIndex() {
                                 loading={generatingInvoice === sale.id}
                                 disabled={generatingInvoice === sale.id}
                               />
-                              {outstandingInr > 0 && sale.status !== "cancelled" && (
+                              {(outstandingInr > 0 && sale.status !== "cancelled") && (
                                 <ActionButton
                                   onClick={() => handleRecordPayment(sale.id)}
                                   variant="success"

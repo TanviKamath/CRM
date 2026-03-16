@@ -127,7 +127,6 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-
           {/* Subscription */}
           <label className="fw-semibold" style={{ color: "#222" }}>
             Subscription Plan

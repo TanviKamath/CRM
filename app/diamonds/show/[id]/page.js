@@ -25,12 +25,12 @@ function StatusPill({ status }) {
   );
 }
 
-const formatCurrency = (value, symbol = "$") => {
+const formatCurrency = (value, symbol = "₹") => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
   return Number.isNaN(num)
     ? "-"
-    : `${symbol}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    : `${symbol}${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatNumber = (value, decimals = 2) => {
@@ -215,19 +215,18 @@ export default function ShowDiamond() {
           <div className="col-lg-6">
             <SectionCard title="Pricing & Value" icon="bi-cash-coin">
               <div className="p-3 mb-3 bg-light rounded-3 text-center">
-                <div className="text-muted small text-uppercase">Total Amount</div>
-                <div className="display-6 fw-bold text-success">{formatCurrency(diamond.amount_usd)}</div>
+                <div className="text-muted small text-uppercase">Total Amount (₹)</div>
+                <div className="display-6 fw-bold text-success">{formatCurrency(diamond.amount_inr || diamond.amount_usd)}</div>
                 <div className="small text-muted">{formatCurrency(diamond.price_per_carat_usd)} / ct</div>
               </div>
               <InfoRow label="Rap Rate" value={formatCurrency(diamond.rap_rate)} />
               <InfoRow label="Rap Discount" value={formatPercent(diamond.rap_discount)} />
               <InfoRow label="Conversion Rate" value={displayValue(diamond.conversion_rate)} />
-              <InfoRow label="Amount (INR)" value={formatCurrency(diamond.amount_inr, "₹")} />
               <div className="mt-4 pt-3 border-top">
                 <div className="fw-bold mb-2">Purchase Details</div>
                 <InfoRow label="Source" value={displayValue(diamond.purchase_from)} />
                 <InfoRow label="Purchase Discount" value={formatPercent(diamond.pur_rap_discount)} />
-                <InfoRow label="Purchase Price" value={formatCurrency(diamond.purchase_price)} />
+                <InfoRow label="Purchase Price" value={formatCurrency(diamond.purchase_price_inr || diamond.purchase_price)} />
               </div>
             </SectionCard>
           </div>

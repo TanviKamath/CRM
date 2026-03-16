@@ -87,6 +87,13 @@ export async function getUser(id) {
   delete user.password;
   delete user.remember_token;
 
+  // Safeguard: Loose clients have no subscription
+  if (user.client_type === "Loose" && user.subscription !== null) {
+    user.subscription = null;
+    // Auto-fix the database record as well
+    await updateUser(id, { subscription: null });
+  }
+
   return user;
 }
 

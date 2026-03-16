@@ -101,7 +101,12 @@ export default function Navbar() {
             items: [
               { href: "/diamonds", icon: "bi-collection", label: "All Diamonds", color: "#0071e3" },
               { href: "/diamonds/stock", icon: "bi-box-seam", label: "Stock Maintenance", color: "#5ac8fa" },
-              { href: "/diamonds/create", icon: "bi-plus-circle", label: "Add Diamond", color: "#34c759" },
+              { 
+                href: user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create", 
+                icon: "bi-plus-circle", 
+                label: "Add Diamond", 
+                color: "#34c759" 
+              },
             ],
           },
           {
@@ -171,15 +176,6 @@ export default function Navbar() {
         ],
       });
 
-      if (user?.client_type === "Loose") {
-        items.push({
-          type: "link",
-          href: "/loose-diamonds",
-          icon: "bi-layers-half",
-          label: "Loose Diamonds",
-          active: isActiveGroup("/loose-diamonds"),
-        });
-      }
 
       if (pro) {
         items.push({

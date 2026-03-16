@@ -17,6 +17,82 @@ const GRADE_MAP = {
   Green: ["Standard"],
 };
 
+function SmartHistory({ specs }) {
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (!specs.color_category || !specs.size_category || !specs.grade) return;
+    
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/loose-diamonds/history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(specs),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMatches(data);
+        }
+      } catch (err) {
+        console.error("History fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [specs.color_category, specs.size_category, specs.grade]);
+
+  if (matches.length === 0 && !loading) return null;
+
+  return (
+    <div className="position-relative d-inline-block ms-2">
+      <div 
+        className={`history-trigger ${loading ? 'loading' : ''}`}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        <i className="bi bi-clock-history"></i>
+        {matches.length > 0 && <span className="pulse-dot"></span>}
+      </div>
+
+      {show && matches.length > 0 && (
+        <div className="history-popover shadow-lg border rounded-3 p-3 bg-white">
+          <div className="small fw-bold border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
+             <span>Recent Matches</span>
+             <span className="badge bg-light text-dark fw-normal">{matches.length} found</span>
+          </div>
+          <div className="history-list">
+            {matches.map((m, idx) => (
+              <div key={idx} className="history-item mb-2 pb-2 border-bottom last-child-border-0">
+                <div className="d-flex justify-content-between align-items-center mb-1">
+                  <span className="fw-bold text-dark" style={{ fontSize: "0.75rem" }}>{m.lot_number}</span>
+                  <span className="text-muted" style={{ fontSize: "0.65rem" }}>
+                    {m.purchase_date ? new Date(m.purchase_date).toLocaleDateString() : 'No date'}
+                  </span>
+                </div>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span className="text-secondary" style={{ fontSize: "0.7rem" }}>{m.carats} ct</span>
+                  <span className="fw-bold text-primary" style={{ fontSize: "0.8rem" }}>₹{parseFloat(m.final_price_per_carat).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 pt-1">
+             <div className="text-muted" style={{ fontSize: "0.6rem", fontStyle: "italic" }}>
+               Avg historical price: <span className="fw-bold">${(matches.reduce((acc, m) => acc + parseFloat(m.final_price_per_carat), 0) / matches.length).toFixed(0)}</span>
+             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CreateLooseDiamondLot() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -28,9 +104,17 @@ export default function CreateLooseDiamondLot() {
     total_carats: "",
     original_price_per_carat: "",
     total_purchase_value: 0,
-    purchase_date: new Date().toISOString().split("T")[0],
+    purchase_date: "", // Initialize empty to avoid hydration mismatch
     remarks: "",
   });
+
+  // Set initial date after mount
+  useEffect(() => {
+    setLotInfo(prev => ({
+      ...prev,
+      purchase_date: new Date().toISOString().split("T")[0]
+    }));
+  }, []);
 
   // Bifurcation Items
   const [items, setItems] = useState([]);
@@ -175,9 +259,6 @@ export default function CreateLooseDiamondLot() {
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div className="d-flex align-items-center gap-3">
-                <Link href="/loose-diamonds" className="btn btn-light rounded-circle d-flex align-items-center justify-content-center shadow-sm hover-primary me-2" style={{ width: 40, height: 40 }}>
-                   <i className="bi bi-arrow-left text-primary"></i>
-                </Link>
                 <div
                   className="rounded-circle d-flex align-items-center justify-content-center"
                   style={{
@@ -196,7 +277,18 @@ export default function CreateLooseDiamondLot() {
                   <div className="text-muted small">Buy Loose Diamond Parcel and bifurcate diamonds</div>
                 </div>
               </div>
+
+              <Link
+                href="/loose-diamonds"
+                className="btn btn-outline-secondary px-4 d-flex align-items-center"
+                style={{ borderRadius: 10 }}
+              >
+                <i className="bi bi-arrow-left me-2" />
+                Back to List
+              </Link>
             </div>
+
+            {/* Breadcrumb */}
             <nav aria-label="breadcrumb" className="mb-4">
               <ol className="breadcrumb mb-0">
                 <li className="breadcrumb-item">
@@ -211,14 +303,14 @@ export default function CreateLooseDiamondLot() {
                   </Link>
                 </li>
                 <li className="breadcrumb-item active text-primary" aria-current="page">
-                  New Loose Diamond Lot
+                  New Entry
                 </li>
               </ol>
             </nav>
 
             <form onSubmit={handleSubmit}>
               {/* Lot Info Card */}
-              <div className="card border-0 shadow-lg mb-4" style={{ borderRadius: 20, overflow: "hidden" }}>
+              <div className="card border-0 shadow-lg overflow-hidden mb-4" style={{ borderRadius: 20 }}>
                 <div className="card-header bg-white border-0 py-4 px-4 px-md-5">
                   <div className="d-flex align-items-center">
                     <div
@@ -246,6 +338,7 @@ export default function CreateLooseDiamondLot() {
                         value={lotInfo.lot_number} 
                         onChange={(e) => setLotInfo({ ...lotInfo, lot_number: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }} 
+                        suppressHydrationWarning
                       />
                     </div>
                     <div className="col-md-4">
@@ -257,6 +350,7 @@ export default function CreateLooseDiamondLot() {
                         value={lotInfo.supplier_name} 
                         onChange={(e) => setLotInfo({ ...lotInfo, supplier_name: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }} 
+                        suppressHydrationWarning
                       />
                     </div>
                     <div className="col-md-4">
@@ -281,6 +375,7 @@ export default function CreateLooseDiamondLot() {
                           value={lotInfo.total_carats} 
                           onChange={(e) => setLotInfo({ ...lotInfo, total_carats: e.target.value })} 
                           style={{ padding: "12px" }}
+                          suppressHydrationWarning
                         />
                         <span className="input-group-text bg-light text-muted small">cts</span>
                       </div>
@@ -288,7 +383,7 @@ export default function CreateLooseDiamondLot() {
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Original Price / Carat <span className="text-danger">*</span></label>
                       <div className="input-group" style={{ borderRadius: "10px", overflow: "hidden" }}>
-                        <span className="input-group-text bg-light text-muted small">$</span>
+                        <span className="input-group-text bg-light text-muted small">₹</span>
                         <input 
                           type="number" 
                           step="0.01" 
@@ -298,13 +393,14 @@ export default function CreateLooseDiamondLot() {
                           value={lotInfo.original_price_per_carat} 
                           onChange={(e) => setLotInfo({ ...lotInfo, original_price_per_carat: e.target.value })} 
                           style={{ padding: "12px" }}
+                          suppressHydrationWarning
                         />
                       </div>
                     </div>
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Total Purchase Value</label>
                       <div className="input-group" style={{ borderRadius: "10px", overflow: "hidden" }}>
-                        <span className="input-group-text bg-light text-muted small">$</span>
+                        <span className="input-group-text bg-light text-muted small">₹</span>
                         <input 
                           type="text" 
                           className="form-control bg-light border-0 fw-bold" 
@@ -330,7 +426,7 @@ export default function CreateLooseDiamondLot() {
               </div>
 
               {/* Bifurcation Section */}
-              <div className="card border-0 shadow-lg mb-4" style={{ borderRadius: 20, overflow: "hidden" }}>
+              <div className="card border-0 shadow-lg overflow-hidden mb-4" style={{ borderRadius: 20 }}>
                 <div className="card-header bg-white border-0 py-4 px-4 px-md-5 d-flex justify-content-between align-items-center">
                   <div className="d-flex align-items-center">
                     <div
@@ -369,9 +465,9 @@ export default function CreateLooseDiamondLot() {
                             <th className="border-0 py-3">Size</th>
                             <th className="border-0 py-3">Grade</th>
                             <th className="border-0 py-3" style={{ width: "130px" }}>Carats</th>
-                            <th className="border-0 py-3" style={{ width: "130px" }}>Base Price ($)</th>
+                            <th className="border-0 py-3" style={{ width: "130px" }}>Base Price (₹)</th>
                             <th className="border-0 py-3" style={{ width: "120px" }}>Disc/Prem%</th>
-                            <th className="border-0 py-3" style={{ width: "130px" }}>Final Price ($)</th>
+                            <th className="border-0 py-3" style={{ width: "130px" }}>Final Price (₹)</th>
                             <th className="border-0 py-3">Total Value</th>
                             <th className="pe-5 border-0 py-3 text-end">Action</th>
                           </tr>
@@ -404,10 +500,13 @@ export default function CreateLooseDiamondLot() {
                                 <input type="number" step="0.1" className="form-control border-0 bg-light" value={item.discount_pct} onChange={(e) => updateItem(item.id, "discount_pct", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} />
                               </td>
                               <td className="py-3 fw-bold text-dark">
-                                ${parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                ₹{parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                               <td className="py-3">
-                                <div className="fw-bold text-primary">${item.total_value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                <div className="d-flex align-items-center">
+                                  <div className="fw-bold text-primary">₹{item.total_value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                                  <SmartHistory specs={{ color_category: item.color_category, size_category: item.size_category, grade: item.grade }} />
+                                </div>
                               </td>
                               <td className="pe-5 py-3 text-end">
                                 <button type="button" className="btn btn-light btn-sm rounded-circle shadow-sm" onClick={() => removeItem(item.id)} style={{ width: 32, height: 32 }}>
@@ -424,76 +523,82 @@ export default function CreateLooseDiamondLot() {
               </div>
 
               {/* Summary Dashboard */}
-              <div className="row g-4 mb-4">
+              <div className="row g-4 mb-4 align-items-stretch">
                 <div className="col-lg-8">
-                  <div className="card border-0 shadow-lg h-100" style={{ borderRadius: 20, background: "linear-gradient(to bottom right, #ffffff, #fdfdfd)" }}>
-                    <div className="card-body p-4 p-md-5">
-                      <h5 className="fw-bold mb-4 d-flex align-items-center">
-                        <i className="bi bi-calculator text-primary me-2"></i>
-                        Profit Balancing Dashboard
-                      </h5>
-                      <div className="row g-4">
+                  <div className="card border-0 shadow-sm h-100 overflow-hidden" style={{ borderRadius: 24, background: "#fff", border: "1px solid #f0f0f0" }}>
+                    <div className="card-body p-4 p-md-5 d-flex flex-column h-100">
+                      <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h5 className="fw-bold mb-0 d-flex align-items-center">
+                          <div className="bg-primary shadow-sm p-2 rounded-3 me-3 d-flex align-items-center justify-content-center" style={{ width: 38, height: 38 }}>
+                            <i className="bi bi-calculator text-white"></i>
+                          </div>
+                          Profit Balancing Dashboard
+                        </h5>
+                      </div>
+                      
+                      <div className="row g-3 mb-auto">
                         <div className="col-md-4">
-                          <div className="p-4 rounded-4 bg-light border-0">
-                            <div className="text-muted small fw-bold text-uppercase mb-1">Split Carats</div>
-                            <div className={`h3 fw-bold mb-0 ${Math.abs(caratBalance) > 0.001 ? 'text-danger' : 'text-success'}`}>
+                          <div className="p-4 rounded-4 bg-light border-0 h-100 transition-hover">
+                            <div className="text-muted small fw-bold text-uppercase mb-2" style={{ fontSize: "0.6rem", letterSpacing: "1px" }}>Split Carats</div>
+                            <div className={`h3 fw-bold mb-1 ${Math.abs(caratBalance) > 0.001 ? 'text-danger' : 'text-success'}`}>
                                 {splitCarats.toFixed(3)}
                             </div>
-                            <div className="small text-muted mt-1">
-                              {caratBalance > 0 ? `Unassigned: ${caratBalance.toFixed(3)} ct` : Math.abs(caratBalance) < 0.001 ? "Matching perfectly" : `Over by: ${Math.abs(caratBalance).toFixed(3)} ct`}
+                            <div className="small text-muted" style={{ fontSize: "0.7rem" }}>
+                                {caratBalance > 0 ? `Unassigned: ${caratBalance.toFixed(3)} ct` : Math.abs(caratBalance) < 0.001 ? "Matching perfectly" : `Over by: ${Math.abs(caratBalance).toFixed(3)} ct`}
                             </div>
                           </div>
                         </div>
                         <div className="col-md-4">
-                          <div className="p-4 rounded-4 bg-light border-0">
-                            <div className="text-muted small fw-bold text-uppercase mb-1">Total Sale Value</div>
-                            <div className="h3 fw-bold mb-0 text-primary">${splitTotalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                            <div className="small text-muted mt-1">Estimated revenue</div>
+                          <div className="p-4 rounded-4 bg-light border-0 h-100 transition-hover">
+                            <div className="text-muted small fw-bold text-uppercase mb-2" style={{ fontSize: "0.6rem", letterSpacing: "1px" }}>Total Sale Value</div>
+                            <div className="h3 fw-bold mb-1 text-dark">₹{splitTotalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                            <div className="small text-muted" style={{ fontSize: "0.7rem" }}>Estimated revenue</div>
                           </div>
                         </div>
                         <div className="col-md-4">
-                          <div className="p-4 rounded-4 bg-light border-0">
-                            <div className="text-muted small fw-bold text-uppercase mb-1">Avg Sale Price</div>
-                            <div className="h3 fw-bold mb-0">${avgPrice.toFixed(0)}</div>
-                            <div className="small text-muted mt-1">Per carat</div>
+                          <div className="p-4 rounded-4 bg-light border-0 h-100 transition-hover">
+                            <div className="text-muted small fw-bold text-uppercase mb-2" style={{ fontSize: "0.6rem", letterSpacing: "1px" }}>Avg Sale Price</div>
+                            <div className="h3 fw-bold mb-1 text-dark">₹{avgPrice.toFixed(0)}</div>
+                            <div className="small text-muted" style={{ fontSize: "0.7rem" }}>Per carat</div>
                           </div>
                         </div>
                       </div>
                       
                       {Math.abs(caratBalance) > 0.001 && (
-                        <div className="alert alert-warning mt-4 mb-0 border-0 rounded-4 d-flex align-items-center">
-                          <i className="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
-                          <div className="small">
-                            <strong>Inventory Warning:</strong> Split carats must equal original lot carats ({lotInfo.total_carats || "0.000"}) before saving.
+                        <div className="alert alert-warning mt-4 border-0 rounded-4 d-flex align-items-center py-3 px-4" style={{ backgroundColor: "rgba(255,159,10,0.08)", color: "#ff9f0a" }}>
+                          <i className="bi bi-exclamation-circle-fill fs-5 me-3"></i>
+                          <div className="small fw-medium">
+                            <strong>Note:</strong> Split carats must equal lot carats ({lotInfo.total_carats || "0.000"}).
                           </div>
                         </div>
                       )}
 
                       {/* Smart Balancing Tool Section */}
-                      <hr className="my-5 opacity-10" />
-                      <div className="bg-primary-subtle p-4 rounded-4 border-primary border-start border-4">
-                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div className="mt-5 p-4 rounded-4" style={{ backgroundColor: "#f8f9fa", border: "1px solid #eee" }}>
+                        <div className="d-flex align-items-center justify-content-between flex-wrap gap-4">
                             <div>
-                                <h6 className="fw-bold text-primary mb-1"><i className="bi bi-magic me-2"></i>Smart Profit Balancer</h6>
-                                <p className="text-muted small mb-0">Set your target profit and we'll adjust the discounts for you.</p>
+                                <h6 className="fw-bold mb-1" style={{ color: "#1d1d1f" }}><i className="bi bi-magic text-primary me-2"></i>Smart Profit Balancer</h6>
+                                <p className="text-muted small mb-0">Set target profit; we'll auto-adjust discounts.</p>
                             </div>
-                            <div className="d-flex gap-2">
-                                <div className="input-group" style={{ width: "200px" }}>
-                                    <span className="input-group-text bg-white border-0">$</span>
+                            <div className="d-flex align-items-center gap-3">
+                                <div className="input-group shadow-sm" style={{ width: "160px", borderRadius: "10px", overflow: "hidden" }}>
+                                    <span className="input-group-text bg-white border-end-0 text-muted" style={{ fontSize: "14px" }}>₹</span>
                                     <input 
                                         type="number" 
-                                        className="form-control border-0" 
-                                        placeholder="Target Profit" 
+                                        className="form-control border-start-0 ps-0" 
+                                        placeholder="Target" 
                                         value={targetProfitInput}
                                         onChange={(e) => setTargetProfitInput(e.target.value)}
-                                        style={{ height: "45px" }}
+                                        style={{ height: "42px", fontSize: "14px" }}
+                                        suppressHydrationWarning
                                     />
                                 </div>
                                 <button 
                                     type="button" 
-                                    className="btn btn-primary px-4"
+                                    className="btn btn-primary px-4 shadow-sm"
                                     onClick={() => applyTargetProfit(targetProfitInput)}
-                                    style={{ borderRadius: "10px" }}
+                                    style={{ borderRadius: "10px", height: "42px", fontSize: "14px", fontWeight: "600" }}
+                                    suppressHydrationWarning
                                 >
                                     Apply
                                 </button>
@@ -505,53 +610,72 @@ export default function CreateLooseDiamondLot() {
                 </div>
                 
                 <div className="col-lg-4">
-                  <div className={`card border-0 shadow-lg h-100 p-2 ${profitLoss >= 0 ? "bg-primary" : "bg-danger"}`} style={{ borderRadius: 20 }}>
-                    <div className="card-body p-4 d-flex flex-column justify-content-center text-white">
-                      <div className="text-white-50 small fw-bold text-uppercase mb-2">Estimated Gross Profit</div>
-                      <div className="display-5 fw-bold mb-1">
-                        {profitLoss >= 0 ? "+" : ""}${Math.abs(profitLoss).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  <div 
+                    className="card border-0 shadow-sm h-100 overflow-hidden" 
+                    style={{ 
+                      borderRadius: 24, 
+                      background: profitLoss >= 0 
+                        ? "linear-gradient(135deg, #1d1d1f 0%, #3a3a3c 100%)" 
+                        : "linear-gradient(135deg, #ff3b30 0%, #ff2d55 100%)",
+                      minHeight: "340px"
+                    }}
+                  >
+                    <div className="card-body p-5 d-flex flex-column justify-content-center align-items-center text-center">
+                      <div className="text-white-50 small fw-bold text-uppercase mb-4" style={{ fontSize: "0.65rem", letterSpacing: "1.5px" }}>Estimated Gross Profit</div>
+                      <div className="display-4 fw-bold mb-3 text-white">
+                        {profitLoss >= 0 ? "+" : "-"}₹{Math.abs(profitLoss).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
-                      <div className="text-white-50 small">
-                        {profitLoss >= 0 
-                          ? "Current bifurcation represents a healthy margin over purchase cost." 
-                          : "Warning: Current sale prices are below total purchase value."}
+                      <div className="px-4 py-2 mb-5 d-inline-block" style={{ backgroundColor: profitLoss >= 0 ? "rgba(52,199,89,0.15)" : "rgba(255,255,255,0.1)", color: profitLoss >= 0 ? "#34c759" : "#fff", fontSize: "0.75rem", fontWeight: "700", borderRadius: "100px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        {profitLoss >= 0 ? "Healthy Profitability" : "Loss Detected"}
                       </div>
                       
-                      <hr className="my-4 opacity-25" />
-                      
-                      <div className="d-flex justify-content-between small text-white-50">
-                        <span>Original Cost</span>
-                        <span className="text-white fw-bold">${lotInfo.total_purchase_value.toLocaleString()}</span>
-                      </div>
-                      <div className="d-flex justify-content-between small text-white-50 mt-2">
-                        <span>Bifurcated Value</span>
-                        <span className="text-white fw-bold">${splitTotalValue.toLocaleString()}</span>
+                      <div className="w-100 mt-4 pt-4 border-top border-white-10">
+                        <div className="row g-0">
+                          <div className="col-6 border-end border-white-10">
+                            <div className="text-white-50 mb-1" style={{ fontSize: "0.6rem", textTransform: "uppercase" }}>Investment</div>
+                            <div className="text-white fw-bold h6 mb-0">₹{lotInfo.total_purchase_value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          </div>
+                          <div className="col-6">
+                            <div className="text-white-50 mb-1" style={{ fontSize: "0.6rem", textTransform: "uppercase" }}>Est. Revenue</div>
+                            <div className="text-white fw-bold h6 mb-0">₹{splitTotalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="d-flex justify-content-end align-items-center gap-3 mb-5">
-                <Link href="/loose-diamonds" className="btn btn-light px-5 py-3 fw-bold shadow-sm" style={{ borderRadius: 15, border: "0.5px solid #eee" }}>
-                  Cancel
-                </Link>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary px-5 py-3 fw-bold shadow-lg" 
-                  disabled={loading || items.length === 0} 
-                  style={{ borderRadius: 15, background: "linear-gradient(135deg, #0071e3 0%, #0077ed 100%)" }}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Saving Lot...
-                    </>
-                  ) : (
-                    "Finalize & Save Lot"
-                  )}
-                </button>
+              {/* Actions Footer */}
+              <div className="card border-0 shadow-sm mb-5" style={{ borderRadius: 20, background: "#fff" }}>
+                <div className="card-body py-3 px-4 px-md-5 d-flex justify-content-between align-items-center">
+                  <Link href="/loose-diamonds" className="btn btn-link text-decoration-none text-muted fw-bold p-0">
+                    <i className="bi bi-x-lg me-2"></i>Discard & Return
+                  </Link>
+                  <div className="d-flex align-items-center gap-3">
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary px-5 py-2 fw-bold shadow-lg" 
+                      disabled={loading || items.length === 0} 
+                      style={{ 
+                        borderRadius: 12, 
+                        background: "linear-gradient(135deg, #0071e3 0%, #0077ed 100%)", 
+                        border: "none",
+                        minWidth: "220px",
+                        height: "48px"
+                      }}
+                    >
+                      {loading ? (
+                        <div className="d-flex align-items-center justify-content-center">
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Saving Parcel...
+                        </div>
+                      ) : (
+                        "Finalize & Save Lot"
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </form>
 
@@ -561,14 +685,96 @@ export default function CreateLooseDiamondLot() {
 
       <style jsx global>{`
         .breadcrumb-item + .breadcrumb-item::before {
-          color: rgba(0, 0, 0, 0.3);
+          color: rgba(0, 0, 0, 0.2);
+        }
+        .form-control, .form-select {
+            border: 1px solid #e1e1e1;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
         }
         .form-control:focus, .form-select:focus {
           border-color: #0071e3;
-          box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+          box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.08);
+          background-color: #fff;
         }
-        .btn-primary {
-          border: none;
+        .table thead th {
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-size: 0.62rem;
+            color: #8e8e93;
+            padding: 15px 10px;
+        }
+        .border-white-10 {
+            border-color: rgba(255,255,255,0.08) !important;
+        }
+        .transition-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .transition-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+        .history-trigger {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: #f0f3ff;
+            color: #0071e3;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .history-trigger:hover {
+            background: #0071e3;
+            color: #fff;
+        }
+        .history-trigger.loading {
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .pulse-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 6px;
+            height: 6px;
+            background: #ff3b30;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+        }
+        .history-popover {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 220px;
+            z-index: 1000;
+            margin-bottom: 10px;
+        }
+        .history-popover::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #fff transparent transparent transparent;
+        }
+        .last-child-border-0:last-child {
+            border-bottom: none !important;
         }
       `}</style>
     </div>

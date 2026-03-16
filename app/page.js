@@ -107,7 +107,7 @@ const STYLES = `
 /* ═══════════════════════════════════════════
    UTILITY FUNCTIONS
    ═══════════════════════════════════════════ */
-function fmt(v, cur = "USD") {
+function fmt(v, cur = "INR") {
   const n = parseFloat(v) || 0;
   if (cur === "INR") {
     if (n >= 1e7) return "₹" + (n / 1e7).toFixed(2) + " Cr";
@@ -115,9 +115,7 @@ function fmt(v, cur = "USD") {
     if (n >= 1e3) return "₹" + (n / 1e3).toFixed(1) + "K";
     return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
   }
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
-  if (n >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
-  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
 function fmtNum(v) {
@@ -344,9 +342,9 @@ export default function HomePage() {
     const sold = diamonds.filter((d) => d.availability === "sold");
     const sts = diamonds.filter((d) => d.availability === "subject_to_sale");
 
-    const stockVal = avail.reduce((s, d) => s + (parseFloat(d.amount_usd) || 0), 0);
-    const stockCost = avail.reduce((s, d) => s + (parseFloat(d.purchase_price) || 0), 0);
-    const stockValINR = avail.reduce((s, d) => s + (parseFloat(d.amount_inr) || (parseFloat(d.amount_usd) || 0) * 85), 0);
+    const stockVal = avail.reduce((s, d) => s + (parseFloat(d.amount_inr || d.amount_usd) || 0), 0);
+    const stockCost = avail.reduce((s, d) => s + (parseFloat(d.purchase_price_inr || d.purchase_price) || 0), 0);
+    const stockValINR = stockVal;
     const potential = stockVal - stockCost;
     const totalCt = avail.reduce((s, d) => s + (parseFloat(d.weight) || 0), 0);
     const avgPPC = totalCt > 0 ? stockVal / totalCt : 0;
@@ -357,10 +355,10 @@ export default function HomePage() {
     let costOfSold = 0;
     sales.forEach((sl) => {
       const d = diamonds.find((x) => x.id === sl.diamond_id);
-      if (d) costOfSold += parseFloat(d.purchase_price) || 0;
+      if (d) costOfSold += parseFloat(d.purchase_price_inr || d.purchase_price) || 0;
     });
-    const grossProfit = revUSD - costOfSold;
-    const margin = revUSD > 0 ? (grossProfit / revUSD) * 100 : 0;
+    const grossProfit = revINR - costOfSold;
+    const margin = revINR > 0 ? (grossProfit / revINR) * 100 : 0;
 
     const brokTotal = sales.reduce((s, x) => s + (parseFloat(x.brokerage_amount) || 0), 0);
 
@@ -536,8 +534,11 @@ export default function HomePage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <Link href="/diamonds/create" style={{ background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}>
-              <i className="bi bi-plus-lg" style={{ fontSize: ".75rem" }} /> New Diamond
+            <Link 
+              href={user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} 
+              style={{ background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}
+            >
+              <i className="bi bi-plus-lg" style={{ fontSize: ".75rem" }} /> {user?.client_type === "Loose" ? "Add Lot" : "New Diamond"}
             </Link>
             {pro && (
               <Link href="/sales/create" style={{ background: C.blue, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}>
@@ -555,10 +556,10 @@ export default function HomePage() {
           {pro ? (
             <>
               <div className="col-xl-3 col-md-6 fi fi2">
-                <KPI label="Total Revenue" value={fmt(m.revUSD)} sub={`${m.totalSales} transactions`} trend={m.revGrowth} icon="bi-graph-up-arrow" accent="green" cls="gr" loading={loading} />
+                <KPI label="Total Revenue (INR)" value={fmt(m.revINR)} sub={`${m.totalSales} transactions`} trend={m.revGrowth} icon="bi-graph-up-arrow" accent="green" cls="gr" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi3">
-                <KPI label="Receivables" value={fmt(m.receivables, "INR")} sub={`Collection rate ${m.collectRate.toFixed(0)}%`} icon="bi-wallet2" accent="orange" cls="or" loading={loading} />
+                <KPI label="Receivables (INR)" value={fmt(m.receivables, "INR")} sub={`Collection rate ${m.collectRate.toFixed(0)}%`} icon="bi-wallet2" accent="orange" cls="or" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi4">
                 <KPI label="Gross Margin" value={`${m.margin.toFixed(1)}%`} sub={`Profit ${fmt(m.grossProfit)}`} trend={m.margin > 0 ? m.margin : -m.margin} icon="bi-pie-chart" accent="purple" cls="pu" loading={loading} />
@@ -573,7 +574,7 @@ export default function HomePage() {
                 <KPI label="On Memo" value={m.memoCnt} sub="Currently out" icon="bi-send" accent="orange" cls="or" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi4">
-                <KPI label="Avg $/Carat" value={fmt(m.avgPPC)} sub={`Across ${m.availCnt} stones`} icon="bi-currency-dollar" accent="purple" cls="pu" loading={loading} />
+                <KPI label="Avg ₹/Carat" value={fmt(m.avgPPC)} sub={`Across ${m.availCnt} stones`} icon="bi-currency-rupee" accent="purple" cls="pu" loading={loading} />
               </div>
             </>
           )}
@@ -671,7 +672,7 @@ export default function HomePage() {
                             </div>
                             <div className="col-4">
                               <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text }}>{fmt(m.avgPPC)}</div>
-                              <div style={{ fontSize: ".65rem", color: C.sub }}>Avg $/ct</div>
+                              <div style={{ fontSize: ".65rem", color: C.sub }}>Avg ₹/ct</div>
                             </div>
                             <div className="col-4">
                               <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text }}>{m.avgAge}d</div>
@@ -769,7 +770,12 @@ export default function HomePage() {
                   <div className="sec-body">
                     <div className="row g-2">
                       {[
-                        { label: "Diamond", icon: "bi-gem", color: C.blue, href: "/diamonds/create" },
+                        { 
+                          label: "Diamond", 
+                          icon: "bi-gem", 
+                          color: C.blue, 
+                          href: user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create" 
+                        },
                         { label: "Client", icon: "bi-person-plus", color: C.green, href: "/clients/create" },
                         { label: "Broker", icon: "bi-person-badge", color: C.orange, href: "/brokers/create" },
                         ...(pro ? [{ label: "Sale", icon: "bi-receipt", color: C.purple, href: "/sales/create" }] : []),

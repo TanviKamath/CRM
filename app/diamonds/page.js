@@ -118,16 +118,16 @@ const STYLES = `
 /* Frozen left columns */
 .fz{position:sticky;z-index:3;background:#fff}
 .di-tbl thead .fz{z-index:5;background:#fafafa}
-.di-tbl tbody tr:hover .fz{background:#f5f8ff}
+.di-tbl tbody tr:hover .fz{background:#f5f8ff;z-index:8}
 
 /* Shadow on last frozen column */
 .fz-last::after{content:'';position:absolute;top:0;right:-8px;bottom:0;width:8px;
   background:linear-gradient(90deg,rgba(0,0,0,.06),transparent);pointer-events:none}
 
 /* Frozen right action column */
-.fz-r{position:sticky;right:0;z-index:3;background:#fff}
-.di-tbl thead .fz-r{z-index:5;background:#fafafa}
-.di-tbl tbody tr:hover .fz-r{background:#f5f8ff}
+.fz-r{position:sticky;right:0;z-index:4;background:#fff;box-shadow:-4px 0 12px rgba(0,0,0,.04)}
+.di-tbl thead .fz-r{z-index:6;background:#fafafa}
+.di-tbl tbody tr:hover .fz-r{background:#f5f8ff;z-index:8}
 .fz-r::before{content:'';position:absolute;top:0;left:-8px;bottom:0;width:8px;
   background:linear-gradient(270deg,rgba(0,0,0,.06),transparent);pointer-events:none}
 
@@ -226,7 +226,7 @@ const STYLES = `
 .empty-state{padding:64px 24px;text-align:center}
 
 /* Scrollable cell with ellipsis */
-.cell-clamp{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell-clamp{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* Checkboxes */
 .di-checkbox{width:15px;height:15px;accent-color:${C.blue};cursor:pointer;
@@ -239,6 +239,27 @@ const STYLES = `
   .modal-card{max-height:calc(100vh - 32px)}
   .act-btn{width:32px;height:32px;font-size:.8rem;border-radius:8px}
 }
+
+/* Matrix Table Styling */
+.matrix-container { overflow-x: auto; background: #fff; border-radius: 12px; border: 0.5px solid rgba(0,0,0,.08); box-shadow: 0 2px 12px rgba(0,0,0,.02); margin-bottom: 20px; padding: 1px; }
+.matrix-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.7rem; }
+.matrix-table th, .matrix-table td { border: 0.5px solid ${C.light}; padding: 6px 10px; text-align: center; }
+.matrix-table th { background: #fafafa; font-weight: 700; color: ${C.sub}; text-transform: uppercase; letter-spacing: 0.05em; position: sticky; top: 0; z-index: 2; border-bottom: 1.5px solid ${C.light}; font-size: 0.62rem; }
+.matrix-table th.col-header { top: auto; }
+.matrix-table th.row-header { position: sticky; left: 0; z-index: 3; background: #fafafa; min-width: 90px; border-right: 1.5px solid ${C.light}; text-align: left; font-weight: 800; color: ${C.text}; }
+.matrix-table td { background: #fff; min-width: 80px; color: ${C.text}; font-weight: 600; transition: all 0.15s ease; cursor: pointer; }
+.matrix-table td:hover { background: ${C.blue}; color: #fff; transform: scale(1.03); z-index: 10; position: relative; box-shadow: 0 4px 16px rgba(0,113,227,0.2); border-radius: 6px; border-color: transparent; }
+.matrix-zero { color: #e5e5ea; font-weight: 400 !important; cursor: default !important; }
+.matrix-zero:hover { background: #fff !important; color: #e5e5ea !important; transform: none !important; box-shadow: none !important; }
+.matrix-table tfoot th, .matrix-table tfoot td { border-top: 1.5px solid ${C.light}; background: #fafafa; }
+.matrix-row-total { background: #f9f9f9; font-weight: 800 !important; border-left: 1.5px solid ${C.light} !important; color: ${C.text} !important; }
+.matrix-grand-total { background: ${C.blue} !important; color: #fff !important; font-weight: 800 !important; border-left: 1.5px solid ${C.light} !important; }
+
+/* Bifurcation & Dropdown */
+.grade-card { background: #fff; border-radius: 10px; border: 1px solid rgba(0,0,0,0.05); transition: all 0.2s ease; overflow: hidden; }
+.grade-card:hover { border-color: ${C.blue}; transform: translateY(-1px); }
+.lot-row { transition: background 0.1s; }
+.lot-row:hover { background: rgba(0,0,0,0.01); }
 `;
 
 /* ═══════════════════════════════════════════
@@ -246,9 +267,9 @@ const STYLES = `
    ═══════════════════════════════════════════ */
 function fmt(v) {
   const n = parseFloat(v) || 0;
-  if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
-  if (n >= 1e3) return "$" + (n / 1e3).toFixed(1) + "K";
-  return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (n >= 1e7) return "₹" + (n / 1e7).toFixed(2) + "Cr";
+  if (n >= 1e5) return "₹" + (n / 1e5).toFixed(1) + "L";
+  return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "—"; }
 function val(v, suffix = "") { return v != null && v !== "" ? `${v}${suffix}` : "—"; }
@@ -437,7 +458,7 @@ function SearchModal({ show, onClose, filters, setFilters, onApply }) {
 
           {/* Price */}
           <div className="f-section">
-            <div className="f-label"><i className="bi bi-currency-dollar" style={{ color: C.green }} /> Price (USD)</div>
+            <div className="f-label"><i className="bi bi-currency-rupee" style={{ color: C.green }} /> Price (INR)</div>
             <div className="rng-input" style={{ maxWidth: 320 }}>
               <input type="number" placeholder="Min" value={filters.priceMin}
                 onChange={(e) => update("priceMin", e.target.value)} />
@@ -490,12 +511,37 @@ const SCROLL_COLS = [
   { key: "lab", label: "Lab", w: 72 },
   { key: "rap_rate", label: "Rap", w: 90, num: true },
   { key: "rap_discount", label: "Disc %", w: 80, num: true },
-  { key: "price_per_carat_usd", label: "$/ct", w: 90, num: true },
-  { key: "amount_usd", label: "Amount", w: 100, num: true },
+  { key: "price_per_carat_usd", label: "₹/ct", w: 90, num: true },
+  { key: "amount_usd", label: "Amount (₹)", w: 100, num: true },
   { key: "measurement", label: "Meas.", w: 130 },
   { key: "table_percentage", label: "Table %", w: 80, num: true },
   { key: "depth_percentage", label: "Depth %", w: 80, num: true },
   { key: "availability", label: "Status", w: 110 },
+];
+
+/* ═══════════════════════════════════════════
+   MIX LOT CONFIG (for Loose clients)
+   ═══════════════════════════════════════════ */
+const MIX_FZ = [
+  { key: "_idx", label: "#", w: 48 },
+  { key: "lot_number", label: "Lot #", w: 100 },
+  { key: "color_category", label: "Color", w: 100 },
+  { key: "size_category", label: "Size", w: 80 },
+  { key: "grade", label: "Grade", w: 160 },
+];
+const mixFzLeft = MIX_FZ.reduce((arr, col, i) => {
+  arr.push(i === 0 ? 0 : arr[i - 1] + MIX_FZ[i - 1].w);
+  return arr;
+}, []);
+
+const MIX_SCROLL_COLS = [
+  { key: "carats", label: "Carats", w: 90, num: true },
+  { key: "base_price", label: "Base Price (₹)", w: 110, num: true },
+  { key: "discount_pct", label: "Disc %", w: 90, num: true },
+  { key: "final_price_per_carat", label: "₹/ct", w: 110, num: true },
+  { key: "total_value", label: "Total Value (₹)", w: 120, num: true },
+  { key: "supplier_name", label: "Supplier", w: 140 },
+  { key: "purchase_date", label: "Purchased", w: 120 },
 ];
 
 /* Frozen left columns */
@@ -506,6 +552,7 @@ const FZ = [
   { key: "color", label: "Color", w: 64 },
   { key: "clarity", label: "Clarity", w: 76 },
 ];
+
 const fzLeft = FZ.reduce((arr, col, i) => {
   arr.push(i === 0 ? 0 : arr[i - 1] + FZ[i - 1].w);
   return arr;
@@ -557,10 +604,10 @@ const EXPORT_COLS = [
   // Pricing
   { key: "rap_rate", label: "Rap Rate" },
   { key: "rap_discount", label: "Disc %" },
-  { key: "price_per_carat_usd", label: "$/ct" },
-  { key: "amount_usd", label: "Amount (USD)" },
+  { key: "price_per_carat_usd", label: "₹/ct" },
+  { key: "amount_usd", label: "Amount (INR)" },
   { key: "conversion_rate", label: "Conversion Rate" },
-  { key: "amount_inr", label: "Amount (INR)" },
+  { key: "amount_inr", label: "Amount (INR) Ref" },
   { key: "availability", label: "Status" },
   // Dimensions
   { key: "measurement", label: "Measurement" },
@@ -622,6 +669,7 @@ export default function DiamondsIndexPage() {
   const router = useRouter();
   const urlAvailability = searchParams.get("availability") || "";
 
+  const [user, setUser] = useState(null);
   const [diamonds, setDiamonds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -631,6 +679,17 @@ export default function DiamondsIndexPage() {
   const [activeFilters, setActiveFilters] = useState({ ...INITIAL_FILTERS });
   const [sort, setSort] = useState({ key: null, dir: "asc" });
   const [selected, setSelected] = useState(new Set());
+  const [hoveredCell, setHoveredCell] = useState(null);
+  const [selectedCell, setSelectedCell] = useState(null);
+  const [expandedGrade, setExpandedGrade] = useState(null);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+    fetch("/api/auth/me")
+      .then(res => res.ok ? res.json() : null)
+      .then(setUser);
+  }, []);
 
   useEffect(() => {
     setAvailability(searchParams.get("availability") || "");
@@ -640,35 +699,43 @@ export default function DiamondsIndexPage() {
     (async () => {
       setLoading(true);
       try {
-        const payload = {
-          selectedShapes: activeFilters.shapes,
-          sizeFrom: activeFilters.caratMin,
-          sizeTo: activeFilters.caratMax,
-          color: activeFilters.colors,
-          clarity: activeFilters.clarities,
-          cut: activeFilters.cuts,
-          polish: activeFilters.polish,
-          symmetry: activeFilters.symmetry,
-          fluorescence: activeFilters.fluorescence,
-          lab: activeFilters.labs,
-          priceFrom: activeFilters.priceMin,
-          priceTo: activeFilters.priceMax,
-          refNo: activeFilters.certificate,
-          availability: availability,
-          limit: 1000
-        };
+        if (user?.client_type === "Loose") {
+          // Fetch Mix Lot Items
+          const res = await fetch("/api/loose-diamonds/items");
+          const data = await res.json();
+          setDiamonds(Array.isArray(data) ? data : []);
+        } else {
+          // Fetch Standard Diamonds
+          const payload = {
+            selectedShapes: activeFilters.shapes,
+            sizeFrom: activeFilters.caratMin,
+            sizeTo: activeFilters.caratMax,
+            color: activeFilters.colors,
+            clarity: activeFilters.clarities,
+            cut: activeFilters.cuts,
+            polish: activeFilters.polish,
+            symmetry: activeFilters.symmetry,
+            fluorescence: activeFilters.fluorescence,
+            lab: activeFilters.labs,
+            priceFrom: activeFilters.priceMin,
+            priceTo: activeFilters.priceMax,
+            refNo: activeFilters.certificate,
+            availability: availability,
+            limit: 1000
+          };
 
-        const res = await fetch("/api/inventory/search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        setDiamonds(Array.isArray(data) ? data : data.data || []);
+          const res = await fetch("/api/inventory/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          setDiamonds(Array.isArray(data) ? data : data.data || []);
+        }
       } catch { setDiamonds([]); }
       setLoading(false);
     })();
-  }, [availability, activeFilters]);
+  }, [availability, activeFilters, user?.client_type]);
 
   const changeAvail = (id) => {
     setAvailability(id);
@@ -723,7 +790,7 @@ export default function DiamondsIndexPage() {
     if (activeFilters.symmetry.length) list.push({ key: "symmetry", label: `Sym: ${activeFilters.symmetry.join(", ")}` });
     if (activeFilters.fluorescence.length) list.push({ key: "fluorescence", label: `Fluor: ${activeFilters.fluorescence.join(", ")}` });
     if (activeFilters.labs.length) list.push({ key: "labs", label: `Lab: ${activeFilters.labs.join(", ")}` });
-    if (activeFilters.priceMin || activeFilters.priceMax) list.push({ key: "price", label: `Price: $${activeFilters.priceMin || "0"} – $${activeFilters.priceMax || "∞"}` });
+    if (activeFilters.priceMin || activeFilters.priceMax) list.push({ key: "price", label: `Price: ₹${activeFilters.priceMin || "0"} – ₹${activeFilters.priceMax || "∞"}` });
     if (activeFilters.certificate) list.push({ key: "certificate", label: `Cert: ${activeFilters.certificate}` });
     return list;
   }, [activeFilters]);
@@ -742,12 +809,16 @@ export default function DiamondsIndexPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this diamond?")) return;
+    const isLoose = user?.client_type === "Loose";
+    const msg = isLoose ? "Are you sure you want to delete this mix item?" : "Are you sure you want to delete this diamond?";
+    if (!confirm(msg)) return;
     try {
-      await fetch(`/api/diamonds/${id}`, { method: "DELETE" });
+      const url = isLoose ? `/api/loose-diamonds/items/${id}` : `/api/diamonds/${id}`;
+      const res = await fetch(url, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
       setDiamonds((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
-      alert("Failed to delete diamond");
+      alert("Error: " + err.message);
     }
   };
 
@@ -757,15 +828,16 @@ export default function DiamondsIndexPage() {
     if (query.trim()) {
       const q = query.toLowerCase();
       data = data.filter((d) =>
-        [d.shape, d.color, d.clarity, d.certificate_number, d.lab, d.stone_type, d.purchase_from]
+        [d.shape, d.color, d.clarity, d.certificate_number, d.lab, d.stone_type, d.purchase_from, d.lot_number, d.color_category, d.size_category, d.grade, d.supplier_name]
           .filter(Boolean)
           .some((v) => v.toLowerCase().includes(q))
         || String(d.id).includes(q)
-        || String(d.weight).includes(q)
+        || String(d.weight || d.carats || "").includes(q)
       );
     }
     if (sort.key) {
-      const col = [...FZ, ...SCROLL_COLS].find((c) => c.key === sort.key);
+      const allCols = user?.client_type === "Loose" ? [...MIX_FZ, ...MIX_SCROLL_COLS] : [...FZ, ...SCROLL_COLS];
+      const col = allCols.find((c) => c.key === sort.key);
       data.sort((a, b) => {
         let va = a[sort.key], vb = b[sort.key];
         if (col?.num) { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; }
@@ -776,9 +848,98 @@ export default function DiamondsIndexPage() {
       });
     }
     return data;
-  }, [diamonds, query, sort]);
+  }, [diamonds, query, sort, user?.client_type]);
+
+  const matrixData = useMemo(() => {
+    if (user?.client_type !== "Loose" || rows.length === 0) return null;
+    
+    // Standard sizes and colors for Mix Items
+    const sizes = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
+    
+    // We can also extract any extra dynamic unique sizes/colors just in case they exist outside the standard set
+    const dynamicSizes = Array.from(new Set(rows.map(d => d.size_category || "N/A")));
+    const dynamicColors = Array.from(new Set(rows.map(d => d.color_category || "N/A")));
+
+    // Merge standard and dynamic
+    const allSizes = Array.from(new Set([...sizes, ...dynamicSizes])).sort((a,b) => {
+        if (a === "N/A") return 1; if (b === "N/A") return -1;
+        
+        const idxA = sizes.indexOf(a);
+        const idxB = sizes.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+
+        const vA = parseFloat(a.replace(/[+,-]/g, '')) || 0;
+        const vB = parseFloat(b.replace(/[+,-]/g, '')) || 0;
+        return vA - vB;
+    });
+
+    const standardColors = ["White", "White Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
+    const allColors = Array.from(new Set([...standardColors, ...dynamicColors])).sort((a,b) => {
+        if(a === "N/A") return 1; if(b === "N/A") return -1;
+        
+        const idxA = standardColors.indexOf(a);
+        const idxB = standardColors.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        
+        return a.localeCompare(b);
+    });
+
+    // Build the grid
+    const grid = {};
+    const colTotals = {};
+    const rowTotals = {};
+    let grandTotal = 0;
+
+    allColors.forEach(c => {
+      grid[c] = {};
+      rowTotals[c] = 0;
+      allSizes.forEach(s => {
+        grid[c][s] = { carats: 0, totalPrice: 0, count: 0, grades: {} };
+        colTotals[s] = 0;
+      });
+    });
+
+    // Populate the grid
+    rows.forEach(d => {
+      const c = d.color_category || "N/A";
+      const s = d.size_category || "N/A";
+      const g = d.grade || "N/A";
+      const val = parseFloat(d.carats) || 0; // The actual value is carats
+      const price = parseFloat(d.total_value) || 0;
+      
+      grid[c][s].carats += val;
+      grid[c][s].totalPrice += price;
+      grid[c][s].count += 1;
+
+      if (!grid[c][s].grades[g]) {
+        grid[c][s].grades[g] = { carats: 0, totalPrice: 0, count: 0, items: [] };
+      }
+      grid[c][s].grades[g].carats += val;
+      grid[c][s].grades[g].totalPrice += price;
+      grid[c][s].grades[g].count += 1;
+      grid[c][s].grades[g].items.push(d);
+
+      rowTotals[c] += val;
+      colTotals[s] += val;
+      grandTotal += val;
+    });
+
+    return { sizes: allSizes, colors: allColors, grid, rowTotals, colTotals, grandTotal };
+  }, [rows, user?.client_type]);
 
   const stats = useMemo(() => {
+    if (user?.client_type === "Loose") {
+      return {
+        total: diamonds.length,
+        available: diamonds.length,
+        value: diamonds.reduce((s, d) => s + (parseFloat(d.total_value) || 0), 0),
+        carats: diamonds.reduce((s, d) => s + (parseFloat(d.carats) || 0), 0),
+      };
+    }
     const avail = diamonds.filter((d) => d.availability === "available");
     return {
       total: diamonds.length,
@@ -786,7 +947,7 @@ export default function DiamondsIndexPage() {
       value: avail.reduce((s, d) => s + (parseFloat(d.amount_usd) || 0), 0),
       carats: avail.reduce((s, d) => s + (parseFloat(d.weight) || 0), 0),
     };
-  }, [diamonds]);
+  }, [diamonds, user?.client_type]);
 
   /* Render cell */
   const renderCell = (d, key) => {
@@ -794,14 +955,20 @@ export default function DiamondsIndexPage() {
     switch (key) {
       case "availability": return <AvBadge status={v} />;
       case "amount_usd":
+      case "total_value":
         return v ? fmt(v) : "—";
       case "rap_rate":
       case "price_per_carat_usd":
-        return v ? `$${parseFloat(v).toLocaleString()}` : "—";
+      case "base_price":
+      case "final_price_per_carat":
+        return v ? `₹${parseFloat(v).toLocaleString()}` : "—";
       case "rap_discount":
+      case "discount_pct":
       case "table_percentage":
       case "depth_percentage":
         return val(v, "%");
+      case "purchase_date":
+        return v ? new Date(v).toLocaleDateString() : "—";
       case "measurement":
         return <span className="cell-clamp" title={v || ""}>{v || "—"}</span>;
       default:
@@ -822,16 +989,16 @@ export default function DiamondsIndexPage() {
   );
 
   /* Action column width */
-  const ACT_W = 200;
+  const ACT_W = 230;
   const allRowsSelected = rows.length > 0 && selected.size === rows.length;
   const someRowsSelected = selected.size > 0 && !allRowsSelected;
 
   return (
-    <div className="di-page">
+    <div className="di-page" suppressHydrationWarning>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
 
-      <div className="container-fluid" style={{ maxWidth: 1440, padding: "24px 20px" }}>
+      <div className="container-fluid" style={{ maxWidth: 1440, padding: "24px 20px" }} suppressHydrationWarning>
         {/* Header */}
         <div className="fi" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
           <div>
@@ -859,14 +1026,15 @@ export default function DiamondsIndexPage() {
               Export{selected.size > 0 ? ` (${selected.size})` : ""}
             </button>
             <Link
-              href="/diamonds/create"
+              href={hasMounted && user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"}
               style={{
                 background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12,
                 fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex",
                 alignItems: "center", gap: 6, transition: "background .2s"
               }}
             >
-              <i className="bi bi-plus-lg" style={{ fontSize: ".72rem" }} /> Add Diamond
+              <i className="bi bi-plus-lg" style={{ fontSize: ".72rem" }} /> 
+              Add {hasMounted && user?.client_type === "Loose" ? "Lot" : "Diamond"}
             </Link>
           </div>
         </div>
@@ -928,22 +1096,270 @@ export default function DiamondsIndexPage() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
-          <div className="tbl-header">
-            <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-              <span style={{ fontSize: ".82rem", fontWeight: 600, color: C.text }}>
-                {loading ? "Loading…" : `${rows.length} diamond${rows.length !== 1 ? "s" : ""}`}
-              </span>
-              {!loading && (
-                <span style={{ fontSize: ".72rem", color: C.sub }}>
-                  {stats.available} available · {stats.carats.toFixed(2)} ct · {fmt(stats.value)}
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Matrix View (Only for Mix Items) */}
+        {hasMounted && user?.client_type === "Loose" ? (
+          matrixData ? (
+            <div className="matrix-container fi" style={{ animationDelay: ".1s", padding: "12px 16px", background: "#fff", borderRadius: "14px", boxShadow: "0 1px 3px rgba(0,0,0,.02)", border: `0.5px solid rgba(0,0,0,.05)` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>Inventory Matrix</h3>
+                  <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>Weight by Size & Color</p>
+                </div>
 
-          <div className="tbl-wrap">
+                {/* Hover Dashboard (Compact) */}
+                <div style={{ 
+                  background: "#f9f9f9", borderRadius: "10px", padding: "6px 14px", 
+                  display: "flex", gap: "20px", alignItems: "center", minWidth: 280, minHeight: 48,
+                  border: `1px solid ${C.light}`, transition: "all 0.25s ease",
+                  opacity: hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? 1 : 0.6,
+                }}>
+                  {hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <i className="bi bi-gem" style={{ color: C.blue, fontSize: "0.9rem" }} />
+                        <div style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+                          {hoveredCell.s} | {hoveredCell.c}
+                        </div>
+                      </div>
+                      
+                      <div style={{ width: 1, height: 16, background: C.border }} />
+
+                      <div>
+                        <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>Rate</span>
+                        <span style={{ fontSize: "0.85rem", color: C.green, fontWeight: 800 }}>
+                          {fmt(matrixData.grid[hoveredCell.c][hoveredCell.s].totalPrice / matrixData.grid[hoveredCell.c][hoveredCell.s].carats)}
+                        </span>
+                      </div>
+
+                      <div style={{ width: 1, height: 16, background: C.border }} />
+
+                      <div>
+                        <span style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+                          {matrixData.grid[hoveredCell.c][hoveredCell.s].count} <span style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 600 }}>lots</span>
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: "0.75rem", color: C.sub, width: "100%", textAlign: "center", fontWeight: 500 }}>
+                      Hover cells for insights
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bifurcation Details (Split View) */}
+              {selectedCell && matrixData.grid[selectedCell.c]?.[selectedCell.s]?.carats > 0 && (() => {
+                const grades = Object.entries(matrixData.grid[selectedCell.c][selectedCell.s].grades).sort(([a], [b]) => a.localeCompare(b));
+                const activeGradeId = expandedGrade || grades[0]?.[0];
+                const activeData = matrixData.grid[selectedCell.c][selectedCell.s].grades[activeGradeId];
+
+                return (
+                  <div className="fi" style={{ 
+                    marginBottom: "16px", background: "#fff", 
+                    borderRadius: "14px", border: `1px solid rgba(0,0,0,0.08)`, overflow: "hidden",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.03)"
+                  }}>
+                    {/* Header */}
+                    <div style={{ 
+                      padding: "10px 16px", background: "rgba(0,113,227,0.03)", 
+                      borderBottom: `1px solid rgba(0,0,0,0.05)`,
+                      display: "flex", justifyContent: "space-between", alignItems: "center" 
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <i className="bi bi-bar-chart-fill" style={{ color: "#fff", fontSize: "0.8rem" }} />
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: 800, fontSize: "0.9rem", color: C.text, letterSpacing: "-0.01em" }}>Inventory Analysis</span>
+                          <span style={{ fontSize: "0.72rem", color: C.sub, marginLeft: 10 }}>
+                            Breakdown for <b style={{ color: C.blue }}>{selectedCell.s} | {selectedCell.c}</b>
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedCell(null)}
+                        style={{ 
+                          background: "#fff", border: `1px solid ${C.light}`, color: C.sub, cursor: "pointer", 
+                          fontSize: "0.7rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px",
+                          display: "flex", alignItems: "center", gap: 6
+                        }}
+                      >
+                       <i className="bi bi-x-lg" /> Close analysis
+                      </button>
+                    </div>
+
+                    {/* Horizontal Grade Scroller */}
+                    <div style={{ 
+                      display: "flex", gap: 8, padding: "8px 16px", background: "#fafafa", 
+                      borderBottom: `1px solid rgba(0,0,0,0.04)`, overflowX: "auto" 
+                    }}>
+                      {grades.map(([grade, data]) => (
+                        <div 
+                          key={grade}
+                          onClick={() => setExpandedGrade(grade)}
+                          style={{ 
+                            padding: "6px 14px", borderRadius: "20px", cursor: "pointer",
+                            background: activeGradeId === grade ? C.blue : "#fff",
+                            color: activeGradeId === grade ? "#fff" : C.text,
+                            border: `1px solid ${activeGradeId === grade ? C.blue : C.light}`,
+                            transition: "all 0.2s", whiteSpace: "nowrap",
+                            display: "flex", alignItems: "center", gap: 8,
+                            boxShadow: activeGradeId === grade ? "0 2px 8px rgba(0,113,227,0.2)" : "none"
+                          }}
+                        >
+                          <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>{grade}</span>
+                          <span style={{ fontSize: "0.65rem", opacity: 0.8, fontWeight: 600 }}>{data.carats.toFixed(2)} ct</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: "flex", padding: "20px", gap: "24px", minHeight: "220px" }}>
+                      {/* Left: Summary Cards (Filling space better) */}
+                      <div style={{ width: "320px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                        <div style={{ background: "rgba(0,113,227,0.02)", padding: "16px", borderRadius: "12px", border: `1px solid rgba(0,113,227,0.05)`, gridColumn: "span 2" }}>
+                          <div style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Main Grade Info</div>
+                          <div style={{ fontSize: "1.8rem", fontWeight: 800, color: C.text, lineHeight: 1 }}>{activeGradeId}</div>
+                          <div style={{ fontSize: "0.8rem", color: C.blue, fontWeight: 600, marginTop: 4 }}>Inventory Breakdown</div>
+                        </div>
+
+                        <div style={{ background: "#fff", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}` }}>
+                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>TOTAL CARATS</div>
+                          <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.text }}>{activeData.carats.toFixed(3)}</div>
+                        </div>
+                        
+                        <div style={{ background: "#fff", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}` }}>
+                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>LOT COUNT</div>
+                          <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.text }}>{activeData.count}</div>
+                        </div>
+
+                        <div style={{ background: "linear-gradient(to bottom right, #fafafa, #f5f5f5)", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}`, gridColumn: "span 2" }}>
+                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>ESTIMATED AVG RATE</div>
+                          <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.green }}>{fmt(activeData.totalPrice / activeData.carats)} <span style={{ fontSize: "0.7rem", color: C.sub }}>/ ct</span></div>
+                        </div>
+                      </div>
+
+                      {/* Right: Detailed Lot Table (Using all remaining width) */}
+                      <div style={{ flex: 1, background: "#fff", border: `1px solid ${C.light}`, borderRadius: "12px", padding: "16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                        <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 800, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
+                            <i className="bi bi-list-ul" style={{ color: C.blue }} /> Lot Breakdown
+                          </span>
+                          <span style={{ fontSize: "0.65rem", color: C.sub }}>Scroll to see more lots</span>
+                        </div>
+
+                        <div style={{ overflowY: "auto", flex: 1, maxHeight: "200px" }}>
+                          <table style={{ width: "100%", fontSize: "0.75rem", borderCollapse: "separate", borderSpacing: "0 4px" }}>
+                            <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
+                              <tr style={{ color: C.sub }}>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "left", fontWeight: 700 }}>LOT #</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>COLOR</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>SIZE</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>GRADE</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>WEIGHT</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>RATE</th>
+                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>TOTAL VAL</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {activeData.items.map((item, idx) => (
+                                <tr key={idx} className="lot-row">
+                                  <td style={{ padding: "10px 0", fontWeight: 800, color: C.text }}>{item.lot_number}</td>
+                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.color_category}</td>
+                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.size_category}</td>
+                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.grade}</td>
+                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.text, fontWeight: 700 }}>{parseFloat(item.carats).toFixed(3)} ct</td>
+                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.green, fontWeight: 800 }}>{fmt(parseFloat(item.total_value) / parseFloat(item.carats))}</td>
+                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.text, fontWeight: 800 }}>{fmt(item.total_value)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div style={{ overflowX: "auto" }}>
+                <table className="matrix-table">
+                  <thead>
+                    <tr>
+                      <th className="row-header" style={{ zIndex: 10 }}>Color \ Size</th>
+                      {matrixData.sizes.map(s => (
+                        <th key={s} className="col-header">{s}</th>
+                      ))}
+                      <th className="col-header matrix-row-total">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matrixData.colors.map(c => (
+                      <tr key={c}>
+                        <th className="row-header">{c}</th>
+                        {matrixData.sizes.map(s => {
+                          const val = matrixData.grid[c][s].carats;
+                          const isSel = selectedCell?.c === c && selectedCell?.s === s;
+                          return (
+                            <td 
+                              key={s} 
+                              className={val === 0 ? "matrix-zero" : ""}
+                              onMouseEnter={() => setHoveredCell({ c, s })}
+                              onMouseLeave={() => setHoveredCell(null)}
+                              onClick={() => val > 0 && setSelectedCell(isSel ? null : { c, s })}
+                              style={{ 
+                                background: isSel ? C.blue : undefined,
+                                color: isSel ? "#fff" : undefined,
+                                boxShadow: isSel ? "inset 0 0 0 2px rgba(255,255,255,0.3)" : undefined
+                              }}
+                            >
+                              {val > 0 ? val.toFixed(3) : "-"}
+                            </td>
+                          );
+                        })}
+                        <td className="matrix-row-total">
+                          {matrixData.rowTotals[c] > 0 ? matrixData.rowTotals[c].toFixed(3) : "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th className="row-header" style={{ color: C.text }}>Total</th>
+                      {matrixData.sizes.map(s => (
+                        <td key={s} style={{ fontWeight: 800, color: C.text }}>
+                          {matrixData.colTotals[s] > 0 ? matrixData.colTotals[s].toFixed(3) : "-"}
+                        </td>
+                      ))}
+                      <td className="matrix-grand-total">
+                        {matrixData.grandTotal.toFixed(3)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div className="tbl-card fi" style={{ animationDelay: ".1s", padding: "40px", textAlign: "center", color: C.sub }}>
+              No items matching these filters to display in the matrix.
+            </div>
+          )
+        ) : (
+          /* Table (Only for Regular Diamonds) */
+          <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
+            <div className="tbl-header">
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <span style={{ fontSize: ".82rem", fontWeight: 600, color: C.text }}>
+                  {loading ? "Loading…" : `${rows.length} Diamond${rows.length !== 1 ? "s" : ""}`}
+                </span>
+                {!loading && (
+                  <span style={{ fontSize: ".72rem", color: C.sub }}>
+                    {stats.available + " available"} · {stats.carats.toFixed(2)} ct · {fmt(stats.value)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="tbl-wrap">
             <table className="di-tbl">
               <thead>
                 <tr>
@@ -957,21 +1373,43 @@ export default function DiamondsIndexPage() {
                       onChange={toggleSelectAll}
                     />
                   </th>
-                  {FZ.map((col, i) => (
-                    <SortTH
-                      key={col.key}
-                      colKey={col.key === "_idx" ? null : col.key}
-                      className={`fz ${i === FZ.length - 1 ? "fz-last" : ""}`}
-                      style={{ left: fzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
-                    >
-                      {col.label}
-                    </SortTH>
-                  ))}
-                  {SCROLL_COLS.map((col) => (
-                    <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
-                      {col.label}
-                    </SortTH>
-                  ))}
+                  {hasMounted && user?.client_type === "Loose" ? (
+                    <>
+                      {MIX_FZ.map((col, i) => (
+                        <SortTH
+                          key={col.key}
+                          colKey={col.key === "_idx" ? null : col.key}
+                          className={`fz ${i === MIX_FZ.length - 1 ? "fz-last" : ""}`}
+                          style={{ left: mixFzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
+                        >
+                          {col.label}
+                        </SortTH>
+                      ))}
+                      {MIX_SCROLL_COLS.map((col) => (
+                        <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
+                          {col.label}
+                        </SortTH>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      {FZ.map((col, i) => (
+                        <SortTH
+                          key={col.key}
+                          colKey={col.key === "_idx" ? null : col.key}
+                          className={`fz ${i === FZ.length - 1 ? "fz-last" : ""}`}
+                          style={{ left: fzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
+                        >
+                          {col.label}
+                        </SortTH>
+                      ))}
+                      {SCROLL_COLS.map((col) => (
+                        <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
+                          {col.label}
+                        </SortTH>
+                      ))}
+                    </>
+                  )}
                   <th className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, textAlign: "center" }}>
                     Actions
                   </th>
@@ -985,13 +1423,13 @@ export default function DiamondsIndexPage() {
                       <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center" }}>
                         <Skel w={16} h={16} />
                       </td>
-                      {FZ.map((col, j) => (
-                        <td key={j} className={`fz ${j === FZ.length - 1 ? "fz-last" : ""}`}
-                          style={{ left: fzLeft[j] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
+                      {(hasMounted && user?.client_type === "Loose" ? MIX_FZ : FZ).map((col, j) => (
+                        <td key={j} className={`fz ${j === (hasMounted && user?.client_type === "Loose" ? MIX_FZ : FZ).length - 1 ? "fz-last" : ""}`}
+                          style={{ left: (hasMounted && user?.client_type === "Loose" ? mixFzLeft[j] : fzLeft[j]) + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
                           <Skel w={col.w - 28} h={14} />
                         </td>
                       ))}
-                      {SCROLL_COLS.map((col) => (
+                      {(hasMounted && user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
                         <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
                           <Skel w={col.w - 32} h={14} />
                         </td>
@@ -1003,20 +1441,20 @@ export default function DiamondsIndexPage() {
                   ))
                 ) : rows.length === 0 ? (
                   <tr>
-                    <td colSpan={FZ.length + SCROLL_COLS.length + 1} style={{ border: "none" }}>
+                    <td colSpan={hasMounted && user?.client_type === "Loose" ? (MIX_FZ.length + MIX_SCROLL_COLS.length + 2) : (FZ.length + SCROLL_COLS.length + 2)} style={{ border: "none" }}>
                       <div className="empty-state">
                         <i className="bi bi-gem" style={{ fontSize: "2.5rem", color: C.border, display: "block", marginBottom: 12 }} />
                         <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.text, marginBottom: 4 }}>No diamonds found</div>
                         <div style={{ fontSize: ".8rem", color: C.sub, marginBottom: 16 }}>
                           {query || advFilterCount > 0 ? "Try adjusting your filters" : "Add your first diamond to get started"}
                         </div>
-                        {query || advFilterCount > 0 ? (
+                         {query || advFilterCount > 0 ? (
                           <button className="m-btn ghost" onClick={() => { setQuery(""); setFilters({ ...INITIAL_FILTERS }); setActiveFilters({ ...INITIAL_FILTERS }); changeAvail(""); }}>
                             Clear Filters
                           </button>
                         ) : (
-                          <Link href="/diamonds/create" className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
-                            Add Diamond
+                          <Link href={hasMounted && user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
+                            Add {hasMounted && user?.client_type === "Loose" ? "Lot" : "Diamond"}
                           </Link>
                         )}
                       </div>
@@ -1034,53 +1472,105 @@ export default function DiamondsIndexPage() {
                           onChange={() => toggleSelect(d.id)}
                         />
                       </td>
-                      {/* Frozen: # */}
-                      <td className="fz" style={{ left: fzLeft[0] + 44, width: FZ[0].w, minWidth: FZ[0].w, maxWidth: FZ[0].w, color: C.sub, fontWeight: 500 }}>
-                        {idx + 1}
-                      </td>
-                      {/* Frozen: Shape */}
-                      <td className="fz" style={{ left: fzLeft[1] + 44, width: FZ[1].w, minWidth: FZ[1].w, maxWidth: FZ[1].w }}>
-                        <span style={{ fontWeight: 600, color: C.text }}>{cap(d.shape)}</span>
-                      </td>
-                      {/* Frozen: Weight */}
-                      <td className="fz" style={{ left: fzLeft[2] + 44, width: FZ[2].w, minWidth: FZ[2].w, maxWidth: FZ[2].w, fontWeight: 600, color: C.text }}>
-                        {parseFloat(d.weight).toFixed(2)}
-                      </td>
-                      {/* Frozen: Color */}
-                      <td className="fz" style={{ left: fzLeft[3] + 44, width: FZ[3].w, minWidth: FZ[3].w, maxWidth: FZ[3].w, fontWeight: 600, color: C.text }}>
-                        {d.color?.toUpperCase() || "—"}
-                      </td>
-                      {/* Frozen: Clarity (last) */}
-                      <td className="fz fz-last" style={{ left: fzLeft[4] + 44, width: FZ[4].w, minWidth: FZ[4].w, maxWidth: FZ[4].w, fontWeight: 600, color: C.text }}>
-                        {d.clarity?.toUpperCase() || "—"}
-                      </td>
+                      {/* Frozen Left Columns */}
+                      {hasMounted && user?.client_type === "Loose" ? (
+                        <>
+                          {/* Frozen: # */}
+                          <td className="fz" style={{ left: mixFzLeft[0] + 44, width: MIX_FZ[0].w, minWidth: MIX_FZ[0].w, maxWidth: MIX_FZ[0].w, color: C.sub, fontWeight: 500 }}>
+                            {idx + 1}
+                          </td>
+                          {/* Frozen: Lot # */}
+                          <td className="fz" style={{ left: mixFzLeft[1] + 44, width: MIX_FZ[1].w, minWidth: MIX_FZ[1].w, maxWidth: MIX_FZ[1].w }}>
+                            <span style={{ fontWeight: 600, color: C.text }}>{d.lot_number}</span>
+                          </td>
+                          {/* Frozen: Color */}
+                          <td className="fz" style={{ left: mixFzLeft[2] + 44, width: MIX_FZ[2].w, minWidth: MIX_FZ[2].w, maxWidth: MIX_FZ[2].w, fontWeight: 600, color: C.text }}>
+                            {d.color_category}
+                          </td>
+                          {/* Frozen: Size */}
+                          <td className="fz" style={{ left: mixFzLeft[3] + 44, width: MIX_FZ[3].w, minWidth: MIX_FZ[3].w, maxWidth: MIX_FZ[3].w, fontWeight: 600, color: C.text }}>
+                            {d.size_category}
+                          </td>
+                          {/* Frozen: Grade */}
+                          <td className="fz fz-last" style={{ left: mixFzLeft[4] + 44, width: MIX_FZ[4].w, minWidth: MIX_FZ[4].w, maxWidth: MIX_FZ[4].w, fontWeight: 600, color: C.text }}>
+                            <div className="cell-clamp" title={d.grade}>{d.grade}</div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          {/* Frozen: # */}
+                          <td className="fz" style={{ left: fzLeft[0] + 44, width: FZ[0].w, minWidth: FZ[0].w, maxWidth: FZ[0].w, color: C.sub, fontWeight: 500 }}>
+                            {idx + 1}
+                          </td>
+                          {/* Frozen: Shape */}
+                          <td className="fz" style={{ left: fzLeft[1] + 44, width: FZ[1].w, minWidth: FZ[1].w, maxWidth: FZ[1].w }}>
+                            <span style={{ fontWeight: 600, color: C.text }}>{cap(d.shape)}</span>
+                          </td>
+                          {/* Frozen: Weight */}
+                          <td className="fz" style={{ left: fzLeft[2] + 44, width: FZ[2].w, minWidth: FZ[2].w, maxWidth: FZ[2].w, fontWeight: 600, color: C.text }}>
+                            {parseFloat(d.weight).toFixed(2)}
+                          </td>
+                          {/* Frozen: Color */}
+                          <td className="fz" style={{ left: fzLeft[3] + 44, width: FZ[3].w, minWidth: FZ[3].w, maxWidth: FZ[3].w, fontWeight: 600, color: C.text }}>
+                            {d.color?.toUpperCase() || "—"}
+                          </td>
+                          {/* Frozen: Clarity (last) */}
+                          <td className="fz fz-last" style={{ left: fzLeft[4] + 44, width: FZ[4].w, minWidth: FZ[4].w, maxWidth: FZ[4].w, fontWeight: 600, color: C.text }}>
+                            {d.clarity?.toUpperCase() || "—"}
+                          </td>
+                        </>
+                      )}
 
                       {/* Scrollable */}
-                      {SCROLL_COLS.map((col) => (
+                      {(hasMounted && user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
                         <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
                           {renderCell(d, col.key)}
                         </td>
                       ))}
 
                       {/* Actions (frozen right) */}
-                      <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          <Link href={`/diamonds/show/${d.id}`} className="act-btn view act-tooltip" data-tip="View Details" title="View">
+                      <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, maxWidth: ACT_W }}>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "center", width: "100%" }}>
+                          <Link 
+                            href={hasMounted && user?.client_type === "Loose" ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} 
+                            className="act-btn view act-tooltip" 
+                            data-tip="View Details" 
+                            title="View"
+                          >
                             <i className="bi bi-eye" />
                           </Link>
-                          <Link href={`/diamonds/edit/${d.id}`} className="act-btn edit act-tooltip" data-tip="Edit" title="Edit">
+                          
+                          <Link 
+                            href={hasMounted && user?.client_type === "Loose" ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} 
+                            className="act-btn edit act-tooltip" 
+                            data-tip="Edit" 
+                            title="Edit"
+                          >
                             <i className="bi bi-pencil" />
                           </Link>
-                          {d.availability === "available" && (
-                            <Link href={`/sales/create?diamond_id=${d.id}`} className="act-btn sell act-tooltip" data-tip="Create Sale" title="Sell">
+
+                          {(hasMounted && (user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                            <Link 
+                              href={hasMounted && user?.client_type === "Loose" ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} 
+                              className="act-btn sell act-tooltip" 
+                              data-tip="Create Sale" 
+                              title="Sell"
+                            >
                               <i className="bi bi-cart-plus" />
                             </Link>
                           )}
-                          {d.availability === "available" && (
-                            <Link href={`/diamonds/${d.id}/memo`} className="act-btn memo act-tooltip" data-tip="Send on Memo" title="Memo">
+
+                          {(hasMounted && (user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                            <Link 
+                              href={hasMounted && user?.client_type === "Loose" ? "#" : `/diamonds/${d.id}/memo`} 
+                              className="act-btn memo act-tooltip" 
+                              data-tip="Send on Memo" 
+                              title="Memo"
+                            >
                               <i className="bi bi-send" />
                             </Link>
                           )}
+
                           <button
                             className="act-btn del act-tooltip"
                             data-tip="Delete"
@@ -1113,6 +1603,7 @@ export default function DiamondsIndexPage() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       <SearchModal

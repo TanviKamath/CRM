@@ -48,6 +48,14 @@ async function migrate() {
             console.log('client_type column already exists in users table.');
         }   
 
+        console.log('Cleaning up subscriptions for Loose clients...');
+        const updatedCount = await db('users')
+            .where('client_type', 'Loose')
+            .whereNotNull('subscription')
+            .update({ subscription: null });
+        
+        console.log(`Updated ${updatedCount} Loose clients to have null subscription.`);
+
         process.exit(0);
     } catch (e) {
         console.error('Migration failed:', e);

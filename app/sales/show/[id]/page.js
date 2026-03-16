@@ -6,11 +6,11 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 // ---------- helpers ----------
-const formatCurrency = (value, symbol = "$") => {
+const formatCurrency = (value, symbol = "₹") => {
   if (value === null || value === undefined || value === "") return "-";
   const num = parseFloat(value);
   if (Number.isNaN(num)) return "-";
-  return `${symbol}${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${symbol}${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatNumber = (value, decimals = 2) => {
@@ -111,11 +111,20 @@ export default function SalesShow() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Auth guard
+  const [user, setUser] = useState(null);
+
+  // Auth guard and fetch user
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
       .then((r) => {
-        if (!r.ok) router.replace("/auth/login");
+        if (!r.ok) {
+          router.replace("/auth/login");
+        } else {
+          return r.json();
+        }
+      })
+      .then(data => {
+        if (data) setUser(data);
       })
       .catch(() => router.replace("/auth/login"));
   }, [router]);
@@ -147,15 +156,22 @@ export default function SalesShow() {
   }, [id, searchParams]);
 
   const diamond = sale?.diamond || {};
+  const loose_item = sale?.loose_item || {};
   const client = sale?.client || {};
   const broker = sale?.broker || {};
 
   const headline = useMemo(() => {
+    if (sale?.loose_diamond_item_id) {
+        return `Lot ${loose_item?.lot_number || sale?.loose_lot_number || "Item"}`;
+    }
     const cert = diamond?.certificate_number ? `Diamond ${diamond.certificate_number}` : "Sale";
     return cert;
-  }, [diamond?.certificate_number]);
+  }, [diamond?.certificate_number, sale?.loose_diamond_item_id, loose_item, sale?.loose_lot_number]);
 
-  const avatarLetter = useMemo(() => initialsOf(client?.company_name || diamond?.certificate_number), [client?.company_name, diamond?.certificate_number]);
+  const avatarLetter = useMemo(() => {
+    const text = client?.company_name || loose_item?.lot_number || sale?.loose_lot_number || diamond?.certificate_number;
+    return initialsOf(text);
+  }, [client?.company_name, loose_item?.lot_number, sale?.loose_lot_number, diamond?.certificate_number]);
 
   const updateStatus = async (nextStatus) => {
     if (!sale) return;
@@ -304,7 +320,7 @@ export default function SalesShow() {
                 <StatusBadge status={sale.status} />
                 <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-cash-stack me-2" />
-                  {formatCurrency(sale.sale_amount)}
+                  {formatCurrency(sale.sale_amount_inr || sale.sale_amount)}
                 </span>
                 <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-gem me-2" />
@@ -356,8 +372,8 @@ export default function SalesShow() {
                     <i className="bi bi-cash-coin text-info" />
                   </div>
                   <div>
-                    <div className="text-muted small">Sale Amount (USD)</div>
-                    <div className="fw-bold fs-5">{formatCurrency(sale.sale_amount)}</div>
+                    <div className="text-muted small">Total Amount (₹)</div>
+                    <div className="fw-bold fs-5">{formatCurrency(sale.sale_amount_inr || sale.sale_amount)}</div>
                   </div>
                 </div>
                 <div className="text-muted small mt-2">
@@ -409,37 +425,52 @@ export default function SalesShow() {
         {/* Detail sections */}
         <div className="row g-4">
           <div className="col-lg-6">
-            <SectionCard title="Diamond" subtitle="Stone information" icon="bi-gem" accent="info">
-              <InfoRow
-                icon="bi-hash"
-                label="Certificate Number"
-                value={diamond.certificate_number}
-                href={diamond.id ? `/diamonds/show/${diamond.id}` : undefined}
-              />
-              <InfoRow icon="bi-diagram-3" label="Stone Type" value={diamond.stone_type} />
-              <InfoRow icon="bi-bounding-box" label="Shape" value={diamond.shape} />
-              <InfoRow icon="bi-speedometer2" label="Weight" value={diamond.weight ? `${formatNumber(diamond.weight)} carats` : "-"} />
-              <div className="pt-3 mt-3 border-top">
-                <div className="row g-3">
-                  <div className="col-sm-6">
-                    <div className="text-muted small">Color</div>
-                    <div className="fw-semibold">{displayValue(diamond.color)}</div>
-                  </div>
-                  <div className="col-sm-6">
-                    <div className="text-muted small">Clarity</div>
-                    <div className="fw-semibold">{displayValue(diamond.clarity)}</div>
-                  </div>
-                  <div className="col-sm-6">
-                    <div className="text-muted small">Cut</div>
-                    <div className="fw-semibold">{displayValue(diamond.cut)}</div>
-                  </div>
-                  <div className="col-sm-6">
-                    <div className="text-muted small">Polish</div>
-                    <div className="fw-semibold">{displayValue(diamond.pol)}</div>
+            {sale?.loose_diamond_item_id ? (
+              <SectionCard title="Lot Item" subtitle="Loose diamond information" icon="bi-box-seam" accent="info">
+                <InfoRow
+                  icon="bi-hash"
+                  label="Lot Number"
+                  value={loose_item?.lot_number || sale?.loose_lot_number}
+                  href={`/loose-diamonds/${loose_item?.loose_diamond_id || sale?.loose_diamond_id}`}
+                />
+                <InfoRow icon="bi-palette" label="Color Category" value={loose_item?.color_category} />
+                <InfoRow icon="bi-aspect-ratio" label="Size Category" value={loose_item?.size_category} />
+                <InfoRow icon="bi-award" label="Grade" value={loose_item?.grade} />
+                <InfoRow icon="bi-speedometer2" label="Carats" value={loose_item?.carats ? `${formatNumber(loose_item.carats)} ct` : "-"} />
+              </SectionCard>
+            ) : (
+              <SectionCard title="Diamond" subtitle="Stone information" icon="bi-gem" accent="info">
+                <InfoRow
+                  icon="bi-hash"
+                  label="Certificate Number"
+                  value={diamond.certificate_number}
+                  href={diamond.id ? `/diamonds/show/${diamond.id}` : undefined}
+                />
+                <InfoRow icon="bi-diagram-3" label="Stone Type" value={diamond.stone_type} />
+                <InfoRow icon="bi-bounding-box" label="Shape" value={diamond.shape} />
+                <InfoRow icon="bi-speedometer2" label="Weight" value={diamond.weight ? `${formatNumber(diamond.weight)} carats` : "-"} />
+                <div className="pt-3 mt-3 border-top">
+                  <div className="row g-3">
+                    <div className="col-sm-6">
+                      <div className="text-muted small">Color</div>
+                      <div className="fw-semibold">{displayValue(diamond.color)}</div>
+                    </div>
+                    <div className="col-sm-6">
+                      <div className="text-muted small">Clarity</div>
+                      <div className="fw-semibold">{displayValue(diamond.clarity)}</div>
+                    </div>
+                    <div className="col-sm-6">
+                      <div className="text-muted small">Cut</div>
+                      <div className="fw-semibold">{displayValue(diamond.cut)}</div>
+                    </div>
+                    <div className="col-sm-6">
+                      <div className="text-muted small">Polish</div>
+                      <div className="fw-semibold">{displayValue(diamond.pol)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </SectionCard>
+              </SectionCard>
+            )}
           </div>
 
           <div className="col-lg-6">
@@ -475,10 +506,7 @@ export default function SalesShow() {
           <div className="col-lg-6">
             <SectionCard title="Sale Details" subtitle="Amounts and status" icon="bi-receipt" accent="info">
               <InfoRow icon="bi-calendar3" label="Sale Date" value={formatDate(sale.selling_date)} />
-              <InfoRow icon="bi-cash-stack" label="Sale Amount (USD)" value={formatCurrency(sale.sale_amount)} />
-              <InfoRow icon="bi-percent" label="RAP Discount" value={`${formatNumber(sale.sale_rap_discount)}%`} />
-              <InfoRow icon="bi-arrow-left-right" label="Conversion Rate" value={sale.conversion_rate ? formatNumber(sale.conversion_rate) : "-"} />
-              <InfoRow icon="bi-currency-rupee" label="Sale Amount (INR)" value={sale.sale_amount_inr ? formatCurrency(sale.sale_amount_inr, "₹") : "-"} />
+              <InfoRow icon="bi-cash-stack" label="Sale Amount (INR)" value={formatCurrency(sale.sale_amount_inr || sale.sale_amount)} />
               <InfoRow icon="bi-graph-down" label="Brokerage Rate" value={sale.brokerage_rate ? `${formatNumber(sale.brokerage_rate)}%` : "-"} />
               <InfoRow icon="bi-currency-rupee" label="Brokerage Amount (INR)" value={sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, "₹") : "-"} />
 

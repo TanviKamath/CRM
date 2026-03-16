@@ -6,10 +6,10 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import SalesForm from "../../SalesForm";
 
-function formatCurrencyUSD(v) {
+function formatCurrencyINR(v) {
   const n = Number(v);
   if (Number.isNaN(n)) return "-";
-  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export default function EditSalePage() {
@@ -17,6 +17,7 @@ export default function EditSalePage() {
   const params = useParams();
   const saleId = params.id;
 
+  const [user, setUser] = useState(null);
   const [sale, setSale] = useState(null);
   const [diamonds, setDiamonds] = useState([]);
   const [clients, setClients] = useState([]);
@@ -33,24 +34,33 @@ export default function EditSalePage() {
       setError(null);
 
       try {
-        const [saleRes, diamondsRes, clientsRes, brokersRes] = await Promise.all([
+        const userRes = await fetch("/api/auth/me");
+        if (!userRes.ok) throw new Error("Auth failed");
+        const userData = await userRes.json();
+        setUser(userData);
+
+        const itemsEndpoint = userData.client_type === "Loose" 
+          ? "/api/loose-diamonds/items" 
+          : "/api/diamonds";
+
+        const [saleRes, itemsRes, clientsRes, brokersRes] = await Promise.all([
           fetch(`/api/sales/${saleId}`),
-          fetch("/api/diamonds"),
+          fetch(itemsEndpoint),
           fetch("/api/clients"),
           fetch("/api/brokers"),
         ]);
 
         if (!saleRes.ok) throw new Error("Sale not found");
 
-        const [saleData, diamondsData, clientsData, brokersData] = await Promise.all([
+        const [saleData, itemsData, clientsData, brokersData] = await Promise.all([
           saleRes.json(),
-          diamondsRes.json(),
+          itemsRes.json(),
           clientsRes.json(),
           brokersRes.json(),
         ]);
 
         setSale(saleData);
-        setDiamonds(Array.isArray(diamondsData) ? diamondsData : diamondsData.data || []);
+        setDiamonds(Array.isArray(itemsData) ? itemsData : itemsData.data || []);
         setClients(Array.isArray(clientsData) ? clientsData : clientsData.data || []);
         setBrokers(Array.isArray(brokersData) ? brokersData : brokersData.data || []);
       } catch (err) {
@@ -65,9 +75,11 @@ export default function EditSalePage() {
   }, [saleId]);
 
   const selectedDiamond = useMemo(() => {
-    if (!sale?.diamond_id) return null;
-    return diamonds.find((d) => String(d.id) === String(sale.diamond_id)) || sale?.diamond || null;
-  }, [diamonds, sale?.diamond_id, sale?.diamond]);
+    const isLoose = user?.client_type === "Loose";
+    const itemId = isLoose ? sale?.loose_diamond_item_id : sale?.diamond_id;
+    if (!itemId) return null;
+    return diamonds.find((d) => String(d.id) === String(itemId)) || (isLoose ? sale?.loose_item : sale?.diamond) || null;
+  }, [diamonds, sale?.diamond_id, sale?.loose_diamond_item_id, sale?.diamond, sale?.loose_item, user]);
 
   const selectedClient = useMemo(() => {
     if (!sale?.client_id) return null;
@@ -183,10 +195,11 @@ export default function EditSalePage() {
                     Sale ID: {saleId}
                   </span>
 
-                  {selectedDiamond?.certificate_number && (
+                  {selectedDiamond && (
                     <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
                       <i className="bi bi-gem me-2" />
-                      Diamond: {selectedDiamond.certificate_number}
+                      {user?.client_type === "Loose" ? "Lot Item: " : "Diamond: "} 
+                      {user?.client_type === "Loose" ? (selectedDiamond.lot_number || sale?.loose_lot_number) : selectedDiamond.certificate_number}
                     </span>
                   )}
 
@@ -200,7 +213,7 @@ export default function EditSalePage() {
                   {sale?.sale_amount !== undefined && sale?.sale_amount !== null && (
                     <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
                       <i className="bi bi-cash-stack me-2" />
-                      Amount: {formatCurrencyUSD(sale.sale_amount)}
+                      Amount: {formatCurrencyINR(sale.sale_amount_inr || sale.sale_amount)}
                     </span>
                   )}
                 </div>
@@ -267,6 +280,7 @@ export default function EditSalePage() {
 
               <div className="card-body p-4">
                 <SalesForm
+                  user={user}
                   initial={sale}
                   diamonds={diamonds}
                   clients={clients}

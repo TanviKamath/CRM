@@ -29,7 +29,7 @@ function StatusPill({ status }) {
 const formatCurrency = (value) => {
     const num = parseFloat(value);
     if (Number.isNaN(num)) return "-";
-    return num.toLocaleString("en-US", { style: "currency", currency: "USD" });
+    return "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 const formatNum = (value) => {
@@ -38,15 +38,29 @@ const formatNum = (value) => {
 };
 
 export default function StockMaintenancePage() {
+    const [user, setUser] = useState(null);
     const [diamonds, setDiamonds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("current"); // current, sold, bought
     const [q, setQ] = useState("");
 
-    const fetchDiamonds = async () => {
+    const fetchUser = async () => {
+        try {
+            const res = await fetch("/api/auth/me");
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data);
+            }
+        } catch (err) {
+            console.error("User fetch error:", err);
+        }
+    };
+
+    const fetchDiamonds = async (clientType) => {
         setLoading(true);
         try {
-            const res = await fetch("/api/diamonds");
+            const endpoint = clientType === "Loose" ? "/api/loose-diamonds/items" : "/api/diamonds";
+            const res = await fetch(endpoint);
             if (!res.ok) throw new Error("Failed to fetch diamonds");
             const data = await res.json();
             setDiamonds(data);
@@ -58,15 +72,32 @@ export default function StockMaintenancePage() {
     };
 
     useEffect(() => {
-        fetchDiamonds();
+        fetchUser();
     }, []);
+
+    useEffect(() => {
+        if (user) {
+            fetchDiamonds(user.client_type);
+        }
+    }, [user]);
 
     const filteredData = useMemo(() => {
         let base = [];
+        const isLoose = user?.client_type === "Loose";
+
         if (activeTab === "current") {
-            base = diamonds.filter(d => ["available", "memo", "at_lab", "subject_to_sale"].includes(d.availability));
+            if (isLoose) {
+                // For loose, we treat everything from items api as current for now, or filter by lot status if needed
+                 base = diamonds;
+            } else {
+                base = diamonds.filter(d => ["available", "memo", "at_lab", "subject_to_sale"].includes(d.availability));
+            }
         } else if (activeTab === "sold") {
-            base = diamonds.filter(d => d.availability === "sold");
+            if (isLoose) {
+                base = []; // Sold tracking for individual loose items not fully implemented yet in DB
+            } else {
+                base = diamonds.filter(d => d.availability === "sold");
+            }
         } else {
             base = diamonds;
         }
@@ -75,7 +106,14 @@ export default function StockMaintenancePage() {
         if (!query) return base;
 
         return base.filter((d) => {
-            const hay = [
+            const hay = isLoose ? [
+                d.lot_number,
+                d.color_category,
+                d.size_category,
+                d.grade,
+                d.supplier_name,
+                String(d.carats ?? ""),
+            ] : [
                 d.certificate_number,
                 d.shape,
                 d.color,
@@ -88,15 +126,16 @@ export default function StockMaintenancePage() {
                 .toLowerCase();
             return hay.includes(query);
         });
-    }, [diamonds, activeTab, q]);
+    }, [diamonds, activeTab, q, user]);
 
     const stats = useMemo(() => {
+        const isLoose = user?.client_type === "Loose";
         return {
             total: filteredData.length,
-            weight: filteredData.reduce((sum, d) => sum + (parseFloat(d.weight) || 0), 0),
-            value: filteredData.reduce((sum, d) => sum + (parseFloat(d.amount_usd) || 0), 0),
+            weight: filteredData.reduce((sum, d) => sum + (parseFloat(isLoose ? d.carats : d.weight) || 0), 0),
+            value: filteredData.reduce((sum, d) => sum + (parseFloat(isLoose ? d.total_value : d.amount_usd) || 0), 0),
         };
-    }, [filteredData]);
+    }, [filteredData, user]);
 
     return (
         <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>
@@ -144,7 +183,7 @@ export default function StockMaintenancePage() {
 
                         <div className="mt-4 d-flex gap-3">
                             <div className="p-3 rounded-4 bg-white border flex-grow-1 text-center">
-                                <span className="d-block text-muted small text-uppercase fw-bold mb-1">Total Stones</span>
+                                <span className="d-block text-muted small text-uppercase fw-bold mb-1">Total {user?.client_type === "Loose" ? "Items" : "Stones"}</span>
                                 <h4 className="fw-bold mb-0">{stats.total}</h4>
                             </div>
                             <div className="p-3 rounded-4 bg-white border flex-grow-1 text-center">
@@ -165,7 +204,7 @@ export default function StockMaintenancePage() {
                         <table className="table table-hover align-middle mb-0">
                             <thead className="bg-light">
                                 <tr>
-                                    <th className="px-4 py-3 text-muted small text-uppercase">Certificate</th>
+                                    <th className="px-4 py-3 text-muted small text-uppercase">{user?.client_type === "Loose" ? "Lot Number" : "Certificate"}</th>
                                     <th className="py-3 text-muted small text-uppercase">Details</th>
                                     <th className="py-3 text-muted small text-uppercase text-end">Weight</th>
                                     <th className="py-3 text-muted small text-uppercase text-end">Price</th>
@@ -185,31 +224,49 @@ export default function StockMaintenancePage() {
                                         <td colSpan={6} className="text-center py-5 text-muted">No stock found in this category.</td>
                                     </tr>
                                 ) : (
-                                    filteredData.map((d) => (
-                                        <tr key={d.id}>
-                                            <td className="px-4">
-                                                <Link href={`/diamonds/show/${d.id}`} className="text-decoration-none fw-semibold text-dark">
-                                                    {d.certificate_number || "NO CERT"}
-                                                </Link>
-                                                <div className="small text-muted">{d.lab || "-"} | Buying: {d.buying_date?.split('T')[0] || "-"}</div>
-                                            </td>
-                                            <td>
-                                                <span className="badge bg-light text-dark border me-2">{d.shape}</span>
-                                                <span className="small text-muted">{d.color} / {d.clarity} / {d.cut}</span>
-                                            </td>
-                                            <td className="text-end fw-medium">{formatNum(d.weight)} ct</td>
-                                            <td className="text-end fw-semibold text-dark">{formatCurrency(d.amount_usd)}</td>
-                                            <td className="text-center">
-                                                <StatusPill status={d.availability} />
-                                            </td>
-                                            <td className="text-center">
-                                                <div className="d-flex justify-content-center gap-2">
-                                                    <Link href={`/diamonds/edit/${d.id}`} className="btn btn-sm btn-outline-warning rounded-pill px-3">Edit</Link>
-                                                    <Link href={`/diamonds/show/${d.id}`} className="btn btn-sm btn-outline-primary rounded-pill px-3">View</Link>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    filteredData.map((d) => {
+                                        const isLoose = user?.client_type === "Loose";
+                                        return (
+                                            <tr key={d.id}>
+                                                <td className="px-4">
+                                                    <Link 
+                                                        href={isLoose ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} 
+                                                        className="text-decoration-none fw-semibold text-dark"
+                                                    >
+                                                        {isLoose ? d.lot_number : (d.certificate_number || "NO CERT")}
+                                                    </Link>
+                                                    <div className="small text-muted">
+                                                        {isLoose ? (d.supplier_name || "Direct") : (d.lab || "-")} | Buying: {isLoose ? (d.purchase_date?.split('T')[0] || "-") : (d.buying_date?.split('T')[0] || "-")}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {isLoose ? (
+                                                        <>
+                                                            <span className="badge bg-light text-dark border me-2">{d.color_category}</span>
+                                                            <span className="small text-muted">{d.size_category} / {d.grade}</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="badge bg-light text-dark border me-2">{d.shape}</span>
+                                                            <span className="small text-muted">{d.color} / {d.clarity} / {d.cut}</span>
+                                                        </>
+                                                    )}
+                                                </td>
+                                                <td className="text-end fw-medium">{formatNum(isLoose ? d.carats : d.weight)} ct</td>
+                                                <td className="text-end fw-semibold text-dark">{formatCurrency(isLoose ? d.final_price_per_carat : d.amount_usd)}</td>
+                                                <td className="text-center">
+                                                    <StatusPill status={isLoose ? "available" : d.availability} />
+                                                </td>
+                                                <td className="text-center">
+                                                    <div className="d-flex justify-content-center gap-2">
+                                                        <Link href={isLoose ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} className="btn btn-sm btn-outline-success rounded-pill px-3">Sell</Link>
+                                                        <Link href={isLoose ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} className="btn btn-sm btn-outline-warning rounded-pill px-3">Edit</Link>
+                                                        <Link href={isLoose ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} className="btn btn-sm btn-outline-primary rounded-pill px-3">View</Link>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

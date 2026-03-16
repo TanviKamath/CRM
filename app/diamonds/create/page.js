@@ -12,6 +12,16 @@ export default function CreateDiamond() {
   const [brokers, setBrokers] = useState([]);
 
   useEffect(() => {
+    // Fetch user and check client type
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((userData) => {
+        if (userData.client_type === "Loose") {
+          router.replace("/loose-diamonds/create");
+        }
+      })
+      .catch((err) => console.error("Failed to fetch user context:", err));
+
     // Fetch clients and brokers
     Promise.all([
       fetch("/api/clients").then((res) => res.json()),
@@ -22,7 +32,7 @@ export default function CreateDiamond() {
         setBrokers(Array.isArray(b) ? b : b.data || []);
       })
       .catch((err) => console.error("Failed to fetch dependencies:", err));
-  }, []);
+  }, [router]);
 
   const handleSuccess = (data) => {
     router.push(`/diamonds/show/${data.id}?success=${encodeURIComponent("Diamond added successfully!")}`);
