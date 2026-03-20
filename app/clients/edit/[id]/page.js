@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 import ClientsForm from "../../ClientsForm";
 
 function initialsOf(name) {
@@ -65,20 +66,7 @@ export default function EditClient() {
 
   // Loading UI
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="text-center">
-          <div
-            className="spinner-border mb-3"
-            role="status"
-            style={{ width: "3rem", height: "3rem", color: "#22c55e", borderWidth: "0.2rem" }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted mb-0">Loading client details...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Error UI

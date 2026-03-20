@@ -3,6 +3,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import PageSkeleton from "./components/PageSkeleton";
 
 /* ═══════════════════════════════════════════
    DESIGN TOKENS
@@ -505,11 +507,7 @@ export default function HomePage() {
     new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   if (!mounted) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
-        <div className="spinner-border" style={{ color: C.blue, width: 28, height: 28, borderWidth: 2.5 }} />
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   const pro = true; // Show all metrics regardless of subscription

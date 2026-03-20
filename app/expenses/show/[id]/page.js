@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 
 // Categories and Payment Methods
 const EXPENSE_CATEGORIES = {
@@ -93,13 +94,7 @@ export default function ShowExpense() {
   };
 
   if (loading) {
-    return (
-      <div className="container py-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (error || !expense) {

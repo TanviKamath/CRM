@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import RecordSalePaymentModal from "./RecordSalePaymentModal";
 import PaymentModeModal from "./PaymentModeModal";
 import { generateInvoicePDF } from "../lib/generateInvoice";
+import Skeleton from "../components/Skeleton";
 
 function StatusPill({ status }) {
   const map = {
@@ -428,14 +429,30 @@ export default function SalesIndex() {
 
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={8} className="text-center py-5">
-                        <div className="spinner-border" role="status" style={{ color: "#10b981" }}>
-                          <span className="visually-hidden">Loading...</span>
-                        </div>
-                        <div className="text-muted mt-2">Loading sales...</div>
-                      </td>
-                    </tr>
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-3"><Skeleton width="80px" height="18px" /><br/><Skeleton width="100px" height="12px" style={{ marginTop: 6 }} /></td>
+                        <td className="py-3"><Skeleton width="120px" height="18px" /></td>
+                        <td className="py-3"><Skeleton width="140px" height="18px" /></td>
+                        <td className="py-3 text-end"><Skeleton width="90px" height="18px" /></td>
+                        <td className="py-3 text-end"><Skeleton width="90px" height="18px" /></td>
+                        <td className="py-3 text-end"><Skeleton width="90px" height="18px" /></td>
+                        <td className="py-3 text-center">
+                          <div className="d-flex flex-column align-items-center gap-1">
+                            <Skeleton width="70px" height="22px" style={{ borderRadius: 999 }} />
+                            <Skeleton width="60px" height="20px" style={{ borderRadius: 999 }} />
+                          </div>
+                        </td>
+                        <td className="py-3 text-center">
+                           <div className="d-flex gap-2 justify-content-center">
+                             <Skeleton width="42px" height="42px" style={{ borderRadius: 10 }} />
+                             <Skeleton width="42px" height="42px" style={{ borderRadius: 10 }} />
+                             <Skeleton width="42px" height="42px" style={{ borderRadius: 10 }} />
+                           </div>
+                        </td>
+                      </tr>
+                    ))
+
                   ) : filteredSales.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center py-5">

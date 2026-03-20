@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import TableSkeleton from "../components/TableSkeleton";
 
 const formatPercent = (v) => {
   if (v === null || v === undefined || v === "") return "-";
@@ -257,14 +258,7 @@ export default function BrokersIndex() {
 
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-5">
-                        <div className="spinner-border" role="status" style={{ color: "#667eea" }}>
-                          <span className="visually-hidden">Loading...</span>
-                        </div>
-                        <div className="text-muted mt-2">Loading brokers...</div>
-                      </td>
-                    </tr>
+                    <TableSkeleton columns={5} rows={4} />
                   ) : filteredBrokers.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-5">

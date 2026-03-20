@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 import ExpenseForm from "../../ExpenseForm";
 
 export default function EditExpense() {
@@ -34,13 +35,7 @@ export default function EditExpense() {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="container py-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {

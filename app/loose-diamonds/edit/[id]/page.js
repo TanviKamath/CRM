@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 
 const COLOR_CATEGORIES = ["White", "White Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
 const SIZES = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
@@ -185,11 +186,7 @@ export default function EditLooseDiamondLot() {
     }
   };
 
-  if (fetching) return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: "#f8f9fc" }}>
-      <div className="spinner-border text-primary" />
-    </div>
-  );
+  if (fetching) return <PageSkeleton />;
 
   return (
     <div className="min-vh-100 py-5" style={{ backgroundColor: "#f8f9fc" }}>

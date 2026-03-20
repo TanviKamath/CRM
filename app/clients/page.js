@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import TableSkeleton from "../components/TableSkeleton";
 
 function initialsOf(company, contact) {
   const base = (company || contact || "").trim();
@@ -231,14 +232,7 @@ export default function ClientsIndex() {
 
                 <tbody>
                   {loading ? (
-                    <tr>
-                      <td colSpan={5} className="text-center py-5">
-                        <div className="spinner-border" role="status" style={{ color: "#22c55e" }}>
-                          <span className="visually-hidden">Loading...</span>
-                        </div>
-                        <div className="text-muted mt-2">Loading clients...</div>
-                      </td>
-                    </tr>
+                    <TableSkeleton columns={5} rows={4} />
                   ) : filteredClients.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-5">

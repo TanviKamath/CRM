@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import PageSkeleton from "../../../components/PageSkeleton";
 
 function StatusPill({ status }) {
   const map = {
@@ -117,13 +118,7 @@ export default function ShowDiamond() {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (error || !diamond) {

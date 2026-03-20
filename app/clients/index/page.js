@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import TableSkeleton from "../../components/TableSkeleton";
 import { useSearchParams } from "next/navigation";
 
 export default function ClientsIndex() {
@@ -118,13 +119,7 @@ export default function ClientsIndex() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-4">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <TableSkeleton columns={6} rows={5} />
                 ) : clients.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center">No clients found.</td>

@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import TableSkeleton from "../components/TableSkeleton";
 
 // Expense categories
 const EXPENSE_CATEGORIES = {
@@ -308,13 +309,7 @@ export default function ExpensesIndex() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-5">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Loading...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <TableSkeleton columns={6} rows={4} />
                 ) : expenses.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center py-5">

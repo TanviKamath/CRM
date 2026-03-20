@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import Skeleton from "../components/Skeleton";
 
 export default function LooseDiamondDashboard() {
   const [lots, setLots] = useState([]);
@@ -155,13 +156,7 @@ export default function LooseDiamondDashboard() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: "#f8f9fc" }}>
-        <div className="spinner-border text-primary" role="status" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-vh-100 py-5" style={{ background: "#f8f9fc" }}>
@@ -261,7 +256,19 @@ export default function LooseDiamondDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {lots.length === 0 ? (
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-4">
+                        <Skeleton width="100px" height="20px" /><br/><Skeleton width="80px" height="14px" style={{ marginTop: 6 }} />
+                      </td>
+                      <td className="px-4 py-4"><Skeleton width="120px" height="18px" /></td>
+                      <td className="px-4 py-4"><Skeleton width="60px" height="20px" /></td>
+                      <td className="px-4 py-4"><Skeleton width="90px" height="24px" /></td>
+                      <td className="px-4 py-4"><Skeleton width="80px" height="26px" style={{ borderRadius: 999 }} /></td>
+                    </tr>
+                  ))
+                ) : lots.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="text-center py-5">
                         <div className="py-2">

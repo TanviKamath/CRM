@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 
 // Format date
 const formatDate = (dateString) => {
@@ -138,20 +139,7 @@ export default function ShowClient() {
 
   // Loading UI
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="text-center">
-          <div
-            className="spinner-border mb-3"
-            role="status"
-            style={{ width: "3rem", height: "3rem", color: "#22c55e", borderWidth: "0.2rem" }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="text-muted mb-0">Loading client details...</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Error UI

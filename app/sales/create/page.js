@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import SalesForm from "../SalesForm";
+import PageSkeleton from "../../components/PageSkeleton";
 
 export default function CreateSalePage() {
   const router = useRouter();
@@ -91,20 +92,7 @@ export default function CreateSalePage() {
 
   // Loading UI
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="text-center">
-          <div
-            className="spinner-border mb-3"
-            role="status"
-            style={{ width: "3rem", height: "3rem", color: "#0ea5e9", borderWidth: "0.2rem" }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <div className="text-muted">Preparing sale form...</div>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Error UI

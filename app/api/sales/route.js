@@ -74,22 +74,27 @@ export async function GET(req) {
     // Get payment totals for each sale
     const salesWithPayments = [];
 
-    for (const sale of rows) {
-      let totalPaymentsInr = 0;
-
-      // Get payments from sale_payments table
+    let paymentsBySale = {};
+    if (rows.length > 0) {
+      const saleIds = rows.map((r) => r.id);
       try {
-        const paymentResult = await knex("sale_payments")
-          .where("sale_id", sale.id)
+        const paymentsArray = await knex("sale_payments")
+          .whereIn("sale_id", saleIds)
+          .select("sale_id")
           .sum("payment_amount_done as total")
-          .first();
+          .groupBy("sale_id");
 
-        // Payments are stored in INR
-        totalPaymentsInr = parseFloat(paymentResult?.total) || 0;
+        paymentsBySale = paymentsArray.reduce((acc, curr) => {
+          acc[curr.sale_id] = parseFloat(curr.total) || 0;
+          return acc;
+        }, {});
       } catch (e) {
-        // Table might not exist yet, continue without payments
         console.log("sale_payments table error:", e.message);
       }
+    }
+
+    for (const sale of rows) {
+      const totalPaymentsInr = paymentsBySale[sale.id] || 0;
 
       // Advance amount is stored in INR (in sales table)
       const advanceAmountInr = parseFloat(sale.advance_amount) || 0;

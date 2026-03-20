@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 
 // ---------- helpers ----------
 const formatCurrency = (value, symbol = "₹") => {
@@ -213,16 +214,7 @@ export default function SalesShow() {
 
   // Loading UI
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="text-center">
-          <div className="spinner-border mb-3" role="status" style={{ width: "3rem", height: "3rem", color: "#0ea5e9", borderWidth: "0.2rem" }}>
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <div className="text-muted">Loading sale details...</div>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   // Error UI

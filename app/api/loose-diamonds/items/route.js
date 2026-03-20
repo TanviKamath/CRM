@@ -27,14 +27,10 @@ export async function GET(request) {
       .orderBy("loose_diamond_items.id", "asc");
 
     if (onlyAvailable) {
-      // Exclude items that already have an associated sale
-      const soldItemIds = await db("sales")
-        .whereNotNull("loose_diamond_item_id")
-        .pluck("loose_diamond_item_id");
-
-      if (soldItemIds.length > 0) {
-        query = query.whereNotIn("loose_diamond_items.id", soldItemIds);
-      }
+      // Exclude items that already have an associated sale using an optimized NOT EXISTS query
+      query = query.whereNotExists(
+        db("sales").whereRaw("sales.loose_diamond_item_id = loose_diamond_items.id")
+      );
     }
 
     const items = await query;

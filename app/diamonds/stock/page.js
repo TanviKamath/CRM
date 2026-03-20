@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import TableSkeleton from "../../components/TableSkeleton";
 import { useSearchParams } from "next/navigation";
 
 function StatusPill({ status }) {
@@ -214,11 +215,7 @@ export default function StockMaintenancePage() {
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan={6} className="text-center py-5">
-                                            <div className="spinner-border text-primary" role="status" />
-                                        </td>
-                                    </tr>
+                                    <TableSkeleton columns={6} rows={5} />
                                 ) : filteredData.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="text-center py-5 text-muted">No stock found in this category.</td>

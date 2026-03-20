@@ -9,6 +9,7 @@ import {
 } from "recharts";
 
 const CHART_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ff7300"];
+import Skeleton from "../../components/Skeleton";
 
 export default function LooseDiamondDetail() {
   const { id } = useParams();
@@ -52,11 +53,47 @@ export default function LooseDiamondDetail() {
     }
   };
 
-  if (loading) return (
-    <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: "#f8f9fc" }}>
-      <div className="spinner-border text-primary" />
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="min-vh-100 py-5" style={{ background: "#f8f9fc" }}>
+        <div className="container">
+          <div className="d-flex justify-content-between align-items-start mb-4">
+             <div className="d-flex align-items-center gap-3">
+               <Skeleton width="40px" height="40px" style={{ borderRadius: "50%" }} />
+               <Skeleton width="56px" height="56px" style={{ borderRadius: "50%" }} />
+               <div>
+                 <Skeleton width="150px" height="28px" className="mb-2" />
+                 <Skeleton width="200px" height="16px" />
+               </div>
+             </div>
+          </div>
+          <Skeleton width="250px" height="20px" className="mb-5 ms-1" />
+          
+          <div className="row g-4 mb-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="col-md-3">
+                <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: "20px" }}>
+                  <Skeleton width="100px" height="14px" className="mb-2" />
+                  <Skeleton width="120px" height="28px" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="card border-0 shadow-lg mb-5" style={{ borderRadius: "25px", overflow: "hidden" }}>
+             <div className="card-header bg-white border-0 p-4 px-md-5">
+               <Skeleton width="200px" height="24px" />
+             </div>
+             <div className="p-4">
+               {Array.from({ length: 5 }).map((_, i) => (
+                 <Skeleton key={i} width="100%" height="40px" className="mb-3" />
+               ))}
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!lot) return null;
 
   const totalSaleValue = lot.items?.reduce((acc, i) => acc + parseFloat(i.total_value), 0) || 0;

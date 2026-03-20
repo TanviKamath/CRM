@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import PageSkeleton from "../../../components/PageSkeleton";
 import DiamondsForm from "../../DiamondsForm";
 
 export default function EditDiamond() {
@@ -55,20 +56,7 @@ export default function EditDiamond() {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ backgroundColor: "#f8f9fc" }}>
-        <div className="text-center">
-          <div
-            className="spinner-border mb-3"
-            role="status"
-            style={{ width: "3rem", height: "3rem", color: "#667eea", borderWidth: "0.2rem" }}
-          >
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <div className="text-muted">Loading diamond details...</div>
-        </div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (error) {
