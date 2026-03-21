@@ -1,7 +1,7 @@
 // app/expenses/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TableSkeleton from "../components/TableSkeleton";
@@ -58,7 +58,7 @@ const formatDate = (dateString) => {
   });
 };
 
-export default function ExpensesIndex() {
+function ExpensesIndexContent() {
   const searchParams = useSearchParams();
 
   const [expenses, setExpenses] = useState([]);
@@ -422,5 +422,13 @@ export default function ExpensesIndex() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ExpensesIndex() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <ExpensesIndexContent />
+    </Suspense>
   );
 }

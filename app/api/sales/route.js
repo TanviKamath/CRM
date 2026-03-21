@@ -48,9 +48,9 @@ export async function GET(req) {
     // Filter by client type
     if (user) {
       if (user.client_type === "Loose") {
-        query = query.whereNotNull("sales.loose_diamond_item_id");
+        query = query.whereNotNull("loose_diamond_items.id");
       } else if (user.client_type === "GIA") {
-        query = query.whereNotNull("sales.diamond_id");
+        query = query.whereNotNull("diamonds.id");
       }
     }
 

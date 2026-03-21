@@ -1,7 +1,7 @@
 // app/brokers/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TableSkeleton from "../components/TableSkeleton";
@@ -50,7 +50,7 @@ function BadgePill({ icon, text, tone = "primary" }) {
   );
 }
 
-export default function BrokersIndex() {
+function BrokersIndexContent() {
   const searchParams = useSearchParams();
 
   const [brokers, setBrokers] = useState([]);
@@ -455,5 +455,13 @@ export default function BrokersIndex() {
         `}</style>
       </div>
     </div>
+  );
+}
+
+export default function BrokersIndex() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <BrokersIndexContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // app/sales/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import RecordSalePaymentModal from "./RecordSalePaymentModal";
@@ -100,7 +100,7 @@ function ActionButton({ href, onClick, variant, icon, title, disabled = false, l
   );
 }
 
-export default function SalesIndex() {
+function SalesIndexContent() {
   const searchParams = useSearchParams();
 
   const [user, setUser] = useState(null);
@@ -657,5 +657,13 @@ export default function SalesIndex() {
         `}</style>
       </div>
     </div>
+  );
+}
+
+export default function SalesIndex() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <SalesIndexContent />
+    </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // app/clients/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import TableSkeleton from "../components/TableSkeleton";
@@ -44,7 +44,7 @@ function StatPill({ icon, label, value, tone = "success" }) {
   );
 }
 
-export default function ClientsIndex() {
+function ClientsIndexContent() {
   const searchParams = useSearchParams();
 
   const [clients, setClients] = useState([]);
@@ -373,5 +373,13 @@ export default function ClientsIndex() {
         `}</style>
       </div>
     </div>
+  );
+}
+
+export default function ClientsIndex() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <ClientsIndexContent />
+    </Suspense>
   );
 }

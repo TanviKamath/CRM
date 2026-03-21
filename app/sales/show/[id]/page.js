@@ -1,7 +1,7 @@
 // app/sales/show/[id]/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import PageSkeleton from "../../../components/PageSkeleton";
@@ -101,7 +101,7 @@ function initialsOf(text) {
 }
 
 // ---------- page ----------
-export default function SalesShow() {
+function SalesShowContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -597,5 +597,13 @@ export default function SalesShow() {
         `}</style>
       </div>
     </div>
+  );
+}
+
+export default function SalesShow() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <SalesShowContent />
+    </Suspense>
   );
 }

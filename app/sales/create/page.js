@@ -1,13 +1,13 @@
 // app/sales/create/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import SalesForm from "../SalesForm";
 import PageSkeleton from "../../components/PageSkeleton";
 
-export default function CreateSalePage() {
+function CreateSalePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -285,5 +285,13 @@ export default function CreateSalePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CreateSalePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <CreateSalePageContent />
+    </Suspense>
   );
 }

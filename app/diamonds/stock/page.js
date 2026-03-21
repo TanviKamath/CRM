@@ -1,7 +1,7 @@
 // app/diamonds/stock/page.js
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import Link from "next/link";
 import TableSkeleton from "../../components/TableSkeleton";
 import { useSearchParams } from "next/navigation";
@@ -38,7 +38,7 @@ const formatNum = (value) => {
     return Number.isNaN(num) ? "-" : num.toFixed(2);
 };
 
-export default function StockMaintenancePage() {
+function StockMaintenancePageContent() {
     const [user, setUser] = useState(null);
     const [diamonds, setDiamonds] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -272,4 +272,12 @@ export default function StockMaintenancePage() {
             </div>
         </div>
     );
+}
+
+export default function StockMaintenancePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <StockMaintenancePageContent />
+    </Suspense>
+  );
 }

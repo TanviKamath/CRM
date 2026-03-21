@@ -1,12 +1,12 @@
 // app/clients/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import TableSkeleton from "../../components/TableSkeleton";
 import { useSearchParams } from "next/navigation";
 
-export default function ClientsIndex() {
+function ClientsIndexContent() {
   const searchParams = useSearchParams();
   
   const [clients, setClients] = useState([]);
@@ -257,5 +257,13 @@ export default function ClientsIndex() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ClientsIndex() {
+  return (
+    <Suspense fallback={<div className="container py-4">Loading...</div>}>
+      <ClientsIndexContent />
+    </Suspense>
   );
 }

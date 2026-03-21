@@ -1,7 +1,7 @@
 // app/brokers/show/[id]/page.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import PageSkeleton from "../../../components/PageSkeleton";
@@ -82,7 +82,7 @@ function SectionCard({ title, subtitle, icon, children }) {
   );
 }
 
-export default function ShowBroker() {
+function ShowBrokerContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -478,5 +478,13 @@ export default function ShowBroker() {
         `}</style>
       </div>
     </div>
+  );
+}
+
+export default function ShowBroker() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <ShowBrokerContent />
+    </Suspense>
   );
 }

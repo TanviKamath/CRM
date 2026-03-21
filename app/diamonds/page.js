@@ -1,7 +1,7 @@
 // app/diamonds/page.js
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -664,7 +664,7 @@ function exportToExcel(diamonds) {
   URL.revokeObjectURL(url);
 }
 
-export default function DiamondsIndexPage() {
+function DiamondsIndexPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlAvailability = searchParams.get("availability") || "";
@@ -1620,5 +1620,13 @@ export default function DiamondsIndexPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function DiamondsIndexPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px' }}>Loading...</div>}>
+      <DiamondsIndexPageContent />
+    </Suspense>
   );
 }
