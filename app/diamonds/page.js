@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { calculateMatrixData } from "../lib/utils/matrixUtils";
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -42,11 +43,36 @@ const AVAIL_OPTIONS = [
   { id: "subject_to_sale", label: "Subject to Sale", color: C.teal },
 ];
 
+const LOOSE_COLOR_CATEGORIES = ["White", "White Natts", "Off-White LB. Natts", "Off-White LC. Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
+const LOOSE_SIZES = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
+const LOOSE_GRADES = [
+  "D", "EF", "GH", "HI", "I", 
+  "Spotted. Natts", "Dark Natts", 
+  "Ttlb. Natts", "Tlb. Natts", "Lb. Natts",
+  "Tttlc. Natts", "Tlc. Natts", "Lc. Natts",
+  "HI (Top Water Shade)", "I (Water Shade)", "Off White TTLB", "TTLB", "TLB", "LB", "DB", "DDB",
+  "Off White TTLC", "TTLC", "TLC", "LC",
+  "Standard"
+];
+
+const LOOSE_GRADE_MAP = {
+  White: ["D", "EF", "GH", "HI", "I"],
+  "White Natts": ["Spotted. Natts", "Dark Natts"],
+  "Off-White LB. Natts": ["Ttlb. Natts", "Tlb. Natts", "Lb. Natts"],
+  "Off-White LC. Natts": ["Tttlc. Natts", "Tlc. Natts", "Lc. Natts"],
+  LB: ["HI (Top Water Shade)", "I (Water Shade)", "Off White TTLB", "TTLB", "TLB", "LB", "DB", "DDB"],
+  LC: ["HI (Top Water Shade)", "I (Water Shade)", "Off White TTLC", "TTLC", "TLC", "LC"],
+  Fancy: ["Standard"],
+  "Cap Color": ["Standard"],
+  Green: ["Standard"],
+};
+
 const INITIAL_FILTERS = {
   shapes: [], caratMin: "", caratMax: "",
   colors: [], clarities: [], cuts: [], polish: [], symmetry: [],
   fluorescence: [], labs: [],
   priceMin: "", priceMax: "", certificate: "",
+  lotNumber: "",
 };
 
 /* ═══════════════════════════════════════════
@@ -242,8 +268,8 @@ const STYLES = `
 
 /* Matrix Table Styling */
 .matrix-container { overflow-x: auto; background: #fff; border-radius: 12px; border: 0.5px solid rgba(0,0,0,.08); box-shadow: 0 2px 12px rgba(0,0,0,.02); margin-bottom: 20px; padding: 1px; }
-.matrix-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.7rem; }
-.matrix-table th, .matrix-table td { border: 0.5px solid ${C.light}; padding: 6px 10px; text-align: center; }
+.matrix-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; }
+.matrix-table th, .matrix-table td { border: 0.5px solid ${C.light}; padding: 12px 14px; text-align: center; }
 .matrix-table th { background: #fafafa; font-weight: 700; color: ${C.sub}; text-transform: uppercase; letter-spacing: 0.05em; position: sticky; top: 0; z-index: 2; border-bottom: 1.5px solid ${C.light}; font-size: 0.62rem; }
 .matrix-table th.col-header { top: auto; }
 .matrix-table th.row-header { position: sticky; left: 0; z-index: 3; background: #fafafa; min-width: 90px; border-right: 1.5px solid ${C.light}; text-align: left; font-weight: 800; color: ${C.text}; }
@@ -316,7 +342,7 @@ function ToggleGroup({ options, selected, onChange, rangeSelect = false }) {
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
       {options.map((o) => (
-        <button key={o} className={`tg-pill ${selected.includes(o) ? "on" : ""}`} onClick={() => toggle(o)}>
+        <button key={o} className={`tg-pill ${selected.includes(o) ? "on" : ""}`} suppressHydrationWarning onClick={() => toggle(o)}>
           {o}
         </button>
       ))}
@@ -327,28 +353,52 @@ function ToggleGroup({ options, selected, onChange, rangeSelect = false }) {
 /* ═══════════════════════════════════════════
    ADVANCED SEARCH MODAL
    ═══════════════════════════════════════════ */
-function SearchModal({ show, onClose, filters, setFilters, onApply }) {
+function SearchModal({ show, onClose, filters, setFilters, onApply, isLoose = false }) {
   useEffect(() => {
     document.body.style.overflow = show ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [show]);
 
   const update = (key, val) => setFilters((f) => ({ ...f, [key]: val }));
+
+  const availableGrades = useMemo(() => {
+    if (!isLoose) return [];
+    if (filters.colors.length === 0) return LOOSE_GRADES;
+    const grades = new Set();
+    filters.colors.forEach(cat => {
+      const catGrades = LOOSE_GRADE_MAP[cat] || [];
+      catGrades.forEach(g => grades.add(g));
+    });
+    return Array.from(grades);
+  }, [filters.colors, isLoose]);
+
+  // If selected grades are no longer available (due to color change), remove them
+  useEffect(() => {
+    if (!isLoose || filters.colors.length === 0) return;
+    const valid = filters.clarities.filter(g => availableGrades.includes(g));
+    if (valid.length !== filters.clarities.length) {
+      update("clarities", valid);
+    }
+  }, [filters.colors, isLoose]);
+
   const activeCount = useMemo(() => {
     let c = 0;
     if (filters.shapes.length) c++;
     if (filters.caratMin || filters.caratMax) c++;
     if (filters.colors.length) c++;
     if (filters.clarities.length) c++;
-    if (filters.cuts.length) c++;
-    if (filters.polish.length) c++;
-    if (filters.symmetry.length) c++;
-    if (filters.fluorescence.length) c++;
-    if (filters.labs.length) c++;
+    if (!isLoose) {
+      if (filters.cuts.length) c++;
+      if (filters.polish.length) c++;
+      if (filters.symmetry.length) c++;
+      if (filters.fluorescence.length) c++;
+      if (filters.labs.length) c++;
+    }
     if (filters.priceMin || filters.priceMax) c++;
     if (filters.certificate) c++;
+    if (isLoose && filters.lotNumber) c++;
     return c;
-  }, [filters]);
+  }, [filters, isLoose]);
 
   return (
     <div className={`modal-overlay ${show ? "show" : ""}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -356,14 +406,15 @@ function SearchModal({ show, onClose, filters, setFilters, onApply }) {
         <div className="modal-head">
           <div>
             <div style={{ fontSize: "1.1rem", fontWeight: 700, color: C.text, letterSpacing: "-.02em" }}>
-              Advanced Search
+              Advanced Search {isLoose ? "(Loose)" : ""}
             </div>
             <div style={{ fontSize: ".72rem", color: C.sub, marginTop: 2 }}>
-              {activeCount > 0 ? `${activeCount} filter${activeCount > 1 ? "s" : ""} active` : "Refine your diamond search"}
+              {activeCount > 0 ? `${activeCount} filter${activeCount > 1 ? "s" : ""} active` : "Refine your inventory search"}
             </div>
           </div>
           <button
             onClick={onClose}
+            suppressHydrationWarning
             style={{
               width: 32, height: 32, borderRadius: 8, border: "none", background: C.light,
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
@@ -377,83 +428,129 @@ function SearchModal({ show, onClose, filters, setFilters, onApply }) {
         </div>
 
         <div className="modal-body">
-          {/* Shape */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-gem" style={{ color: C.blue }} /> Shape</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {SHAPES.map((sh) => (
-                <button
-                  key={sh.id}
-                  className={`sh-btn ${filters.shapes.includes(sh.id) ? "on" : ""}`}
-                  onClick={() => {
-                    const next = filters.shapes.includes(sh.id)
-                      ? filters.shapes.filter((s) => s !== sh.id)
-                      : [...filters.shapes, sh.id];
-                    update("shapes", next);
+          {isLoose ? (
+            <>
+              {/* Lot Number */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-hash" style={{ color: C.blue }} /> Lot Number</div>
+                <input
+                  type="text" placeholder="Search by Lot ID..."
+                  value={filters.lotNumber || ""}
+                  suppressHydrationWarning
+                  onChange={(e) => update("lotNumber", e.target.value)}
+                  style={{
+                    padding: "10px 14px", border: `0.5px solid ${C.border}`, borderRadius: 10,
+                    fontSize: ".82rem", background: "#fff", color: C.text, outline: "none",
+                    width: "100%", maxWidth: 320
                   }}
-                >
-                  <i className={`bi ${sh.icon} sh-icon`} />
-                  <span className="sh-lbl">{sh.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+                />
+              </div>
 
-          {/* Carat */}
+              {/* Color Category (Loose) */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-palette" style={{ color: C.orange }} /> Color Category</div>
+                <ToggleGroup options={LOOSE_COLOR_CATEGORIES} selected={filters.colors}
+                  onChange={(v) => update("colors", v)} />
+              </div>
+
+              {/* Size / Sieve (Loose) */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-grid-3x3" style={{ color: C.purple }} /> Size / Sieve</div>
+                <ToggleGroup options={LOOSE_SIZES} selected={filters.shapes}
+                  onChange={(v) => update("shapes", v)} />
+              </div>
+
+              {/* Grade (Loose) */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-eye" style={{ color: C.green }} /> Grade</div>
+                <ToggleGroup options={availableGrades} selected={filters.clarities}
+                  onChange={(v) => update("clarities", v)} />
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Shape */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-gem" style={{ color: C.blue }} /> Shape</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {SHAPES.map((sh) => (
+                    <button
+                      key={sh.id}
+                      className={`sh-btn ${filters.shapes.includes(sh.id) ? "on" : ""}`}
+                      suppressHydrationWarning
+                      onClick={() => {
+                        const next = filters.shapes.includes(sh.id)
+                          ? filters.shapes.filter((s) => s !== sh.id)
+                          : [...filters.shapes, sh.id];
+                        update("shapes", next);
+                      }}
+                    >
+                      <i className={`bi ${sh.icon} sh-icon`} />
+                      <span className="sh-lbl">{sh.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-palette" style={{ color: C.orange }} /> Color</div>
+                <ToggleGroup options={COLORS} selected={filters.colors}
+                  onChange={(v) => update("colors", v)} rangeSelect />
+              </div>
+
+              {/* Clarity */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-eye" style={{ color: C.green }} /> Clarity</div>
+                <ToggleGroup options={CLARITIES} selected={filters.clarities}
+                  onChange={(v) => update("clarities", v)} rangeSelect />
+              </div>
+
+              {/* Cut · Polish · Symmetry */}
+              <div className="f-section">
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div>
+                    <div className="f-label"><i className="bi bi-scissors" style={{ color: C.indigo }} /> Cut</div>
+                    <ToggleGroup options={CUTS} selected={filters.cuts} onChange={(v) => update("cuts", v)} />
+                  </div>
+                  <div>
+                    <div className="f-label"><i className="bi bi-stars" style={{ color: C.teal }} /> Polish</div>
+                    <ToggleGroup options={POLISH} selected={filters.polish} onChange={(v) => update("polish", v)} />
+                  </div>
+                  <div>
+                    <div className="f-label"><i className="bi bi-symmetry-horizontal" style={{ color: C.pink }} /> Symmetry</div>
+                    <ToggleGroup options={SYMMETRY} selected={filters.symmetry} onChange={(v) => update("symmetry", v)} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Fluorescence */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-lightbulb" style={{ color: C.orange }} /> Fluorescence</div>
+                <ToggleGroup options={FLUORS} selected={filters.fluorescence}
+                  onChange={(v) => update("fluorescence", v)} />
+              </div>
+
+              {/* Lab */}
+              <div className="f-section">
+                <div className="f-label"><i className="bi bi-award" style={{ color: C.blue }} /> Lab</div>
+                <ToggleGroup options={LABS} selected={filters.labs} onChange={(v) => update("labs", v)} />
+              </div>
+            </>
+          )}
+
+          {/* Carat - Common for both but different label potentially */}
           <div className="f-section">
             <div className="f-label"><i className="bi bi-rulers" style={{ color: C.purple }} /> Carat Weight</div>
             <div className="rng-input" style={{ maxWidth: 320 }}>
               <input type="number" placeholder="Min" step="0.01" value={filters.caratMin}
+                suppressHydrationWarning
                 onChange={(e) => update("caratMin", e.target.value)} />
               <span>to</span>
               <input type="number" placeholder="Max" step="0.01" value={filters.caratMax}
+                suppressHydrationWarning
                 onChange={(e) => update("caratMax", e.target.value)} />
             </div>
-          </div>
-
-          {/* Color */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-palette" style={{ color: C.orange }} /> Color</div>
-            <ToggleGroup options={COLORS} selected={filters.colors}
-              onChange={(v) => update("colors", v)} rangeSelect />
-          </div>
-
-          {/* Clarity */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-eye" style={{ color: C.green }} /> Clarity</div>
-            <ToggleGroup options={CLARITIES} selected={filters.clarities}
-              onChange={(v) => update("clarities", v)} rangeSelect />
-          </div>
-
-          {/* Cut · Polish · Symmetry */}
-          <div className="f-section">
-            <div style={{ display: "grid", gap: 16 }}>
-              <div>
-                <div className="f-label"><i className="bi bi-scissors" style={{ color: C.indigo }} /> Cut</div>
-                <ToggleGroup options={CUTS} selected={filters.cuts} onChange={(v) => update("cuts", v)} />
-              </div>
-              <div>
-                <div className="f-label"><i className="bi bi-stars" style={{ color: C.teal }} /> Polish</div>
-                <ToggleGroup options={POLISH} selected={filters.polish} onChange={(v) => update("polish", v)} />
-              </div>
-              <div>
-                <div className="f-label"><i className="bi bi-symmetry-horizontal" style={{ color: C.pink }} /> Symmetry</div>
-                <ToggleGroup options={SYMMETRY} selected={filters.symmetry} onChange={(v) => update("symmetry", v)} />
-              </div>
-            </div>
-          </div>
-
-          {/* Fluorescence */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-lightbulb" style={{ color: C.orange }} /> Fluorescence</div>
-            <ToggleGroup options={FLUORS} selected={filters.fluorescence}
-              onChange={(v) => update("fluorescence", v)} />
-          </div>
-
-          {/* Lab */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-award" style={{ color: C.blue }} /> Lab</div>
-            <ToggleGroup options={LABS} selected={filters.labs} onChange={(v) => update("labs", v)} />
           </div>
 
           {/* Price */}
@@ -461,36 +558,41 @@ function SearchModal({ show, onClose, filters, setFilters, onApply }) {
             <div className="f-label"><i className="bi bi-currency-rupee" style={{ color: C.green }} /> Price (INR)</div>
             <div className="rng-input" style={{ maxWidth: 320 }}>
               <input type="number" placeholder="Min" value={filters.priceMin}
+                suppressHydrationWarning
                 onChange={(e) => update("priceMin", e.target.value)} />
               <span>to</span>
               <input type="number" placeholder="Max" value={filters.priceMax}
+                suppressHydrationWarning
                 onChange={(e) => update("priceMax", e.target.value)} />
             </div>
           </div>
 
-          {/* Certificate */}
-          <div className="f-section">
-            <div className="f-label"><i className="bi bi-file-earmark-text" style={{ color: C.sub }} /> Certificate Number</div>
-            <input
-              type="text" placeholder="Enter certificate number..."
-              value={filters.certificate}
-              onChange={(e) => update("certificate", e.target.value)}
-              style={{
-                padding: "8px 12px", border: `0.5px solid ${C.border}`, borderRadius: 8,
-                fontSize: ".8rem", background: "#fff", color: C.text, outline: "none",
-                width: "100%", maxWidth: 320, transition: "border-color .2s"
-              }}
-              onFocus={(e) => { e.target.style.borderColor = C.blue; }}
-              onBlur={(e) => { e.target.style.borderColor = C.border; }}
-            />
-          </div>
+          {!isLoose && (
+            /* Certificate */
+            <div className="f-section">
+              <div className="f-label"><i className="bi bi-file-earmark-text" style={{ color: C.sub }} /> Certificate Number</div>
+              <input
+                type="text" placeholder="Enter certificate number..."
+                value={filters.certificate || ""}
+                suppressHydrationWarning
+                onChange={(e) => update("certificate", e.target.value)}
+                style={{
+                  padding: "8px 12px", border: `0.5px solid ${C.border}`, borderRadius: 8,
+                  fontSize: ".8rem", background: "#fff", color: C.text, outline: "none",
+                  width: "100%", maxWidth: 320, transition: "border-color .2s"
+                }}
+                onFocus={(e) => { e.target.style.borderColor = C.blue; }}
+                onBlur={(e) => { e.target.style.borderColor = C.border; }}
+              />
+            </div>
+          )}
         </div>
 
         <div className="modal-foot">
-          <button className="m-btn ghost" onClick={() => setFilters({ ...INITIAL_FILTERS })}>
+          <button className="m-btn ghost" suppressHydrationWarning onClick={() => setFilters({ ...INITIAL_FILTERS })}>
             Clear All
           </button>
-          <button className="m-btn primary" onClick={onApply}>
+          <button className="m-btn primary" suppressHydrationWarning onClick={onApply}>
             <i className="bi bi-search" style={{ marginRight: 6, fontSize: ".72rem" }} />
             Apply Filters
           </button>
@@ -680,8 +782,6 @@ function DiamondsIndexPageContent() {
   const [sort, setSort] = useState({ key: null, dir: "asc" });
   const [selected, setSelected] = useState(new Set());
   const [hoveredCell, setHoveredCell] = useState(null);
-  const [selectedCell, setSelectedCell] = useState(null);
-  const [expandedGrade, setExpandedGrade] = useState(null);
   const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
@@ -700,8 +800,19 @@ function DiamondsIndexPageContent() {
       setLoading(true);
       try {
         if (user?.client_type === "Loose") {
-          // Fetch Mix Lot Items
-          const res = await fetch("/api/loose-diamonds/items");
+          // Construct Query Params for Loose Items
+          const params = new URLSearchParams();
+          if (availability === "available") params.set("available", "true");
+          if (activeFilters.lotNumber) params.set("lot_number", activeFilters.lotNumber);
+          if (activeFilters.colors.length) params.set("color_category", activeFilters.colors.join(","));
+          if (activeFilters.shapes.length) params.set("size_category", activeFilters.shapes.join(","));
+          if (activeFilters.clarities.length) params.set("grade", activeFilters.clarities.join(","));
+          if (activeFilters.caratMin) params.set("caratMin", activeFilters.caratMin);
+          if (activeFilters.caratMax) params.set("caratMax", activeFilters.caratMax);
+          if (activeFilters.priceMin) params.set("priceMin", activeFilters.priceMin);
+          if (activeFilters.priceMax) params.set("priceMax", activeFilters.priceMax);
+
+          const res = await fetch(`/api/loose-diamonds/items?${params.toString()}`);
           const data = await res.json();
           setDiamonds(Array.isArray(data) ? data : []);
         } else {
@@ -781,19 +892,46 @@ function DiamondsIndexPageContent() {
 
   const chips = useMemo(() => {
     const list = [];
-    if (activeFilters.shapes.length) list.push({ key: "shapes", label: `Shape: ${activeFilters.shapes.map(cap).join(", ")}` });
+    const isLoose = user?.client_type === "Loose";
+
+    if (activeFilters.lotNumber) list.push({ key: "lotNumber", label: `Lot: ${activeFilters.lotNumber}` });
+
+    if (activeFilters.shapes.length) {
+      list.push({ 
+        key: "shapes", 
+        label: `${isLoose ? "Size" : "Shape"}: ${activeFilters.shapes.map(s => isLoose ? s : cap(s)).join(", ")}` 
+      });
+    }
+
     if (activeFilters.caratMin || activeFilters.caratMax) list.push({ key: "carat", label: `Carat: ${activeFilters.caratMin || "0"} – ${activeFilters.caratMax || "∞"}` });
-    if (activeFilters.colors.length) list.push({ key: "colors", label: `Color: ${activeFilters.colors.join(", ")}` });
-    if (activeFilters.clarities.length) list.push({ key: "clarities", label: `Clarity: ${activeFilters.clarities.join(", ")}` });
-    if (activeFilters.cuts.length) list.push({ key: "cuts", label: `Cut: ${activeFilters.cuts.join(", ")}` });
-    if (activeFilters.polish.length) list.push({ key: "polish", label: `Polish: ${activeFilters.polish.join(", ")}` });
-    if (activeFilters.symmetry.length) list.push({ key: "symmetry", label: `Sym: ${activeFilters.symmetry.join(", ")}` });
-    if (activeFilters.fluorescence.length) list.push({ key: "fluorescence", label: `Fluor: ${activeFilters.fluorescence.join(", ")}` });
-    if (activeFilters.labs.length) list.push({ key: "labs", label: `Lab: ${activeFilters.labs.join(", ")}` });
+
+    if (activeFilters.colors.length) {
+      list.push({ 
+        key: "colors", 
+        label: `${isLoose ? "Type" : "Color"}: ${activeFilters.colors.join(", ")}` 
+      });
+    }
+
+    if (activeFilters.clarities.length) {
+      list.push({ 
+        key: "clarities", 
+        label: `${isLoose ? "Grade" : "Clarity"}: ${activeFilters.clarities.join(", ")}` 
+      });
+    }
+
+    if (!isLoose) {
+      if (activeFilters.cuts.length) list.push({ key: "cuts", label: `Cut: ${activeFilters.cuts.join(", ")}` });
+      if (activeFilters.polish.length) list.push({ key: "polish", label: `Polish: ${activeFilters.polish.join(", ")}` });
+      if (activeFilters.symmetry.length) list.push({ key: "symmetry", label: `Sym: ${activeFilters.symmetry.join(", ")}` });
+      if (activeFilters.fluorescence.length) list.push({ key: "fluorescence", label: `Fluor: ${activeFilters.fluorescence.join(", ")}` });
+      if (activeFilters.labs.length) list.push({ key: "labs", label: `Lab: ${activeFilters.labs.join(", ")}` });
+    }
+
     if (activeFilters.priceMin || activeFilters.priceMax) list.push({ key: "price", label: `Price: ₹${activeFilters.priceMin || "0"} – ₹${activeFilters.priceMax || "∞"}` });
-    if (activeFilters.certificate) list.push({ key: "certificate", label: `Cert: ${activeFilters.certificate}` });
+    if (!isLoose && activeFilters.certificate) list.push({ key: "certificate", label: `Cert: ${activeFilters.certificate}` });
+
     return list;
-  }, [activeFilters]);
+  }, [activeFilters, user?.client_type]);
 
   const removeChip = (key) => {
     const removeFn = (f) => {
@@ -801,6 +939,7 @@ function DiamondsIndexPageContent() {
       if (key === "carat") { n.caratMin = ""; n.caratMax = ""; }
       else if (key === "price") { n.priceMin = ""; n.priceMax = ""; }
       else if (key === "certificate") { n.certificate = ""; }
+      else if (key === "lotNumber") { n.lotNumber = ""; }
       else { n[key] = []; }
       return n;
     };
@@ -852,83 +991,7 @@ function DiamondsIndexPageContent() {
 
   const matrixData = useMemo(() => {
     if (user?.client_type !== "Loose" || rows.length === 0) return null;
-    
-    // Standard sizes and colors for Mix Items
-    const sizes = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
-    
-    // We can also extract any extra dynamic unique sizes/colors just in case they exist outside the standard set
-    const dynamicSizes = Array.from(new Set(rows.map(d => d.size_category || "N/A")));
-    const dynamicColors = Array.from(new Set(rows.map(d => d.color_category || "N/A")));
-
-    // Merge standard and dynamic
-    const allSizes = Array.from(new Set([...sizes, ...dynamicSizes])).sort((a,b) => {
-        if (a === "N/A") return 1; if (b === "N/A") return -1;
-        
-        const idxA = sizes.indexOf(a);
-        const idxB = sizes.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-
-        const vA = parseFloat(a.replace(/[+,-]/g, '')) || 0;
-        const vB = parseFloat(b.replace(/[+,-]/g, '')) || 0;
-        return vA - vB;
-    });
-
-    const standardColors = ["White", "White Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
-    const allColors = Array.from(new Set([...standardColors, ...dynamicColors])).sort((a,b) => {
-        if(a === "N/A") return 1; if(b === "N/A") return -1;
-        
-        const idxA = standardColors.indexOf(a);
-        const idxB = standardColors.indexOf(b);
-        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-        if (idxA !== -1) return -1;
-        if (idxB !== -1) return 1;
-        
-        return a.localeCompare(b);
-    });
-
-    // Build the grid
-    const grid = {};
-    const colTotals = {};
-    const rowTotals = {};
-    let grandTotal = 0;
-
-    allColors.forEach(c => {
-      grid[c] = {};
-      rowTotals[c] = 0;
-      allSizes.forEach(s => {
-        grid[c][s] = { carats: 0, totalPrice: 0, count: 0, grades: {} };
-        colTotals[s] = 0;
-      });
-    });
-
-    // Populate the grid
-    rows.forEach(d => {
-      const c = d.color_category || "N/A";
-      const s = d.size_category || "N/A";
-      const g = d.grade || "N/A";
-      const val = parseFloat(d.carats) || 0; // The actual value is carats
-      const price = parseFloat(d.total_value) || 0;
-      
-      grid[c][s].carats += val;
-      grid[c][s].totalPrice += price;
-      grid[c][s].count += 1;
-
-      if (!grid[c][s].grades[g]) {
-        grid[c][s].grades[g] = { carats: 0, totalPrice: 0, count: 0, items: [] };
-      }
-      grid[c][s].grades[g].carats += val;
-      grid[c][s].grades[g].totalPrice += price;
-      grid[c][s].grades[g].count += 1;
-      grid[c][s].grades[g].items.push(d);
-
-      rowTotals[c] += val;
-      colTotals[s] += val;
-      grandTotal += val;
-    });
-
-    return { sizes: allSizes, colors: allColors, grid, rowTotals, colTotals, grandTotal };
+    return calculateMatrixData(rows);
   }, [rows, user?.client_type]);
 
   const stats = useMemo(() => {
@@ -1011,22 +1074,23 @@ function DiamondsIndexPageContent() {
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
-              onClick={handleExport}
-              style={{
-                background: "#fff", color: C.text, padding: "10px 20px", borderRadius: 12,
-                fontSize: ".82rem", fontWeight: 600, border: `0.5px solid ${C.border}`,
-                display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                transition: "all .2s"
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.borderColor = C.blue; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = C.border; }}
-              title={selected.size > 0 ? `Export ${selected.size} selected` : "Export all visible"}
-            >
-              <i className="bi bi-file-earmark-spreadsheet" style={{ fontSize: ".82rem", color: C.green }} />
-              Export{selected.size > 0 ? ` (${selected.size})` : ""}
-            </button>
+               onClick={handleExport}
+               suppressHydrationWarning
+               style={{
+                 background: "#fff", color: C.text, padding: "10px 20px", borderRadius: 12,
+                 fontSize: ".82rem", fontWeight: 600, border: `0.5px solid ${C.border}`,
+                 display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
+                 transition: "all .2s"
+               }}
+               onMouseEnter={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.borderColor = C.blue; }}
+               onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = C.border; }}
+               title={selected.size > 0 ? `Export ${selected.size} selected` : "Export all visible"}
+             >
+               <i className="bi bi-file-earmark-spreadsheet" style={{ fontSize: ".82rem", color: C.green }} />
+               Export{selected.size > 0 ? ` (${selected.size})` : ""}
+             </button>
             <Link
-              href={hasMounted && user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"}
+              href={!hasMounted ? "/diamonds/create" : (user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create")}
               style={{
                 background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12,
                 fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex",
@@ -1034,7 +1098,7 @@ function DiamondsIndexPageContent() {
               }}
             >
               <i className="bi bi-plus-lg" style={{ fontSize: ".72rem" }} /> 
-              Add {hasMounted && user?.client_type === "Loose" ? "Lot" : "Diamond"}
+              Add {!hasMounted ? "Diamond" : (user?.client_type === "Loose" ? "Lot" : "Diamond")}
             </Link>
           </div>
         </div>
@@ -1043,7 +1107,7 @@ function DiamondsIndexPageContent() {
         <div className="fi" style={{ animationDelay: ".05s", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div className="search-wrap" style={{ flex: "1 1 220px", maxWidth: 320 }}>
             <i className="bi bi-search s-icon" />
-            <input placeholder="Search inventory..." value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input placeholder="Search inventory..." value={query} onChange={(e) => setQuery(e.target.value)} suppressHydrationWarning />
           </div>
 
           <button className={`adv-btn ${advFilterCount > 0 ? "has-filters" : ""}`} onClick={() => setShowModal(true)}>
@@ -1065,6 +1129,7 @@ function DiamondsIndexPageContent() {
           <div style={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             {AVAIL_OPTIONS.map((a) => (
               <button key={a.id} className={`av-pill ${availability === a.id ? "active" : ""}`}
+                suppressHydrationWarning
                 onClick={() => changeAvail(a.id)}>
                 {a.label}
               </button>
@@ -1097,513 +1162,387 @@ function DiamondsIndexPageContent() {
         )}
 
         {/* Matrix View (Only for Mix Items) */}
-        {hasMounted && user?.client_type === "Loose" ? (
-          matrixData ? (
-            <div className="matrix-container fi" style={{ animationDelay: ".1s", padding: "12px 16px", background: "#fff", borderRadius: "14px", boxShadow: "0 1px 3px rgba(0,0,0,.02)", border: `0.5px solid rgba(0,0,0,.05)` }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>Inventory Matrix</h3>
-                  <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>Weight by Size & Color</p>
+        {/* Main Content Area: Matrix or List */}
+        {(() => {
+          if (!hasMounted) return <div style={{ padding: "40px", textAlign: "center", color: C.sub }}>Loading view...</div>;
+          
+          if (user?.client_type === "Loose") {
+            if (!matrixData) {
+              return (
+                <div className="tbl-card fi" style={{ animationDelay: ".1s", padding: "40px", textAlign: "center", color: C.sub }}>
+                  No items matching these filters to display in the matrix.
                 </div>
+              );
+            }
+            return (
+              <div className="matrix-container fi" style={{ animationDelay: ".1s", padding: "24px 20px", background: "#fff", borderRadius: "14px", boxShadow: "0 1px 3px rgba(0,0,0,.02)", border: `0.5px solid rgba(0,0,0,.05)` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>Inventory Matrix</h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>Weight by Size & Color</p>
+                  </div>
 
-                {/* Hover Dashboard (Compact) */}
-                <div style={{ 
-                  background: "#f9f9f9", borderRadius: "10px", padding: "6px 14px", 
-                  display: "flex", gap: "20px", alignItems: "center", minWidth: 280, minHeight: 48,
-                  border: `1px solid ${C.light}`, transition: "all 0.25s ease",
-                  opacity: hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? 1 : 0.6,
-                }}>
-                  {hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <i className="bi bi-gem" style={{ color: C.blue, fontSize: "0.9rem" }} />
-                        <div style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
-                          {hoveredCell.s} | {hoveredCell.c}
-                        </div>
-                      </div>
-                      
-                      <div style={{ width: 1, height: 16, background: C.border }} />
-
-                      <div>
-                        <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>Rate</span>
-                        <span style={{ fontSize: "0.85rem", color: C.green, fontWeight: 800 }}>
-                          {fmt(matrixData.grid[hoveredCell.c][hoveredCell.s].totalPrice / matrixData.grid[hoveredCell.c][hoveredCell.s].carats)}
-                        </span>
-                      </div>
-
-                      <div style={{ width: 1, height: 16, background: C.border }} />
-
-                      <div>
-                        <span style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
-                          {matrixData.grid[hoveredCell.c][hoveredCell.s].count} <span style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 600 }}>lots</span>
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: "0.75rem", color: C.sub, width: "100%", textAlign: "center", fontWeight: 500 }}>
-                      Hover cells for insights
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bifurcation Details (Split View) */}
-              {selectedCell && matrixData.grid[selectedCell.c]?.[selectedCell.s]?.carats > 0 && (() => {
-                const grades = Object.entries(matrixData.grid[selectedCell.c][selectedCell.s].grades).sort(([a], [b]) => a.localeCompare(b));
-                const activeGradeId = expandedGrade || grades[0]?.[0];
-                const activeData = matrixData.grid[selectedCell.c][selectedCell.s].grades[activeGradeId];
-
-                return (
-                  <div className="fi" style={{ 
-                    marginBottom: "16px", background: "#fff", 
-                    borderRadius: "14px", border: `1px solid rgba(0,0,0,0.08)`, overflow: "hidden",
-                    boxShadow: "0 4px 15px rgba(0,0,0,0.03)"
+                  {/* Hover Dashboard (Compact) */}
+                  <div style={{ 
+                    background: "#f9f9f9", borderRadius: "10px", padding: "6px 14px", 
+                    display: "flex", gap: "20px", alignItems: "center", minWidth: 280, minHeight: 48,
+                    border: `1px solid ${C.light}`, transition: "all 0.25s ease",
+                    opacity: hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? 1 : 0.6,
                   }}>
-                    {/* Header */}
-                    <div style={{ 
-                      padding: "10px 16px", background: "rgba(0,113,227,0.03)", 
-                      borderBottom: `1px solid rgba(0,0,0,0.05)`,
-                      display: "flex", justifyContent: "space-between", alignItems: "center" 
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.blue, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <i className="bi bi-bar-chart-fill" style={{ color: "#fff", fontSize: "0.8rem" }} />
-                        </div>
-                        <div>
-                          <span style={{ fontWeight: 800, fontSize: "0.9rem", color: C.text, letterSpacing: "-0.01em" }}>Inventory Analysis</span>
-                          <span style={{ fontSize: "0.72rem", color: C.sub, marginLeft: 10 }}>
-                            Breakdown for <b style={{ color: C.blue }}>{selectedCell.s} | {selectedCell.c}</b>
-                          </span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => setSelectedCell(null)}
-                        style={{ 
-                          background: "#fff", border: `1px solid ${C.light}`, color: C.sub, cursor: "pointer", 
-                          fontSize: "0.7rem", fontWeight: 700, padding: "4px 10px", borderRadius: "6px",
-                          display: "flex", alignItems: "center", gap: 6
-                        }}
-                      >
-                       <i className="bi bi-x-lg" /> Close analysis
-                      </button>
-                    </div>
-
-                    {/* Horizontal Grade Scroller */}
-                    <div style={{ 
-                      display: "flex", gap: 8, padding: "8px 16px", background: "#fafafa", 
-                      borderBottom: `1px solid rgba(0,0,0,0.04)`, overflowX: "auto" 
-                    }}>
-                      {grades.map(([grade, data]) => (
-                        <div 
-                          key={grade}
-                          onClick={() => setExpandedGrade(grade)}
-                          style={{ 
-                            padding: "6px 14px", borderRadius: "20px", cursor: "pointer",
-                            background: activeGradeId === grade ? C.blue : "#fff",
-                            color: activeGradeId === grade ? "#fff" : C.text,
-                            border: `1px solid ${activeGradeId === grade ? C.blue : C.light}`,
-                            transition: "all 0.2s", whiteSpace: "nowrap",
-                            display: "flex", alignItems: "center", gap: 8,
-                            boxShadow: activeGradeId === grade ? "0 2px 8px rgba(0,113,227,0.2)" : "none"
-                          }}
-                        >
-                          <span style={{ fontWeight: 800, fontSize: "0.85rem" }}>{grade}</span>
-                          <span style={{ fontSize: "0.65rem", opacity: 0.8, fontWeight: 600 }}>{data.carats.toFixed(2)} ct</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ display: "flex", padding: "20px", gap: "24px", minHeight: "220px" }}>
-                      {/* Left: Summary Cards (Filling space better) */}
-                      <div style={{ width: "320px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                        <div style={{ background: "rgba(0,113,227,0.02)", padding: "16px", borderRadius: "12px", border: `1px solid rgba(0,113,227,0.05)`, gridColumn: "span 2" }}>
-                          <div style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Main Grade Info</div>
-                          <div style={{ fontSize: "1.8rem", fontWeight: 800, color: C.text, lineHeight: 1 }}>{activeGradeId}</div>
-                          <div style={{ fontSize: "0.8rem", color: C.blue, fontWeight: 600, marginTop: 4 }}>Inventory Breakdown</div>
-                        </div>
-
-                        <div style={{ background: "#fff", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}` }}>
-                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>TOTAL CARATS</div>
-                          <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.text }}>{activeData.carats.toFixed(3)}</div>
+                    {hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <i className="bi bi-gem" style={{ color: C.blue, fontSize: "0.9rem" }} />
+                          <div style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+                            {hoveredCell.s} | {hoveredCell.c}
+                          </div>
                         </div>
                         
-                        <div style={{ background: "#fff", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}` }}>
-                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>LOT COUNT</div>
-                          <div style={{ fontSize: "1.1rem", fontWeight: 800, color: C.text }}>{activeData.count}</div>
-                        </div>
+                        <div style={{ width: 1, height: 16, background: C.border }} />
 
-                        <div style={{ background: "linear-gradient(to bottom right, #fafafa, #f5f5f5)", padding: "12px", borderRadius: "12px", border: `1px solid ${C.light}`, gridColumn: "span 2" }}>
-                          <div style={{ fontSize: "0.6rem", color: C.sub, fontWeight: 700 }}>ESTIMATED AVG RATE</div>
-                          <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.green }}>{fmt(activeData.totalPrice / activeData.carats)} <span style={{ fontSize: "0.7rem", color: C.sub }}>/ ct</span></div>
-                        </div>
-                      </div>
-
-                      {/* Right: Detailed Lot Table (Using all remaining width) */}
-                      <div style={{ flex: 1, background: "#fff", border: `1px solid ${C.light}`, borderRadius: "12px", padding: "16px", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                        <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "0.75rem", fontWeight: 800, color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
-                            <i className="bi bi-list-ul" style={{ color: C.blue }} /> Lot Breakdown
+                        <div>
+                          <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>Rate</span>
+                          <span style={{ fontSize: "0.85rem", color: C.green, fontWeight: 800 }}>
+                            {fmt(matrixData.grid[hoveredCell.c][hoveredCell.s].totalPrice / matrixData.grid[hoveredCell.c][hoveredCell.s].carats)}
                           </span>
-                          <span style={{ fontSize: "0.65rem", color: C.sub }}>Scroll to see more lots</span>
                         </div>
 
-                        <div style={{ overflowY: "auto", flex: 1, maxHeight: "200px" }}>
-                          <table style={{ width: "100%", fontSize: "0.75rem", borderCollapse: "separate", borderSpacing: "0 4px" }}>
-                            <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
-                              <tr style={{ color: C.sub }}>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "left", fontWeight: 700 }}>LOT #</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>COLOR</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>SIZE</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "center", fontWeight: 700 }}>GRADE</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>WEIGHT</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>RATE</th>
-                                <th style={{ padding: "8px 0", borderBottom: `1.5px solid ${C.light}`, textAlign: "right", fontWeight: 700 }}>TOTAL VAL</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {activeData.items.map((item, idx) => (
-                                <tr key={idx} className="lot-row">
-                                  <td style={{ padding: "10px 0", fontWeight: 800, color: C.text }}>{item.lot_number}</td>
-                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.color_category}</td>
-                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.size_category}</td>
-                                  <td style={{ padding: "10px 0", textAlign: "center", color: C.text }}>{item.grade}</td>
-                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.text, fontWeight: 700 }}>{parseFloat(item.carats).toFixed(3)} ct</td>
-                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.green, fontWeight: 800 }}>{fmt(parseFloat(item.total_value) / parseFloat(item.carats))}</td>
-                                  <td style={{ padding: "10px 0", textAlign: "right", color: C.text, fontWeight: 800 }}>{fmt(item.total_value)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div style={{ width: 1, height: 16, background: C.border }} />
+
+                        <div>
+                          <span style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+                            {matrixData.grid[hoveredCell.c][hoveredCell.s].count} <span style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 600 }}>lots</span>
+                          </span>
                         </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: "0.75rem", color: C.sub, width: "100%", textAlign: "center", fontWeight: 500 }}>
+                        Hover cells for insights
                       </div>
-                    </div>
+                    )}
                   </div>
-                );
-              })()}
+                </div>
 
-              <div style={{ overflowX: "auto" }}>
-                <table className="matrix-table">
-                  <thead>
-                    <tr>
-                      <th className="row-header" style={{ zIndex: 10 }}>Color \ Size</th>
-                      {matrixData.sizes.map(s => (
-                        <th key={s} className="col-header">{s}</th>
+                <div style={{ overflowX: "auto" }}>
+                  <table className="matrix-table">
+                    <thead>
+                      <tr>
+                        <th className="row-header" style={{ zIndex: 10 }}>Color \ Size</th>
+                        {matrixData.sizes.map(s => (
+                          <th key={s} className="col-header">{s}</th>
+                        ))}
+                        <th className="col-header matrix-row-total">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matrixData.colors.map(c => (
+                        <tr key={c}>
+                          <th className="row-header">{c}</th>
+                          {matrixData.sizes.map(s => {
+                            const val = matrixData.grid[c][s].carats;
+                            return (
+                              <td 
+                                key={s} 
+                                className={val === 0 ? "matrix-zero" : ""}
+                                onMouseEnter={() => setHoveredCell({ c, s })}
+                                onMouseLeave={() => setHoveredCell(null)}
+                                onClick={() => val > 0 && router.push(`/diamonds/matrix/analysis?color=${encodeURIComponent(c)}&size=${encodeURIComponent(s)}`)}
+                                style={{ 
+                                  transition: "all 0.1s"
+                                }}
+                              >
+                                {val > 0 ? val.toFixed(3) : "-"}
+                              </td>
+                            );
+                          })}
+                          <td className="matrix-row-total">
+                            {matrixData.rowTotals[c] > 0 ? matrixData.rowTotals[c].toFixed(3) : "-"}
+                          </td>
+                        </tr>
                       ))}
-                      <th className="col-header matrix-row-total">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {matrixData.colors.map(c => (
-                      <tr key={c}>
-                        <th className="row-header">{c}</th>
-                        {matrixData.sizes.map(s => {
-                          const val = matrixData.grid[c][s].carats;
-                          const isSel = selectedCell?.c === c && selectedCell?.s === s;
-                          return (
-                            <td 
-                              key={s} 
-                              className={val === 0 ? "matrix-zero" : ""}
-                              onMouseEnter={() => setHoveredCell({ c, s })}
-                              onMouseLeave={() => setHoveredCell(null)}
-                              onClick={() => val > 0 && setSelectedCell(isSel ? null : { c, s })}
-                              style={{ 
-                                background: isSel ? C.blue : undefined,
-                                color: isSel ? "#fff" : undefined,
-                                boxShadow: isSel ? "inset 0 0 0 2px rgba(255,255,255,0.3)" : undefined
-                              }}
-                            >
-                              {val > 0 ? val.toFixed(3) : "-"}
-                            </td>
-                          );
-                        })}
-                        <td className="matrix-row-total">
-                          {matrixData.rowTotals[c] > 0 ? matrixData.rowTotals[c].toFixed(3) : "-"}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <th className="row-header" style={{ color: C.text }}>Total</th>
+                        {matrixData.sizes.map(s => (
+                          <td key={s} style={{ fontWeight: 800, color: C.text }}>
+                            {matrixData.colTotals[s] > 0 ? matrixData.colTotals[s].toFixed(3) : "-"}
+                          </td>
+                        ))}
+                        <td className="matrix-grand-total">
+                          {matrixData.grandTotal.toFixed(3)}
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th className="row-header" style={{ color: C.text }}>Total</th>
-                      {matrixData.sizes.map(s => (
-                        <td key={s} style={{ fontWeight: 800, color: C.text }}>
-                          {matrixData.colTotals[s] > 0 ? matrixData.colTotals[s].toFixed(3) : "-"}
-                        </td>
-                      ))}
-                      <td className="matrix-grand-total">
-                        {matrixData.grandTotal.toFixed(3)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="tbl-card fi" style={{ animationDelay: ".1s", padding: "40px", textAlign: "center", color: C.sub }}>
-              No items matching these filters to display in the matrix.
-            </div>
-          )
-        ) : (
-          /* Table (Only for Regular Diamonds) */
-          <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
-            <div className="tbl-header">
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                <span style={{ fontSize: ".82rem", fontWeight: 600, color: C.text }}>
-                  {loading ? "Loading…" : `${rows.length} Diamond${rows.length !== 1 ? "s" : ""}`}
-                </span>
-                {!loading && (
-                  <span style={{ fontSize: ".72rem", color: C.sub }}>
-                    {stats.available + " available"} · {stats.carats.toFixed(2)} ct · {fmt(stats.value)}
+            );
+          }
+
+          /* Default List Table View */
+          return (
+            <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
+              <div className="tbl-header">
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: ".82rem", fontWeight: 600, color: C.text }}>
+                    {loading ? "Loading…" : `${rows.length} Diamond${rows.length !== 1 ? "s" : ""}`}
                   </span>
-                )}
-              </div>
-            </div>
-
-            <div className="tbl-wrap">
-            <table className="di-tbl">
-              <thead>
-                <tr>
-                  {/* Checkbox column header */}
-                  <th className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center", zIndex: 5, background: "#fafafa" }}>
-                    <input
-                      type="checkbox"
-                      className="di-checkbox"
-                      checked={allRowsSelected}
-                      ref={(el) => { if (el) el.indeterminate = someRowsSelected; }}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  {hasMounted && user?.client_type === "Loose" ? (
-                    <>
-                      {MIX_FZ.map((col, i) => (
-                        <SortTH
-                          key={col.key}
-                          colKey={col.key === "_idx" ? null : col.key}
-                          className={`fz ${i === MIX_FZ.length - 1 ? "fz-last" : ""}`}
-                          style={{ left: mixFzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
-                        >
-                          {col.label}
-                        </SortTH>
-                      ))}
-                      {MIX_SCROLL_COLS.map((col) => (
-                        <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
-                          {col.label}
-                        </SortTH>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      {FZ.map((col, i) => (
-                        <SortTH
-                          key={col.key}
-                          colKey={col.key === "_idx" ? null : col.key}
-                          className={`fz ${i === FZ.length - 1 ? "fz-last" : ""}`}
-                          style={{ left: fzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
-                        >
-                          {col.label}
-                        </SortTH>
-                      ))}
-                      {SCROLL_COLS.map((col) => (
-                        <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
-                          {col.label}
-                        </SortTH>
-                      ))}
-                    </>
+                  {!loading && (
+                    <span style={{ fontSize: ".72rem", color: C.sub }}>
+                      {stats.available + " available"} · {stats.carats.toFixed(2)} ct · {fmt(stats.value)}
+                    </span>
                   )}
-                  <th className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, textAlign: "center" }}>
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+                </div>
+              </div>
 
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i}>
-                      <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center" }}>
-                        <Skel w={16} h={16} />
-                      </td>
-                      {(hasMounted && user?.client_type === "Loose" ? MIX_FZ : FZ).map((col, j) => (
-                        <td key={j} className={`fz ${j === (hasMounted && user?.client_type === "Loose" ? MIX_FZ : FZ).length - 1 ? "fz-last" : ""}`}
-                          style={{ left: (hasMounted && user?.client_type === "Loose" ? mixFzLeft[j] : fzLeft[j]) + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
-                          <Skel w={col.w - 28} h={14} />
-                        </td>
-                      ))}
-                      {(hasMounted && user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
-                        <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
-                          <Skel w={col.w - 32} h={14} />
-                        </td>
-                      ))}
-                      <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, textAlign: "center" }}>
-                        <Skel w={140} h={14} />
-                      </td>
-                    </tr>
-                  ))
-                ) : rows.length === 0 ? (
-                  <tr>
-                    <td colSpan={hasMounted && user?.client_type === "Loose" ? (MIX_FZ.length + MIX_SCROLL_COLS.length + 2) : (FZ.length + SCROLL_COLS.length + 2)} style={{ border: "none" }}>
-                      <div className="empty-state">
-                        <i className="bi bi-gem" style={{ fontSize: "2.5rem", color: C.border, display: "block", marginBottom: 12 }} />
-                        <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.text, marginBottom: 4 }}>No diamonds found</div>
-                        <div style={{ fontSize: ".8rem", color: C.sub, marginBottom: 16 }}>
-                          {query || advFilterCount > 0 ? "Try adjusting your filters" : "Add your first diamond to get started"}
-                        </div>
-                         {query || advFilterCount > 0 ? (
-                          <button className="m-btn ghost" onClick={() => { setQuery(""); setFilters({ ...INITIAL_FILTERS }); setActiveFilters({ ...INITIAL_FILTERS }); changeAvail(""); }}>
-                            Clear Filters
-                          </button>
-                        ) : (
-                          <Link href={hasMounted && user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
-                            Add {hasMounted && user?.client_type === "Loose" ? "Lot" : "Diamond"}
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  rows.map((d, idx) => (
-                    <tr key={d.id} style={selected.has(d.id) ? { background: "rgba(0,113,227,.04)" } : {}}>
-                      {/* Checkbox */}
-                      <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center", background: selected.has(d.id) ? "rgba(0,113,227,.04)" : undefined }}>
+              <div className="tbl-wrap">
+                <table className="di-tbl">
+                  <thead>
+                    <tr>
+                      <th className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center", zIndex: 5, background: "#fafafa" }}>
                         <input
                           type="checkbox"
                           className="di-checkbox"
-                          checked={selected.has(d.id)}
-                          onChange={() => toggleSelect(d.id)}
+                          checked={allRowsSelected}
+                          suppressHydrationWarning
+                          ref={(el) => { if (el) el.indeterminate = someRowsSelected; }}
+                          onChange={toggleSelectAll}
                         />
-                      </td>
-                      {/* Frozen Left Columns */}
-                      {hasMounted && user?.client_type === "Loose" ? (
+                      </th>
+                      {user?.client_type === "Loose" ? (
                         <>
-                          {/* Frozen: # */}
-                          <td className="fz" style={{ left: mixFzLeft[0] + 44, width: MIX_FZ[0].w, minWidth: MIX_FZ[0].w, maxWidth: MIX_FZ[0].w, color: C.sub, fontWeight: 500 }}>
-                            {idx + 1}
-                          </td>
-                          {/* Frozen: Lot # */}
-                          <td className="fz" style={{ left: mixFzLeft[1] + 44, width: MIX_FZ[1].w, minWidth: MIX_FZ[1].w, maxWidth: MIX_FZ[1].w }}>
-                            <span style={{ fontWeight: 600, color: C.text }}>{d.lot_number}</span>
-                          </td>
-                          {/* Frozen: Color */}
-                          <td className="fz" style={{ left: mixFzLeft[2] + 44, width: MIX_FZ[2].w, minWidth: MIX_FZ[2].w, maxWidth: MIX_FZ[2].w, fontWeight: 600, color: C.text }}>
-                            {d.color_category}
-                          </td>
-                          {/* Frozen: Size */}
-                          <td className="fz" style={{ left: mixFzLeft[3] + 44, width: MIX_FZ[3].w, minWidth: MIX_FZ[3].w, maxWidth: MIX_FZ[3].w, fontWeight: 600, color: C.text }}>
-                            {d.size_category}
-                          </td>
-                          {/* Frozen: Grade */}
-                          <td className="fz fz-last" style={{ left: mixFzLeft[4] + 44, width: MIX_FZ[4].w, minWidth: MIX_FZ[4].w, maxWidth: MIX_FZ[4].w, fontWeight: 600, color: C.text }}>
-                            <div className="cell-clamp" title={d.grade}>{d.grade}</div>
-                          </td>
+                          {MIX_FZ.map((col, i) => (
+                            <SortTH
+                              key={col.key}
+                              colKey={col.key === "_idx" ? null : col.key}
+                              className={`fz ${i === MIX_FZ.length - 1 ? "fz-last" : ""}`}
+                              style={{ left: mixFzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
+                            >
+                              {col.label}
+                            </SortTH>
+                          ))}
+                          {MIX_SCROLL_COLS.map((col) => (
+                            <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
+                              {col.label}
+                            </SortTH>
+                          ))}
                         </>
                       ) : (
                         <>
-                          {/* Frozen: # */}
-                          <td className="fz" style={{ left: fzLeft[0] + 44, width: FZ[0].w, minWidth: FZ[0].w, maxWidth: FZ[0].w, color: C.sub, fontWeight: 500 }}>
-                            {idx + 1}
-                          </td>
-                          {/* Frozen: Shape */}
-                          <td className="fz" style={{ left: fzLeft[1] + 44, width: FZ[1].w, minWidth: FZ[1].w, maxWidth: FZ[1].w }}>
-                            <span style={{ fontWeight: 600, color: C.text }}>{cap(d.shape)}</span>
-                          </td>
-                          {/* Frozen: Weight */}
-                          <td className="fz" style={{ left: fzLeft[2] + 44, width: FZ[2].w, minWidth: FZ[2].w, maxWidth: FZ[2].w, fontWeight: 600, color: C.text }}>
-                            {parseFloat(d.weight).toFixed(2)}
-                          </td>
-                          {/* Frozen: Color */}
-                          <td className="fz" style={{ left: fzLeft[3] + 44, width: FZ[3].w, minWidth: FZ[3].w, maxWidth: FZ[3].w, fontWeight: 600, color: C.text }}>
-                            {d.color?.toUpperCase() || "—"}
-                          </td>
-                          {/* Frozen: Clarity (last) */}
-                          <td className="fz fz-last" style={{ left: fzLeft[4] + 44, width: FZ[4].w, minWidth: FZ[4].w, maxWidth: FZ[4].w, fontWeight: 600, color: C.text }}>
-                            {d.clarity?.toUpperCase() || "—"}
-                          </td>
+                          {FZ.map((col, i) => (
+                            <SortTH
+                              key={col.key}
+                              colKey={col.key === "_idx" ? null : col.key}
+                              className={`fz ${i === FZ.length - 1 ? "fz-last" : ""}`}
+                              style={{ left: fzLeft[i] + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}
+                            >
+                              {col.label}
+                            </SortTH>
+                          ))}
+                          {SCROLL_COLS.map((col) => (
+                            <SortTH key={col.key} colKey={col.key} style={{ minWidth: col.w, width: col.w }}>
+                              {col.label}
+                            </SortTH>
+                          ))}
                         </>
                       )}
-
-                      {/* Scrollable */}
-                      {(hasMounted && user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
-                        <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
-                          {renderCell(d, col.key)}
-                        </td>
-                      ))}
-
-                      {/* Actions (frozen right) */}
-                      <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, maxWidth: ACT_W }}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center", width: "100%" }}>
-                          <Link 
-                            href={hasMounted && user?.client_type === "Loose" ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} 
-                            className="act-btn view act-tooltip" 
-                            data-tip="View Details" 
-                            title="View"
-                          >
-                            <i className="bi bi-eye" />
-                          </Link>
-                          
-                          <Link 
-                            href={hasMounted && user?.client_type === "Loose" ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} 
-                            className="act-btn edit act-tooltip" 
-                            data-tip="Edit" 
-                            title="Edit"
-                          >
-                            <i className="bi bi-pencil" />
-                          </Link>
-
-                          {(hasMounted && (user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
-                            <Link 
-                              href={hasMounted && user?.client_type === "Loose" ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} 
-                              className="act-btn sell act-tooltip" 
-                              data-tip="Create Sale" 
-                              title="Sell"
-                            >
-                              <i className="bi bi-cart-plus" />
-                            </Link>
-                          )}
-
-                          {(hasMounted && (user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
-                            <Link 
-                              href={hasMounted && user?.client_type === "Loose" ? "#" : `/diamonds/${d.id}/memo`} 
-                              className="act-btn memo act-tooltip" 
-                              data-tip="Send on Memo" 
-                              title="Memo"
-                            >
-                              <i className="bi bi-send" />
-                            </Link>
-                          )}
-
-                          <button
-                            className="act-btn del act-tooltip"
-                            data-tip="Delete"
-                            title="Delete"
-                            onClick={() => handleDelete(d.id)}
-                          >
-                            <i className="bi bi-trash3" />
-                          </button>
-                        </div>
-                      </td>
+                      <th className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, textAlign: "center" }}>
+                        Actions
+                      </th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
 
-          {!loading && rows.length > 0 && (
-            <div style={{
-              padding: "12px 20px", borderTop: `0.5px solid ${C.light}`, display: "flex",
-              justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8
-            }}>
-              <span style={{ fontSize: ".72rem", color: C.sub }}>
-                Showing {rows.length} of {diamonds.length} diamonds
-              </span>
-              <span style={{ fontSize: ".68rem", color: C.sub }}>
-                <i className="bi bi-arrow-left-right" style={{ marginRight: 4 }} />
-                Scroll horizontally for more columns
-              </span>
+                  <tbody>
+                    {loading ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <tr key={i}>
+                          <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center" }}>
+                            <Skel w={16} h={16} />
+                          </td>
+                          {(user?.client_type === "Loose" ? MIX_FZ : FZ).map((col, j) => (
+                            <td key={j} className={`fz ${j === (user?.client_type === "Loose" ? MIX_FZ : FZ).length - 1 ? "fz-last" : ""}`}
+                              style={{ left: (user?.client_type === "Loose" ? mixFzLeft[j] : fzLeft[j]) + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
+                              <Skel w={col.w - 28} h={14} />
+                            </td>
+                          ))}
+                          {(user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
+                            <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
+                              <Skel w={col.w - 32} h={14} />
+                            </td>
+                          ))}
+                          <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, textAlign: "center" }}>
+                            <Skel w={140} h={14} />
+                          </td>
+                        </tr>
+                      ))
+                    ) : rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={user?.client_type === "Loose" ? (MIX_FZ.length + MIX_SCROLL_COLS.length + 2) : (FZ.length + SCROLL_COLS.length + 2)} style={{ border: "none" }}>
+                          <div className="empty-state">
+                            <i className="bi bi-gem" style={{ fontSize: "2.5rem", color: C.border, display: "block", marginBottom: 12 }} />
+                            <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.text, marginBottom: 4 }}>No diamonds found</div>
+                            <div style={{ fontSize: ".8rem", color: C.sub, marginBottom: 16 }}>
+                              {query || advFilterCount > 0 ? "Try adjusting your filters" : "Add your first diamond to get started"}
+                            </div>
+                            {query || advFilterCount > 0 ? (
+                              <button className="m-btn ghost" onClick={() => { setQuery(""); setFilters({ ...INITIAL_FILTERS }); setActiveFilters({ ...INITIAL_FILTERS }); changeAvail(""); }}>
+                                Clear Filters
+                              </button>
+                            ) : (
+                              <Link href={user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
+                                Add {user?.client_type === "Loose" ? "Lot" : "Diamond"}
+                              </Link>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((d, idx) => (
+                        <tr key={d.id} style={selected.has(d.id) ? { background: "rgba(0,113,227,.04)" } : {}}>
+                          {/* Checkbox */}
+                          <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center", background: selected.has(d.id) ? "rgba(0,113,227,.04)" : undefined }}>
+                            <input
+                              type="checkbox"
+                              className="di-checkbox"
+                              checked={selected.has(d.id)}
+                              suppressHydrationWarning
+                              onChange={() => toggleSelect(d.id)}
+                            />
+                          </td>
+                          {/* Frozen Left Columns */}
+                          {user?.client_type === "Loose" ? (
+                            <>
+                              {/* Frozen: # */}
+                              <td className="fz" style={{ left: mixFzLeft[0] + 44, width: MIX_FZ[0].w, minWidth: MIX_FZ[0].w, maxWidth: MIX_FZ[0].w, color: C.sub, fontWeight: 500 }}>
+                                {idx + 1}
+                              </td>
+                              {/* Frozen: Lot # */}
+                              <td className="fz" style={{ left: mixFzLeft[1] + 44, width: MIX_FZ[1].w, minWidth: MIX_FZ[1].w, maxWidth: MIX_FZ[1].w }}>
+                                <span style={{ fontWeight: 600, color: C.text }}>{d.lot_number}</span>
+                              </td>
+                              {/* Frozen: Color */}
+                              <td className="fz" style={{ left: mixFzLeft[2] + 44, width: MIX_FZ[2].w, minWidth: MIX_FZ[2].w, maxWidth: MIX_FZ[2].w, fontWeight: 600, color: C.text }}>
+                                {d.color_category}
+                              </td>
+                              {/* Frozen: Size */}
+                              <td className="fz" style={{ left: mixFzLeft[3] + 44, width: MIX_FZ[3].w, minWidth: MIX_FZ[3].w, maxWidth: MIX_FZ[3].w, fontWeight: 600, color: C.text }}>
+                                {d.size_category}
+                              </td>
+                              {/* Frozen: Grade */}
+                              <td className="fz fz-last" style={{ left: mixFzLeft[4] + 44, width: MIX_FZ[4].w, minWidth: MIX_FZ[4].w, maxWidth: MIX_FZ[4].w, fontWeight: 600, color: C.text }}>
+                                <div className="cell-clamp" title={d.grade}>{d.grade}</div>
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              {/* Frozen: # */}
+                              <td className="fz" style={{ left: fzLeft[0] + 44, width: FZ[0].w, minWidth: FZ[0].w, maxWidth: FZ[0].w, color: C.sub, fontWeight: 500 }}>
+                                {idx + 1}
+                              </td>
+                              {/* Frozen: Shape */}
+                              <td className="fz" style={{ left: fzLeft[1] + 44, width: FZ[1].w, minWidth: FZ[1].w, maxWidth: FZ[1].w }}>
+                                <span style={{ fontWeight: 600, color: C.text }}>{cap(d.shape)}</span>
+                              </td>
+                              {/* Frozen: Weight */}
+                              <td className="fz" style={{ left: fzLeft[2] + 44, width: FZ[2].w, minWidth: FZ[2].w, maxWidth: FZ[2].w, fontWeight: 600, color: C.text }}>
+                                {parseFloat(d.weight).toFixed(2)}
+                              </td>
+                              {/* Frozen: Color */}
+                              <td className="fz" style={{ left: fzLeft[3] + 44, width: FZ[3].w, minWidth: FZ[3].w, maxWidth: FZ[3].w, fontWeight: 600, color: C.text }}>
+                                {d.color?.toUpperCase() || "—"}
+                              </td>
+                              {/* Frozen: Clarity (last) */}
+                              <td className="fz fz-last" style={{ left: fzLeft[4] + 44, width: FZ[4].w, minWidth: FZ[4].w, maxWidth: FZ[4].w, fontWeight: 600, color: C.text }}>
+                                {d.clarity?.toUpperCase() || "—"}
+                              </td>
+                            </>
+                          )}
+
+                          {/* Scrollable */}
+                          {(user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
+                            <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
+                              {renderCell(d, col.key)}
+                            </td>
+                          ))}
+
+                          {/* Actions (frozen right) */}
+                          <td className="fz-r" style={{ width: ACT_W, minWidth: ACT_W, maxWidth: ACT_W }}>
+                            <div style={{ display: "flex", gap: 6, justifyContent: "center", width: "100%" }}>
+                              <Link 
+                                href={user?.client_type === "Loose" ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} 
+                                className="act-btn view act-tooltip" 
+                                data-tip="View Details" 
+                                title="View"
+                              >
+                                <i className="bi bi-eye" />
+                              </Link>
+                              
+                              <Link 
+                                href={user?.client_type === "Loose" ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} 
+                                className="act-btn edit act-tooltip" 
+                                data-tip="Edit" 
+                                title="Edit"
+                              >
+                                <i className="bi bi-pencil" />
+                              </Link>
+
+                              {((user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                                <Link 
+                                  href={user?.client_type === "Loose" ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} 
+                                  className="act-btn sell act-tooltip" 
+                                  data-tip="Create Sale" 
+                                  title="Sell"
+                                >
+                                  <i className="bi bi-cart-plus" />
+                                </Link>
+                              )}
+
+                              {((user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                                <Link 
+                                  href={user?.client_type === "Loose" ? "#" : `/diamonds/${d.id}/memo`} 
+                                  className="act-btn memo act-tooltip" 
+                                  data-tip="Send on Memo" 
+                                  title="Memo"
+                                >
+                                  <i className="bi bi-send" />
+                                </Link>
+                              )}
+
+                              <button
+                                className="act-btn del act-tooltip"
+                                data-tip="Delete"
+                                title="Delete"
+                                onClick={() => handleDelete(d.id)}
+                              >
+                                <i className="bi bi-trash3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {!loading && rows.length > 0 && (
+                <div style={{
+                  padding: "12px 20px", borderTop: `0.5px solid ${C.light}`, display: "flex",
+                  justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8
+                }}>
+                  <span style={{ fontSize: ".72rem", color: C.sub }}>
+                    Showing {rows.length} of {diamonds.length} diamonds
+                  </span>
+                  <span style={{ fontSize: ".68rem", color: C.sub }}>
+                    <i className="bi bi-arrow-left-right" style={{ marginRight: 4 }} />
+                    Scroll horizontally for more columns
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        )}
+          );
+        })()}
       </div>
 
       <SearchModal
@@ -1618,6 +1557,7 @@ function DiamondsIndexPageContent() {
           setActiveFilters(filters);
           setShowModal(false);
         }}
+        isLoose={user?.client_type === "Loose"}
       />
     </div>
   );

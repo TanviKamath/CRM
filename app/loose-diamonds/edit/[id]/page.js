@@ -5,14 +5,40 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import PageSkeleton from "../../../components/PageSkeleton";
 
-const COLOR_CATEGORIES = ["White", "White Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
+const COLOR_CATEGORIES = ["White", "White Natts", "Off-White LB. Natts", "Off-White LC. Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
 const SIZES = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
 
 const GRADE_MAP = {
   White: ["D", "EF", "GH", "HI", "I"],
-  LB: ["HI (Top Water Shade)", "I (Water Shade)", "Off White TTLB", "TTLB", "TLB", "LB", "DB", "DDB"],
-  LC: ["HI (Top Water Shade)", "I (Water Shade)", "Off White TTLC", "TTLC", "TLC", "LC"],
-  "White Natts": ["Standard"],
+  "White Natts": ["Spotted. Natts", "Dark Natts"],
+  "Off-White LB. Natts": [
+    "Ttlb. Natts",
+    "Tlb. Natts",
+    "Lb. Natts"
+  ],
+  "Off-White LC. Natts": [
+    "Tttlc. Natts",
+    "Tlc. Natts",
+    "Lc. Natts"
+  ],
+  LB: [
+    "HI (Top Water Shade)",
+    "I (Water Shade)",
+    "Off White TTLB",
+    "TTLB",
+    "TLB",
+    "LB",
+    "DB",
+    "DDB"
+  ],
+  LC: [
+    "HI (Top Water Shade)",
+    "I (Water Shade)",
+    "Off White TTLC",
+    "TTLC",
+    "TLC",
+    "LC"
+  ],
   Fancy: ["Standard"],
   "Cap Color": ["Standard"],
   Green: ["Standard"],
@@ -292,6 +318,7 @@ export default function EditLooseDiamondLot() {
                         value={lotInfo.purchase_date} 
                         onChange={(e) => setLotInfo({ ...lotInfo, purchase_date: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }} 
+                        suppressHydrationWarning
                       />
                     </div>
                     <div className="col-md-4">
@@ -338,6 +365,7 @@ export default function EditLooseDiamondLot() {
                           readOnly 
                           value={lotInfo.total_purchase_value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 
                           style={{ padding: "12px" }}
+                          suppressHydrationWarning
                         />
                       </div>
                     </div>
@@ -350,6 +378,7 @@ export default function EditLooseDiamondLot() {
                         value={lotInfo.remarks} 
                         onChange={(e) => setLotInfo({ ...lotInfo, remarks: e.target.value })} 
                         style={{ borderRadius: "10px", padding: "12px" }}
+                        suppressHydrationWarning
                       />
                     </div>
                   </div>
@@ -371,7 +400,7 @@ export default function EditLooseDiamondLot() {
                       <div className="text-muted small">Split the lot into categories</div>
                     </div>
                   </div>
-                  <button type="button" className="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm" onClick={addItem} style={{ borderRadius: 10 }}>
+                  <button type="button" className="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm" onClick={addItem} style={{ borderRadius: 10 }} suppressHydrationWarning>
                     <i className="bi bi-plus-lg"></i>
                     Add Sub-Lot
                   </button>
@@ -385,7 +414,7 @@ export default function EditLooseDiamondLot() {
                       </div>
                       <h6 className="fw-bold text-muted">No bifurcations yet</h6>
                       <p className="text-muted small mb-4">Click "Add Sub-Lot" to start splitting this purchase.</p>
-                      <button type="button" className="btn btn-outline-primary px-4" onClick={addItem} style={{ borderRadius: 10 }}>Add First Split</button>
+                      <button type="button" className="btn btn-outline-primary px-4" onClick={addItem} style={{ borderRadius: 10 }} suppressHydrationWarning>Add First Split</button>
                     </div>
                   ) : (
                     <div className="table-responsive">
@@ -407,28 +436,28 @@ export default function EditLooseDiamondLot() {
                           {items.map((item) => (
                             <tr key={item.id} className="border-bottom">
                               <td className="ps-5 py-3">
-                                <select className="form-select border-0 bg-light" value={item.color_category} onChange={(e) => updateItem(item.id, "color_category", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }}>
+                                <select className="form-select border-0 bg-light" value={item.color_category} onChange={(e) => updateItem(item.id, "color_category", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning>
                                   {COLOR_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </td>
                               <td className="py-3">
-                                <select className="form-select border-0 bg-light" value={item.size_category} onChange={(e) => updateItem(item.id, "size_category", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }}>
+                                <select className="form-select border-0 bg-light" value={item.size_category} onChange={(e) => updateItem(item.id, "size_category", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning>
                                   {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                                 </select>
                               </td>
                               <td className="py-3">
-                                <select className="form-select border-0 bg-light" value={item.grade} onChange={(e) => updateItem(item.id, "grade", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }}>
+                                <select className="form-select border-0 bg-light" value={item.grade} onChange={(e) => updateItem(item.id, "grade", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning>
                                   {GRADE_MAP[item.color_category].map((g) => <option key={g} value={g}>{g}</option>)}
                                 </select>
                               </td>
                               <td className="py-3">
-                                <input type="number" step="0.001" className="form-control border-0 bg-light" placeholder="0.000" value={item.carats} onChange={(e) => updateItem(item.id, "carats", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} />
+                                <input type="number" step="0.001" className="form-control border-0 bg-light" placeholder="0.000" value={item.carats} onChange={(e) => updateItem(item.id, "carats", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning />
                               </td>
                               <td className="py-3">
-                                <input type="number" step="0.01" className="form-control border-0 bg-light" value={item.base_price} onChange={(e) => updateItem(item.id, "base_price", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} />
+                                <input type="number" step="0.01" className="form-control border-0 bg-light" value={item.base_price} onChange={(e) => updateItem(item.id, "base_price", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning />
                               </td>
                               <td className="py-3">
-                                <input type="number" step="0.1" className="form-control border-0 bg-light" value={item.discount_pct} onChange={(e) => updateItem(item.id, "discount_pct", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} />
+                                <input type="number" step="0.1" className="form-control border-0 bg-light" value={item.discount_pct} onChange={(e) => updateItem(item.id, "discount_pct", e.target.value)} style={{ borderRadius: "8px", fontSize: "14px" }} suppressHydrationWarning />
                               </td>
                               <td className="py-3 fw-bold text-dark">
                                 ₹{parseFloat(item.final_price_per_carat || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -437,7 +466,7 @@ export default function EditLooseDiamondLot() {
                                 <div className="fw-bold text-primary">₹{(item.total_value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
                               </td>
                               <td className="pe-5 py-3 text-end">
-                                <button type="button" className="btn btn-light btn-sm rounded-circle shadow-sm" onClick={() => removeItem(item.id)} style={{ width: 32, height: 32 }}>
+                                <button type="button" className="btn btn-light btn-sm rounded-circle shadow-sm" onClick={() => removeItem(item.id)} style={{ width: 32, height: 32 }} suppressHydrationWarning>
                                   <i className="bi bi-x-lg text-danger"></i>
                                 </button>
                               </td>
@@ -450,7 +479,7 @@ export default function EditLooseDiamondLot() {
                 </div>
               </div>
 
-              {/* Summary Dashboard */}
+              {/* Summary Dashboard - Temporarily Commented Out
               <div className="row g-4 mb-4">
                 <div className="col-lg-8">
                   <div className="card border-0 shadow-lg h-100" style={{ borderRadius: 20, background: "linear-gradient(to bottom right, #ffffff, #fdfdfd)" }}>
@@ -496,7 +525,6 @@ export default function EditLooseDiamondLot() {
                         </div>
                       )}
 
-                      {/* Smart Balancing Tool Section */}
                       <hr className="my-5 opacity-10" />
                       <div className="bg-primary-subtle p-4 rounded-4 border-primary border-start border-4">
                         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -560,6 +588,7 @@ export default function EditLooseDiamondLot() {
                   </div>
                 </div>
               </div>
+              */}
 
               {/* Actions */}
               <div className="d-flex justify-content-end align-items-center gap-3 mb-5">
@@ -571,6 +600,7 @@ export default function EditLooseDiamondLot() {
                   className="btn btn-primary px-5 py-3 fw-bold shadow-lg" 
                   disabled={loading || items.length === 0} 
                   style={{ borderRadius: 15, background: "linear-gradient(135deg, #0071e3 0%, #0077ed 100%)" }}
+                  suppressHydrationWarning
                 >
                   {loading ? (
                     <>
