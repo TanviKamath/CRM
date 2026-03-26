@@ -15,11 +15,18 @@ export async function GET(req, { params }) {
         "diamonds.weight as diamond_weight",
         "diamonds.color as diamond_color",
         "diamonds.clarity as diamond_clarity",
+        "loose_diamond.lot_number as loose_lot_number",
+        "loose_diamond_items.color_category as loose_color_category",
+        "loose_diamond_items.size_category as loose_size_category",
+        "loose_diamond_items.grade as loose_grade",
+        "loose_diamond_items.carats as loose_carats",
         "clients.company_name as client_company",
         "clients.contact_name as client_contact",
         "clients.email as client_email"
       )
       .leftJoin("diamonds", "sales.diamond_id", "diamonds.id")
+      .leftJoin("loose_diamond_items", "sales.loose_diamond_item_id", "loose_diamond_items.id")
+      .leftJoin("loose_diamond", "loose_diamond_items.loose_diamond_id", "loose_diamond.id")
       .leftJoin("clients", "sales.client_id", "clients.id")
       .where("sales.id", id)
       .first();
@@ -74,14 +81,22 @@ export async function GET(req, { params }) {
       advance_amount_inr: advanceAmountInr,
       total_received_inr: finalReceivedInr,
       outstanding_inr: outstandingInr,
-      diamond: {
+      diamond: sale.diamond_id ? {
         id: sale.diamond_id,
         certificate_number: sale.diamond_certificate,
         shape: sale.diamond_shape,
         weight: sale.diamond_weight,
         color: sale.diamond_color,
         clarity: sale.diamond_clarity,
-      },
+      } : null,
+      loose_item: sale.loose_diamond_item_id ? {
+        id: sale.loose_diamond_item_id,
+        lot_number: sale.loose_lot_number,
+        color_category: sale.loose_color_category,
+        size_category: sale.loose_size_category,
+        grade: sale.loose_grade,
+        carats: sale.loose_carats,
+      } : null,
       client: {
         id: sale.client_id,
         company_name: sale.client_company,

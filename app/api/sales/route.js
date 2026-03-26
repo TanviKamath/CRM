@@ -18,6 +18,7 @@ export async function GET(req) {
 
     let query = knex("sales")
       .select(
+        "sales.id as id",
         "sales.*",
         "clients.company_name as client_company",
         "clients.contact_name as client_contact",

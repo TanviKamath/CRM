@@ -14,7 +14,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (show && saleId) {
+        if (show && saleId !== null && saleId !== undefined) {
             fetchPaymentDetails();
             setAmount("");
             setPaymentDate(new Date().toISOString().split('T')[0]);
@@ -187,12 +187,23 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         <div className="p-3 h-100" style={{ borderRadius: 12, backgroundColor: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.12)" }}>
                                             <div className="d-flex align-items-center gap-2 mb-2">
                                                 <i className="bi bi-gem text-info" />
-                                                <span className="text-muted small">Diamond</span>
+                                                <span className="text-muted small">{data?.loose_item ? "Lot Information" : "Diamond"}</span>
                                             </div>
-                                            <div className="fw-semibold">{data?.diamond?.certificate_number || "-"}</div>
-                                            <div className="text-muted small">
-                                                {data?.diamond?.shape} {data?.diamond?.weight}ct {data?.diamond?.color}/{data?.diamond?.clarity}
-                                            </div>
+                                            {data?.loose_item ? (
+                                                <>
+                                                    <div className="fw-semibold">Lot #{data.loose_item.lot_number || "-"}</div>
+                                                    <div className="text-muted small">
+                                                        {data.loose_item.color_category} {data.loose_item.size_category} {data.loose_item.grade} ({data.loose_item.carats}ct)
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="fw-semibold">{data?.diamond?.certificate_number || "-"}</div>
+                                                    <div className="text-muted small">
+                                                        {data?.diamond?.shape} {data?.diamond?.weight}ct {data?.diamond?.color}/{data?.diamond?.clarity}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="col-6">
