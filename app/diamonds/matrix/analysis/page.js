@@ -7,8 +7,16 @@ import Link from "next/link";
 import { calculateMatrixData } from "../../../lib/utils/matrixUtils";
 
 const C = {
-  blue: "#0071e3", green: "#34c759", orange: "#ff9f0a", red: "#ff3b30",
-  bg: "#f5f5f7", text: "#1d1d1f", sub: "#86868b", light: "#f2f2f7", border: "#e5e5ea",
+  black: "#000000",
+  blue: "#000000", // Monochromatic update
+  green: "#1d1d1f", // Changed to dark text
+  orange: "#ff9f0a",
+  red: "#ff3b30",
+  bg: "#f8f9fa", // Slightly cleaner background
+  text: "#1d1d1f",
+  sub: "#636366", // Slightly darker subtext for contrast
+  light: "#f2f2f7",
+  border: "#d1d1d6", // Slightly more defined borders
 };
 
 function fmt(v) {
@@ -111,7 +119,7 @@ function AnalysisContent() {
                 Inventory Analysis
               </h1>
               <p style={{ margin: "1px 0 0", fontSize: "0.85rem", color: C.sub }}>
-                Breakdown for <b style={{ color: C.blue }}>{targetSize} | {targetColor}</b>
+                Breakdown for <b style={{ color: C.text }}>{targetSize} | {targetColor}</b>
               </p>
             </div>
           </div>
@@ -137,7 +145,7 @@ function AnalysisContent() {
                 border: `1px solid ${activeGradeId === grade ? C.blue : C.border}`,
                 transition: "all 0.2s", whiteSpace: "nowrap",
                 display: "flex", alignItems: "center", gap: 8,
-                boxShadow: activeGradeId === grade ? "0 4px 10px rgba(0,113,227,0.15)" : "none",
+                boxShadow: activeGradeId === grade ? "0 4px 10px rgba(0,0,0,0.15)" : "none",
                 outline: "none"
               }}
             >
@@ -152,12 +160,12 @@ function AnalysisContent() {
           {/* Summary Column */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ 
-              background: "rgba(0,113,227,0.03)", padding: "16px", borderRadius: "16px", 
-              border: `1px solid rgba(0,113,227,0.1)` 
+              background: "rgba(0,0,0,0.03)", padding: "16px", borderRadius: "16px", 
+              border: `1px solid rgba(0,0,0,0.1)` 
             }}>
               <div style={{ fontSize: "0.7rem", color: C.sub, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Active Grade</div>
               <div style={{ fontSize: "2rem", fontWeight: 800, color: C.text, lineHeight: 1 }}>{activeGradeId}</div>
-              <div style={{ fontSize: "0.85rem", color: C.blue, fontWeight: 600, marginTop: 4 }}>Selected for detailed breakdown</div>
+              <div style={{ fontSize: "0.85rem", color: C.sub, fontWeight: 600, marginTop: 4 }}>Selected for detailed breakdown</div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -177,7 +185,7 @@ function AnalysisContent() {
               padding: "16px", borderRadius: "16px", border: `1px solid ${C.border}` 
             }}>
               <div style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 700, marginBottom: 4 }}>ESTIMATED AVG RATE</div>
-              <div style={{ fontSize: "1.5rem", fontWeight: 800, color: C.green }}>
+              <div style={{ fontSize: "1.5rem", fontWeight: 800, color: C.text }}>
                 {fmt(activeData.totalPrice / activeData.carats)} 
                 <span style={{ fontSize: "0.85rem", color: C.sub, fontWeight: 500 }}> / ct</span>
               </div>
@@ -216,7 +224,7 @@ function AnalysisContent() {
                       <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 600, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                         {parseFloat(item.carats).toFixed(3)} ct
                       </td>
-                      <td style={{ padding: "10px", textAlign: "right", color: C.green, fontWeight: 700, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                      <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 700, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                         {fmt(parseFloat(item.total_value) / parseFloat(item.carats))}
                       </td>
                       <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 800, borderRadius: "0 8px 8px 0", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}` }}>
