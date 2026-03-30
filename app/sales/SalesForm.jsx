@@ -32,6 +32,9 @@ export default function SalesForm({
     payment_status: initial.payment_status || "on_terms",
     terms_days: initial.terms_days ?? "30",
     advance_amount: initial.advance_amount ?? "",
+    sold_carats: initial.sold_carats ?? "",
+    payment_mode: initial.payment_mode || "",
+    invoice_number: initial.invoice_number || "",
   });
 
   const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "" });
@@ -154,6 +157,7 @@ export default function SalesForm({
 
       setForm(prev => ({
         ...prev,
+        sold_carats: isLoose ? selectedDiamond.carats : "",
         sale_amount: saleAmount > 0 ? saleAmount.toFixed(2) : "",
         sale_amount_inr: saleAmountInr,
         brokerage_amount: brokerageAmount,
@@ -200,6 +204,18 @@ export default function SalesForm({
       updated.advance_amount = "";
     }
 
+    // Sold carats changes -> recalculate sale amount proportionally if rate is consistent
+    if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
+      const sold = parseFloat(value) || 0;
+      const total = parseFloat(selectedDiamond.carats) || 1;
+      const totalVal = parseFloat(selectedDiamond.total_value) || 0;
+      const proportionalAmount = (sold / total) * totalVal;
+      
+      updated.sale_amount = proportionalAmount.toFixed(2);
+      updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
+      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
+    }
+
     setForm(updated);
   };
 
@@ -219,6 +235,14 @@ export default function SalesForm({
     if (form.payment_status === "on_terms") {
       if (!form.terms_days || parseInt(form.terms_days) <= 0) {
         errors.terms_days = "Terms days is required for On Terms payment";
+      }
+    }
+
+    if (user?.client_type === "Loose") {
+      if (!form.sold_carats || parseFloat(form.sold_carats) <= 0) {
+        errors.sold_carats = "Sold carats is required";
+      } else if (selectedDiamond && parseFloat(form.sold_carats) > parseFloat(selectedDiamond.carats)) {
+        errors.sold_carats = `Cannot sell more than available (${selectedDiamond.carats} ct)`;
       }
     }
 
@@ -267,6 +291,9 @@ export default function SalesForm({
         // Backend expects advance_amount in INR
         advance_amount: parseFloat(form.advance_amount) || 0,
         due_date: dueDate,
+        sold_carats: user?.client_type === "Loose" ? parseFloat(form.sold_carats) : null,
+        payment_mode: form.payment_mode || null,
+        invoice_number: form.invoice_number || null,
       };
 
       await onSubmit(dataToSend);
@@ -507,7 +534,7 @@ export default function SalesForm({
 
         <div className="row g-3">
           <div className="col-md-3">
-            <label className="form-label fw-medium">Diamond Weight</label>
+            <label className="form-label fw-medium">{user?.client_type === "Loose" ? "Available Carats" : "Diamond Weight"}</label>
             <div className="input-group">
               <span className="input-group-text bg-white">
                 <i className="bi bi-speedometer2 text-muted" />
@@ -516,6 +543,31 @@ export default function SalesForm({
               <span className="input-group-text bg-white">ct</span>
             </div>
           </div>
+
+          {user?.client_type === "Loose" && (
+            <div className="col-md-3">
+              <label htmlFor="sold_carats" className="form-label fw-medium">
+                Sold Carats <span className="text-danger">*</span>
+              </label>
+              <div className="input-group">
+                <span className="input-group-text bg-white">
+                  <i className="bi bi-cart-check text-muted" />
+                </span>
+                <input
+                  type="number"
+                  step="0.001"
+                  id="sold_carats"
+                  name="sold_carats"
+                  value={form.sold_carats}
+                  onChange={handleChange}
+                  className={controlClass("sold_carats")}
+                  placeholder="e.g. 2.50"
+                  required
+                />
+              </div>
+              {hasError("sold_carats") && <div className="invalid-feedback d-block">{validationErrors.sold_carats}</div>}
+            </div>
+          )}
 
           {user?.client_type !== "Loose" && (
             <>
@@ -756,6 +808,43 @@ export default function SalesForm({
               </div>
             </>
           )}
+
+          {/* New Payment Fields */}
+          <div className="col-md-6">
+            <label htmlFor="payment_mode" className="form-label fw-medium">Payment Mode</label>
+            <div className="input-group">
+              <span className="input-group-text bg-white">
+                <i className="bi bi-credit-card-2-front text-muted" />
+              </span>
+              <input
+                type="text"
+                id="payment_mode"
+                name="payment_mode"
+                value={form.payment_mode}
+                onChange={handleChange}
+                className="form-control"
+                placeholder="e.g. Bank Transfer, Cheque, Cash"
+              />
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <label htmlFor="invoice_number" className="form-label fw-medium">Invoice Number</label>
+            <div className="input-group">
+              <span className="input-group-text bg-white">
+                <i className="bi bi-hash text-muted" />
+              </span>
+              <input
+                type="text"
+                id="invoice_number"
+                name="invoice_number"
+                value={form.invoice_number}
+                onChange={handleChange}
+                className="form-control"
+                placeholder="INV-2024-XXX"
+              />
+            </div>
+          </div>
 
           {/* Full payment confirmation */}
           {form.payment_status === "completed" && (

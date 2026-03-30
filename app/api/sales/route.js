@@ -31,13 +31,14 @@ export async function GET(req) {
         "loose_diamond_items.color_category as loose_color_category",
         "loose_diamond_items.size_category as loose_size_category",
         "loose_diamond_items.grade as loose_grade",
-        "loose_diamond_items.carats as loose_carats",
+        knex.raw("COALESCE(loose_diamond_sales.sold_carats, loose_diamond_items.carats) as loose_carats"),
         "brokers.name as broker_name"
       )
       .leftJoin("clients", "sales.client_id", "clients.id")
       .leftJoin("diamonds", "sales.diamond_id", "diamonds.id")
       .leftJoin("loose_diamond_items", "sales.loose_diamond_item_id", "loose_diamond_items.id")
       .leftJoin("loose_diamond", "loose_diamond_items.loose_diamond_id", "loose_diamond.id")
+      .leftJoin("loose_diamond_sales", "sales.id", "loose_diamond_sales.sale_id")
       .leftJoin("brokers", "sales.broker_id", "brokers.id")
       .orderBy("sales.id", "desc");
 
@@ -181,6 +182,9 @@ export async function POST(req) {
       terms_days,
       advance_amount,
       due_date,
+      payment_mode,
+      invoice_number,
+      sold_carats, // Added for partial loose sales
     } = body;
 
     // Strict client-type validation
@@ -240,14 +244,72 @@ export async function POST(req) {
     // Insert sale
     const [id] = await knex("sales").insert(insertData);
 
-    // Update item availability
-    if (diamond_id) {
-        await knex("diamonds")
-          .where("id", diamond_id)
-          .update({ availability: "sold", updated_at: new Date() });
+    // Partial loose diamond sale logic
+    if (loose_diamond_item_id) {
+      const item = await knex("loose_diamond_items")
+        .where("id", loose_diamond_item_id)
+        .first();
+
+      if (item) {
+        // If sold_carats is not provided, assume full sale
+        const actualSoldCarats = sold_carats ? parseFloat(sold_carats) : parseFloat(item.carats);
+
+        if (actualSoldCarats > parseFloat(item.carats)) {
+          // This should be validated frontend too
+          throw new Error(`Insufficient carats in inventory. Available: ${item.carats}`);
+        }
+
+        const remainingCarats = parseFloat(item.carats) - actualSoldCarats;
+
+        // Update item: subtract carats and update total value
+        await knex("loose_diamond_items")
+          .where("id", loose_diamond_item_id)
+          .update({
+            carats: remainingCarats,
+            total_value: remainingCarats * parseFloat(item.final_price_per_carat),
+            updated_at: new Date()
+          });
+
+        // Update parent lot total carats
+        await knex("loose_diamond")
+          .where("id", item.loose_diamond_id)
+          .decrement("total_carats", actualSoldCarats);
+
+        // Record the detailed sale info
+        await knex("loose_diamond_sales").insert({
+          sale_id: id,
+          lot_id: item.loose_diamond_id,
+          sublot_id: loose_diamond_item_id,
+          sold_carats: actualSoldCarats,
+          client_id,
+          broker_id: broker_id || null,
+          brokerage_amount: brokerage_amount || 0,
+          status: status || "active",
+          notes: notes || null,
+          sale_amount: sale_amount || 0,
+          conversion_rate: conversion_rate || 1,
+          sale_amount_inr: sale_amount_inr || 0,
+          sale_rap_discount: sale_rap_discount || 0,
+          brokerage_rate: brokerage_rate || 0,
+          selling_date: selling_date || new Date().toISOString().split("T")[0],
+          payment_status: payment_status || "pending",
+          terms_days: terms_days || 0,
+          advance_amount: advance_amount || 0,
+          due_date: due_date || null,
+          payment_mode: payment_mode || null,
+          invoice_number: invoice_number || null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
     }
-    // Note: loose_diamond_items doesn't currently have availability status column
-    // but we could mark the parent lot as sold if all items are sold in future.
+
+    // Update item availability for GIA diamonds
+    if (diamond_id) {
+      await knex("diamonds")
+        .where("id", diamond_id)
+        .update({ availability: "sold", updated_at: new Date() });
+    }
 
     // If there's an advance amount, create initial payment record (in INR)
     if (advance_amount && parseFloat(advance_amount) > 0) {
@@ -266,7 +328,6 @@ export async function POST(req) {
     }
 
     const created = await knex("sales").where({ id }).first();
-
     return Response.json(created, { status: 201 });
   } catch (e) {
     console.error("Error creating sale:", e);
