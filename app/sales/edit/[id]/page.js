@@ -100,6 +100,7 @@ export default function EditSalePage() {
       throw new Error(errorText);
     }
 
+    router.refresh();
     router.push(`/sales/show/${saleId}?success=${encodeURIComponent("Sale updated successfully!")}`);
   };
 

@@ -22,13 +22,18 @@ export async function GET(req, { params }) {
         "loose_diamond_items.size_category as loose_size_category",
         "loose_diamond_items.grade as loose_grade",
         "loose_diamond_items.carats as loose_carats",
-        "brokers.name as broker_name"
+        "brokers.name as broker_name",
+        "loose_diamond_sales.payment_mode",
+        "loose_diamond_sales.invoice_number",
+        "loose_diamond_sales.sold_carats as loose_sold_carats",
+        "loose_diamond_sales.sale_amount as loose_sale_amount"
       )
       .leftJoin("clients", "sales.client_id", "clients.id")
       .leftJoin("diamonds", "sales.diamond_id", "diamonds.id")
       .leftJoin("loose_diamond_items", "sales.loose_diamond_item_id", "loose_diamond_items.id")
       .leftJoin("loose_diamond", "loose_diamond_items.loose_diamond_id", "loose_diamond.id")
       .leftJoin("brokers", "sales.broker_id", "brokers.id")
+      .leftJoin("loose_diamond_sales", "sales.id", "loose_diamond_sales.sale_id")
       .where("sales.id", id)
       .first();
 
@@ -57,6 +62,9 @@ export async function GET(req, { params }) {
     // In the response object, add broker:
     const response = {
       ...sale,
+      // Prioritize loose table fields if they exist
+      sold_carats: sale.loose_diamond_item_id ? (sale.loose_sold_carats ?? sale.sold_carats) : sale.sold_carats,
+      sale_amount: sale.loose_diamond_item_id ? (sale.loose_sale_amount ?? sale.sale_amount) : sale.sale_amount,
       total_received: totalReceived,
       diamond: sale.diamond_id ? {
         id: sale.diamond_id,
@@ -132,6 +140,8 @@ export async function PUT(req, { params }) {
       "terms_days",
       "advance_amount",
       "due_date",
+      "payment_mode",
+      "invoice_number",
     ];
 
     for (const field of allowedFields) {
@@ -140,7 +150,53 @@ export async function PUT(req, { params }) {
       }
     }
 
+    // Duplicate Invoice Check for Loose Sales
+    if (existing.loose_diamond_item_id && body.invoice_number && body.payment_mode !== 'Export') {
+      const existingInvoice = await knex("loose_diamond_sales")
+        .where("invoice_number", body.invoice_number)
+        .whereNot("sale_id", id)
+        .first();
+      
+      if (existingInvoice) {
+        return new Response(
+          JSON.stringify({ error: `Invoice number ${body.invoice_number} already exists. Please choose the next number.` }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     await knex("sales").where("id", id).update(updateData);
+
+    // Update loose_diamond_sales if it exists for this sale
+    if (existing.loose_diamond_item_id) {
+      // Fetch the CURRENT state BEFORE updating (for inventory diff calculation)
+      const oldLooseSale = await knex("loose_diamond_sales").where("sale_id", id).first();
+
+      // Only update the fields that actually exist in the loose_diamond_sales table
+      const looseUpdate = { updated_at: new Date() };
+      if (body.hasOwnProperty('sold_carats')) looseUpdate.sold_carats = body.sold_carats;
+      if (body.hasOwnProperty('payment_mode')) looseUpdate.payment_mode = body.payment_mode;
+      if (body.hasOwnProperty('invoice_number')) looseUpdate.invoice_number = body.invoice_number;
+      if (body.hasOwnProperty('sale_amount')) looseUpdate.sale_amount = body.sale_amount;
+
+      await knex("loose_diamond_sales")
+        .where("sale_id", id)
+        .update(looseUpdate);
+
+      // Re-adjust lot inventory if sold_carats changed
+      if (body.hasOwnProperty('sold_carats')) {
+        const oldSoldCarats = parseFloat(oldLooseSale?.sold_carats) || 0;
+        const newSoldCarats = parseFloat(body.sold_carats) || 0;
+        const diff = newSoldCarats - oldSoldCarats;
+
+        if (diff !== 0) {
+          // decrement means: if sold more, reduce lot; if sold less, restore lot
+          await knex("loose_diamond_items")
+            .where("id", existing.loose_diamond_item_id)
+            .decrement("carats", diff);
+        }
+      }
+    }
     const updated = await knex("sales").where("id", id).first();
 
     return Response.json(updated, { status: 200 });

@@ -138,7 +138,7 @@ function SalesShowContent() {
       setError(null);
 
       try {
-        const res = await fetch(`/api/sales/${id}`);
+        const res = await fetch(`/api/sales/${id}`, { cache: "no-store" });
         if (!res.ok) throw new Error("Sale not found");
         const data = await res.json();
         setSale(data);
@@ -193,7 +193,14 @@ function SalesShowContent() {
         body: JSON.stringify({ ...sale, status: nextStatus }),
       });
       if (!res.ok) throw new Error(await res.text());
-      window.location.reload();
+      
+      const msg = nextStatus === "completed" ? "Sale marked as completed!" : nextStatus === "cancelled" ? "Sale cancelled!" : "Sale updated successfully!";
+      router.push(`/sales/show/${sale.id}?success=${encodeURIComponent(msg)}`);
+      // Force a re-render/fetch since we're already on this page
+      setSuccessMessage(msg);
+      // Fetch fresh data
+      const freshRes = await fetch(`/api/sales/${sale.id}`);
+      if (freshRes.ok) setSale(await freshRes.json());
     } catch (e) {
       alert("Failed to update status");
     }

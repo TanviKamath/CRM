@@ -208,12 +208,25 @@ export async function POST(req) {
       );
     }
 
-    // Validate required fields
     if ((!diamond_id && !loose_diamond_item_id) || !client_id) {
       return new Response(
         JSON.stringify({ error: "Item and Client are required" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
+    }
+
+    // Duplicate Invoice Check for Loose Sales
+    if (user.client_type === "Loose" && invoice_number && payment_mode !== 'Export') {
+      const existingInvoice = await knex("loose_diamond_sales")
+        .where("invoice_number", invoice_number)
+        .first();
+      
+      if (existingInvoice) {
+        return new Response(
+          JSON.stringify({ error: `Invoice number ${invoice_number} already exists. Please choose the next number.` }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Prepare insert data

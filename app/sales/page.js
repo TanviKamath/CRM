@@ -570,7 +570,7 @@ function SalesIndexContent() {
                                 loading={generatingInvoice === sale.id}
                                 disabled={generatingInvoice === sale.id}
                               />
-                              {(outstandingInr > 0 && sale.status !== "cancelled") && (
+                              {(sale.status !== "cancelled" && sale.payment_status !== "completed") && (
                                 <ActionButton
                                   onClick={() => handleRecordPayment(sale.id)}
                                   variant="success"

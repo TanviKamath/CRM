@@ -1,7 +1,7 @@
 // app/sales/SalesForm.jsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import QuickAddEntityModal from "../components/QuickAddEntityModal";
 
@@ -45,6 +45,14 @@ export default function SalesForm({
   // Dropdown Options State
   const [clientList, setClientList] = useState(clients);
   const [brokerList, setBrokerList] = useState(brokers);
+
+  // Invoice States
+  const [invoiceSeq, setInvoiceSeq] = useState(""); // The middle number part
+  const [invoicePrefix, setInvoicePrefix] = useState(""); // LS/O/ or LS/C/
+  const [invoiceYear, setInvoiceYear] = useState(""); // /2026-2027
+  const [isInvoiceAvailable, setIsInvoiceAvailable] = useState(true);
+  const [invoiceChecking, setInvoiceChecking] = useState(false);
+  const isInitialMount = useRef(true);
 
   // Sync with props
   useEffect(() => {
@@ -139,7 +147,7 @@ export default function SalesForm({
   useEffect(() => {
     if (selectedDiamond) {
       const isLoose = user?.client_type === "Loose";
-      
+
       setDiamondInfo({
         weight: isLoose ? selectedDiamond.carats : (selectedDiamond.weight || ""),
         rap_rate: isLoose ? "" : (selectedDiamond.rap_rate || ""),
@@ -210,7 +218,7 @@ export default function SalesForm({
       const total = parseFloat(selectedDiamond.carats) || 1;
       const totalVal = parseFloat(selectedDiamond.total_value) || 0;
       const proportionalAmount = (sold / total) * totalVal;
-      
+
       updated.sale_amount = proportionalAmount.toFixed(2);
       updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
       updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
@@ -218,6 +226,96 @@ export default function SalesForm({
 
     setForm(updated);
   };
+
+  // Fetch next invoice sequence when payment mode changes
+  useEffect(() => {
+    const isLoose = user?.client_type === "Loose";
+    if (!isLoose || !form.payment_mode || form.payment_mode === "Export") {
+      setInvoicePrefix("");
+      setInvoiceYear("");
+      setInvoiceSeq("");
+      if (form.payment_mode === "Export") {
+        setForm(prev => ({ ...prev, invoice_number: "" }));
+      }
+      return;
+    }
+
+    const fetchSequence = async () => {
+      // Don't re-fetch if we already have a sequence and modes match (unless manually cleared)
+      if (invoiceSeq && invoicePrefix && form.invoice_number.startsWith(invoicePrefix)) {
+          return;
+      }
+
+      // If we are editing and this is the first load, parse existing instead of fetching new
+      if (isInitialMount.current && initial.invoice_number && form.payment_mode === initial.payment_mode) {
+        const regex = /^(LS\/[OC]\/)([0-9]+)(\/.*)$/;
+        const match = initial.invoice_number.match(regex);
+        if (match) {
+          setInvoicePrefix(match[1]);
+          setInvoiceSeq(match[2]);
+          setInvoiceYear(match[3]);
+          isInitialMount.current = false;
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch(`/api/sales/invoice-sequence?mode=${form.payment_mode}`);
+        const data = await res.json();
+        if (data.nextSequence) {
+          setInvoicePrefix(data.prefix);
+          setInvoiceYear(data.yearSuffix);
+          setInvoiceSeq(data.nextSequence.toString());
+
+          // Initial auto-fill of the full invoice number
+          setForm(prev => ({
+            ...prev,
+            invoice_number: `${data.prefix}${data.nextSequence}${data.yearSuffix}`
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch invoice sequence:", err);
+      } finally {
+        isInitialMount.current = false;
+      }
+    };
+
+    fetchSequence();
+  }, [form.payment_mode, user?.client_type, initial?.id]);
+
+  // Update full invoice string when sequence part is edited manually
+  const handleInvoiceSeqChange = (e) => {
+    const seq = e.target.value;
+    setInvoiceSeq(seq);
+    setForm(prev => ({
+      ...prev,
+      invoice_number: `${invoicePrefix}${seq}${invoiceYear}`
+    }));
+  };
+
+  // Real-time invoice uniqueness check
+  useEffect(() => {
+    if (!form.invoice_number || form.payment_mode === "Export" || !user?.client_type === "Loose") {
+      setIsInvoiceAvailable(true);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setInvoiceChecking(true);
+      try {
+        const excludeId = initial?.id || "";
+        const res = await fetch(`/api/sales/validate-invoice?invoice_number=${encodeURIComponent(form.invoice_number)}&exclude_sale_id=${excludeId}`);
+        const data = await res.json();
+        setIsInvoiceAvailable(data.available);
+      } catch (err) {
+        console.error("Error validating invoice:", err);
+      } finally {
+        setInvoiceChecking(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.invoice_number, form.payment_mode, user?.client_type]);
 
   const validateForm = () => {
     const errors = {};
@@ -239,10 +337,27 @@ export default function SalesForm({
     }
 
     if (user?.client_type === "Loose") {
+      const currentStock = parseFloat(selectedDiamond?.carats || 0);
+      const originalSale = initial?.id ? (parseFloat(initial.sold_carats) || 0) : 0;
+      const maxAvailable = currentStock + originalSale;
+      
       if (!form.sold_carats || parseFloat(form.sold_carats) <= 0) {
         errors.sold_carats = "Sold carats is required";
-      } else if (selectedDiamond && parseFloat(form.sold_carats) > parseFloat(selectedDiamond.carats)) {
-        errors.sold_carats = `Cannot sell more than available (${selectedDiamond.carats} ct)`;
+      } else if (selectedDiamond && parseFloat(form.sold_carats) > maxAvailable) {
+        errors.sold_carats = `Cannot sell more than available (${maxAvailable.toFixed(3)} ct)`;
+      }
+
+      // Mode of Payment validation
+      if (!form.payment_mode) {
+        errors.payment_mode = "Mode of Payment is required";
+      }
+
+      if (form.payment_mode && form.payment_mode !== "Export") {
+        if (!invoiceSeq) {
+          errors.invoice_number = "Invoice sequence is required";
+        } else if (!isInvoiceAvailable) {
+          errors.invoice_number = "This invoice number already exists. Please choose the next number.";
+        }
       }
     }
 
@@ -420,14 +535,19 @@ export default function SalesForm({
                 required
               >
                 <option value="">Select {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}</option>
-                {diamonds.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {user?.client_type === "Loose" 
-                      ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${d.carats}ct)`
-                      : `${d.certificate_number} (${d.shape} ${d.weight}ct ${d.color}/${d.clarity})`
-                    }
-                  </option>
-                ))}
+                {diamonds.map((d) => {
+                  const isCurrentItem = initial?.id && String(d.id) === String(initial.loose_diamond_item_id || initial.diamond_id);
+                  const displayWeight = isCurrentItem ? (parseFloat(d.carats || 0) + (parseFloat(initial.sold_carats) || 0)) : (d.carats || d.weight || 0);
+
+                  return (
+                    <option key={d.id} value={d.id}>
+                      {user?.client_type === "Loose"
+                        ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${parseFloat(displayWeight).toFixed(3)}ct)`
+                        : `${d.certificate_number} (${d.shape} ${displayWeight}ct ${d.color}/${d.clarity})`
+                      }
+                    </option>
+                  );
+                })}
               </select>
             </div>
             {hasError("diamond_id") && <div className="invalid-feedback d-block">{validationErrors.diamond_id}</div>}
@@ -539,7 +659,18 @@ export default function SalesForm({
               <span className="input-group-text bg-white">
                 <i className="bi bi-speedometer2 text-muted" />
               </span>
-              <input value={diamondInfo.weight} className="form-control bg-light" readOnly />
+              <input 
+                value={(() => {
+                  if (user?.client_type === "Loose" && initial?.id) {
+                    const currentStock = parseFloat(selectedDiamond?.carats || 0);
+                    const thisSale = parseFloat(initial.sold_carats || 0);
+                    return (currentStock + thisSale).toFixed(3);
+                  }
+                  return diamondInfo.weight;
+                })()} 
+                className="form-control bg-light" 
+                readOnly 
+              />
               <span className="input-group-text bg-white">ct</span>
             </div>
           </div>
@@ -608,13 +739,13 @@ export default function SalesForm({
             <label className="form-label fw-medium">Sale Amount (INR)</label>
             <div className="input-group">
               <span className="input-group-text bg-white">₹</span>
-              <input 
+              <input
                 type="number"
                 step="0.01"
                 name="sale_amount"
-                value={form.sale_amount} 
+                value={form.sale_amount}
                 onChange={handleChange}
-                className="form-control fw-semibold" 
+                className="form-control fw-semibold"
               />
             </div>
           </div>
@@ -809,42 +940,109 @@ export default function SalesForm({
             </>
           )}
 
-          {/* New Payment Fields */}
-          <div className="col-md-6">
-            <label htmlFor="payment_mode" className="form-label fw-medium">Payment Mode</label>
+          <div className="col-md-4">
+            <label htmlFor="payment_mode" className="form-label fw-medium">
+              Mode of Payment <span className="text-danger">*</span>
+            </label>
             <div className="input-group">
               <span className="input-group-text bg-white">
                 <i className="bi bi-credit-card-2-front text-muted" />
               </span>
-              <input
-                type="text"
+              <select
                 id="payment_mode"
                 name="payment_mode"
                 value={form.payment_mode}
                 onChange={handleChange}
-                className="form-control"
-                placeholder="e.g. Bank Transfer, Cheque, Cash"
-              />
+                className={selectClass("payment_mode")}
+                required
+              >
+                <option value="">Select Mode</option>
+                <option value="Online">Online</option>
+                <option value="Cash">Cash</option>
+                <option value="Export">Export</option>
+              </select>
             </div>
+            {hasError("payment_mode") && <div className="invalid-feedback d-block">{validationErrors.payment_mode}</div>}
           </div>
 
-          <div className="col-md-6">
-            <label htmlFor="invoice_number" className="form-label fw-medium">Invoice Number</label>
-            <div className="input-group">
-              <span className="input-group-text bg-white">
-                <i className="bi bi-hash text-muted" />
-              </span>
-              <input
-                type="text"
-                id="invoice_number"
-                name="invoice_number"
-                value={form.invoice_number}
-                onChange={handleChange}
-                className="form-control"
-                placeholder="INV-2024-XXX"
-              />
+          {user?.client_type === "Loose" && form.payment_mode && form.payment_mode !== "Export" && (
+            <div className="col-12 mt-3">
+              <div
+                className="p-3 shadow-sm"
+                style={{
+                  backgroundColor: !isInvoiceAvailable ? "rgba(239, 68, 68, 0.04)" : "rgba(255, 193, 7, 0.04)",
+                  border: !isInvoiceAvailable ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid rgba(255, 193, 7, 0.2)",
+                  borderRadius: 14
+                }}
+              >
+                <div className="d-flex align-items-center mb-3">
+                  <span className={`${!isInvoiceAvailable ? "text-danger" : "text-warning"} me-2 fw-bold`}>#</span>
+                  <div className="fw-bold me-2">Invoice Number</div>
+                  <div className="text-muted small">— system generated, you can edit the sequence</div>
+                </div>
+
+                <div className="d-flex align-items-center flex-wrap gap-3">
+                  <div
+                    className="px-3 py-2 bg-white border rounded-3 text-muted fw-medium shadow-sm"
+                    style={{ minWidth: 80, textAlign: 'center' }}
+                  >
+                    {invoicePrefix}
+                  </div>
+
+                  <input
+                    type="number"
+                    value={invoiceSeq}
+                    onChange={handleInvoiceSeqChange}
+                    className={`form-control shadow-sm fw-bold text-center ${!isInvoiceAvailable ? "is-invalid" : ""}`}
+                    style={{ width: 120, height: 42, borderRadius: 10 }}
+                    placeholder="SEQ"
+                  />
+
+                  <div
+                    className="px-3 py-2 bg-white border rounded-3 text-muted fw-medium shadow-sm"
+                    style={{ minWidth: 100, textAlign: 'center' }}
+                  >
+                    {invoiceYear}
+                  </div>
+
+                  <div className="d-flex align-items-center ms-md-2 fw-bold">
+                    {invoiceChecking ? (
+                      <span className="spinner-border spinner-border-sm text-secondary me-2" />
+                    ) : isInvoiceAvailable ? (
+                      <span className="text-success">
+                        <i className="bi bi-check-circle-fill me-2" />
+                        {form.invoice_number}
+                      </span>
+                    ) : (
+                      <span className="text-danger small">
+                        <i className="bi bi-exclamation-circle-fill me-2" />
+                        Already exists! Use next number
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {!isInvoiceAvailable && (
+                  <div className="mt-2 text-danger small fw-medium">
+                    This invoice number is already taken. Please choose the next numeric sequence.
+                  </div>
+                )}
+
+                <input type="hidden" name="invoice_number" value={form.invoice_number} />
+              </div>
             </div>
-          </div>
+          )}
+
+
+          {user?.client_type === "Loose" && form.payment_mode === "Export" && (
+            <div className="col-12 mt-2">
+              <div className="badge bg-secondary bg-opacity-10 text-secondary p-2 px-3 rounded-pill fw-normal">
+                <i className="bi bi-info-circle me-2"></i>
+                Invoice Number not required for Export sales
+              </div>
+            </div>
+          )}
+
 
           {/* Full payment confirmation */}
           {form.payment_status === "completed" && (
