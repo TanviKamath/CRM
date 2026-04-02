@@ -49,6 +49,15 @@ export async function POST(req) {
 
     // Wrap in transaction
     const result = await db.transaction(async (trx) => {
+      // 0. Check for existing lot number
+      const existing = await trx("loose_diamond")
+        .where({ user_id: decoded.id, lot_number })
+        .first();
+      
+      if (existing) {
+        throw new Error("ALREADY_EXISTS");
+      }
+
       // 1. Create the Lot
       const [lotId] = await trx("loose_diamond").insert({
         user_id: decoded.id,
@@ -64,12 +73,6 @@ export async function POST(req) {
 
       // 2. Create Bifurcated Items if provided
       if (items && Array.isArray(items) && items.length > 0) {
-        // Validate total carats match
-        const splitCarats = items.reduce((sum, item) => sum + parseFloat(item.carats || 0), 0);
-        if (Math.abs(splitCarats - total_carats) > 0.001) {
-            throw new Error(`Split carats (${splitCarats}) must equal original lot carats (${total_carats})`);
-        }
-
         const itemsToInsert = items.map(item => ({
           loose_diamond_id: lotId,
           color_category: item.color_category,
@@ -90,6 +93,9 @@ export async function POST(req) {
 
     return Response.json({ success: true, lotId: result }, { status: 201 });
   } catch (err) {
+    if (err.message === "ALREADY_EXISTS") {
+      return new Response("Lot number already exists. Please use a unique number.", { status: 400 });
+    }
     console.error("Lot creation error:", err);
     return new Response(err.message || "Internal Server Error", { status: 500 });
   }

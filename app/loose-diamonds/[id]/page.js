@@ -138,7 +138,7 @@ export default function LooseDiamondDetail() {
                <i className="bi bi-layers-half text-white" style={{ fontSize: "1.5rem" }} />
              </div>
              <div>
-               <h2 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "-1px" }}>Lot: {lot.lot_number}</h2>
+               <h2 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "-1px" }}>Lot: LOT-{lot.lot_number}</h2>
                <div className="text-muted small">
                   Supplier: <span className="text-dark fw-bold">{lot.supplier_name || "Unknown"}</span> | 
                   Date: <span className="text-dark fw-bold">{lot.purchase_date ? new Date(lot.purchase_date).toLocaleDateString() : "-"}</span>
@@ -166,7 +166,7 @@ export default function LooseDiamondDetail() {
           <ol className="breadcrumb mb-0">
             <li className="breadcrumb-item"><Link href="/" className="text-decoration-none text-muted">Dashboard</Link></li>
             <li className="breadcrumb-item"><Link href="/loose-diamonds" className="text-decoration-none text-muted">Loose Diamonds</Link></li>
-            <li className="breadcrumb-item active text-primary" aria-current="page">{lot.lot_number} Details</li>
+            <li className="breadcrumb-item active text-primary" aria-current="page">LOT-{lot.lot_number} Details</li>
           </ol>
         </nav>
 
@@ -281,7 +281,7 @@ export default function LooseDiamondDetail() {
               <tbody>
                 {lot.items?.map((item, idx) => (
                   <tr key={idx} className="border-bottom">
-                    <td className="px-5 py-4 fw-bold text-dark">{lot.lot_number}</td>
+                    <td className="px-5 py-4 fw-bold text-dark">LOT-{lot.lot_number}</td>
                     <td className="px-4 py-4 fw-semibold">{item.color_category}</td>
                     <td className="px-4 py-4">{item.size_category}</td>
                     <td className="px-4 py-4 fw-bold text-muted">{item.grade}</td>

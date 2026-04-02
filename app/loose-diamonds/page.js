@@ -282,7 +282,7 @@ export default function LooseDiamondDashboard() {
                   lots.map((lot) => (
                     <tr key={lot.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/loose-diamonds/${lot.id}`)}>
                       <td className="px-4 py-4">
-                        <div className="fw-bold text-dark">{lot.lot_number}</div>
+                        <div className="fw-bold text-dark">LOT-{lot.lot_number}</div>
                         <div className="text-muted small">{lot.purchase_date ? new Date(lot.purchase_date).toLocaleDateString() : "-"}</div>
                       </td>
                       <td className="px-4 py-4 text-muted">{lot.supplier_name || "Direct Purchase"}</td>

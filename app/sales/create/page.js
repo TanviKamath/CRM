@@ -175,7 +175,7 @@ function CreateSalePageContent() {
                       style={{ borderRadius: 999 }}
                     >
                       <i className="bi bi-gem me-2" />
-                      Pre-selected {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}: {user?.client_type === "Loose" ? preSelectedDiamond.lot_number : preSelectedDiamond.certificate_number} 
+                      Pre-selected {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}: {user?.client_type === "Loose" ? `LOT-${preSelectedDiamond.lot_number}` : preSelectedDiamond.certificate_number} 
                       ({user?.client_type === "Loose" 
                         ? `${preSelectedDiamond.color_category} ${preSelectedDiamond.size_category} / ${preSelectedDiamond.grade}` 
                         : `${preSelectedDiamond.shape} ${preSelectedDiamond.weight}ct ${preSelectedDiamond.color}/${preSelectedDiamond.clarity}`})

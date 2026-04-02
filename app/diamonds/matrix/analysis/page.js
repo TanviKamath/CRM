@@ -219,7 +219,7 @@ function AnalysisContent() {
                   {activeData.items.map((item, idx) => (
                     <tr key={idx} style={{ background: "#fcfcfc", borderRadius: "8px" }}>
                       <td style={{ padding: "10px", fontWeight: 700, color: C.text, borderRadius: "8px 0 0 8px", borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}` }}>
-                        {item.lot_number}
+                        LOT-{item.lot_number}
                       </td>
                       <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 600, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                         {parseFloat(item.carats).toFixed(3)} ct

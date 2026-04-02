@@ -894,7 +894,7 @@ function DiamondsIndexPageContent() {
     const list = [];
     const isLoose = user?.client_type === "Loose";
 
-    if (activeFilters.lotNumber) list.push({ key: "lotNumber", label: `Lot: ${activeFilters.lotNumber}` });
+    if (activeFilters.lotNumber) list.push({ key: "lotNumber", label: `Lot: LOT-${activeFilters.lotNumber}` });
 
     if (activeFilters.shapes.length) {
       list.push({ 
@@ -1419,7 +1419,7 @@ function DiamondsIndexPageContent() {
                               </td>
                               {/* Frozen: Lot # */}
                               <td className="fz" style={{ left: mixFzLeft[1] + 44, width: MIX_FZ[1].w, minWidth: MIX_FZ[1].w, maxWidth: MIX_FZ[1].w }}>
-                                <span style={{ fontWeight: 600, color: C.text }}>{d.lot_number}</span>
+                                <span style={{ fontWeight: 600, color: C.text }}>LOT-{d.lot_number}</span>
                               </td>
                               {/* Frozen: Color */}
                               <td className="fz" style={{ left: mixFzLeft[2] + 44, width: MIX_FZ[2].w, minWidth: MIX_FZ[2].w, maxWidth: MIX_FZ[2].w, fontWeight: 600, color: C.text }}>

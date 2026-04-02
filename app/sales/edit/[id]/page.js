@@ -187,7 +187,7 @@ export default function EditSalePage() {
                     <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
                       <i className="bi bi-gem me-2" />
                       {user?.client_type === "Loose" ? "Lot Item: " : "Diamond: "} 
-                      {user?.client_type === "Loose" ? (selectedDiamond.lot_number || sale?.loose_lot_number) : selectedDiamond.certificate_number}
+                      {user?.client_type === "Loose" ? (selectedDiamond.lot_number ? `LOT-${selectedDiamond.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "")) : selectedDiamond.certificate_number}
                     </span>
                   )}
 

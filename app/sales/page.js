@@ -499,7 +499,7 @@ function SalesIndexContent() {
                             {sale.loose_diamond_item_id ? (
                               <Link className="text-decoration-none" href={`/loose-diamonds/${sale.loose_diamond_id || (sale.loose_item?.loose_diamond_id)}`}>
                                 <i className="bi bi-box-seam me-2 text-info" />
-                                {sale?.loose_item?.lot_number || sale?.loose_lot_number || "Lot Item"}
+                                {sale?.loose_item?.lot_number ? `LOT-${sale.loose_item.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "Lot Item")}
                                 <div className="small text-muted ms-4">
                                   {sale?.loose_item?.color_category} {sale?.loose_item?.size_category} / {sale?.loose_item?.grade}
                                 </div>

@@ -134,6 +134,8 @@ export default function CreateLooseDiamondLot() {
     remarks: "",
   });
 
+  const [lotNumberError, setLotNumberError] = useState("");
+
   // Set initial date after mount
   useEffect(() => {
     setLotInfo(prev => ({
@@ -141,6 +143,32 @@ export default function CreateLooseDiamondLot() {
       purchase_date: new Date().toISOString().split("T")[0]
     }));
   }, []);
+
+  // Real-time Lot Number Validation
+  useEffect(() => {
+    if (!lotInfo.lot_number) {
+      setLotNumberError("");
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/loose-diamonds/validate-lot?lot_number=${lotInfo.lot_number}`);
+        if (res.ok) {
+          const { available } = await res.json();
+          if (!available) {
+            setLotNumberError(`Lot number ${lotInfo.lot_number} already exists. Please use a unique number.`);
+          } else {
+            setLotNumberError("");
+          }
+        }
+      } catch (err) {
+        console.error("Validation error:", err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [lotInfo.lot_number]);
 
   // Bifurcation Items
   const [items, setItems] = useState([]);
@@ -205,6 +233,17 @@ export default function CreateLooseDiamondLot() {
   const avgPrice = splitCarats > 0 ? splitTotalValue / splitCarats : 0;
   const caratBalance = parseFloat(lotInfo.total_carats || 0) - splitCarats;
 
+  const hasDuplicates = useMemo(() => {
+    const seen = new Set();
+    for (const item of items) {
+      if (!item.color_category || !item.size_category || !item.grade) continue;
+      const combo = `${item.color_category}|${item.size_category}|${item.grade}`;
+      if (seen.has(combo)) return true;
+      seen.add(combo);
+    }
+    return false;
+  }, [items]);
+
   // Smart Balancing Tool Logic
   const applyTargetProfit = (targetVal) => {
     const targetProfit = parseFloat(targetVal);
@@ -250,11 +289,6 @@ export default function CreateLooseDiamondLot() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (Math.abs(caratBalance) > 0.001) {
-      alert(`Carat mismatch! Split carats (${splitCarats}) must equal total lot carats (${lotInfo.total_carats})`);
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch("/api/loose-diamonds", {
@@ -356,16 +390,32 @@ export default function CreateLooseDiamondLot() {
                   <div className="row g-4">
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Lot Number <span className="text-danger">*</span></label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        required 
-                        placeholder="e.g. LOT-245" 
-                        value={lotInfo.lot_number} 
-                        onChange={(e) => setLotInfo({ ...lotInfo, lot_number: e.target.value })} 
-                        style={{ borderRadius: "10px", padding: "12px" }} 
-                        suppressHydrationWarning
-                      />
+                      <div className="input-group" style={{ 
+                        borderRadius: "10px", 
+                        overflow: "hidden", 
+                        border: `1px solid ${lotNumberError ? '#ff3b30' : '#e1e1e1'}`,
+                        transition: "border-color 0.2s ease"
+                      }}>
+                        <span className="input-group-text bg-light border-0 text-muted fw-bold pe-2">LOT-</span>
+                        <input 
+                          type="number" 
+                          className="form-control border-0 ps-1 shadow-none no-spinner" 
+                          required 
+                          placeholder="245" 
+                          value={lotInfo.lot_number} 
+                          onChange={(e) => setLotInfo({ ...lotInfo, lot_number: e.target.value })} 
+                          style={{ padding: "12px 12px 12px 0" }} 
+                          suppressHydrationWarning
+                          onFocus={(e) => e.target.parentElement.style.borderColor = lotNumberError ? '#ff3b30' : '#0071e3'}
+                          onBlur={(e) => e.target.parentElement.style.borderColor = lotNumberError ? '#ff3b30' : '#e1e1e1'}
+                        />
+                      </div>
+                      {lotNumberError && (
+                        <div className="text-danger mt-1 fw-medium" style={{ fontSize: "0.75rem" }}>
+                          <i className="bi bi-exclamation-circle me-1"></i>
+                          {lotNumberError}
+                        </div>
+                      )}
                     </div>
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Supplier Name</label>
@@ -676,8 +726,18 @@ export default function CreateLooseDiamondLot() {
               */}
 
               {/* Actions Footer */}
+              {(Math.abs(caratBalance) > 0.001 || hasDuplicates) && (
+                <div className="alert alert-warning border-0 shadow-sm d-flex align-items-start mb-4" style={{ borderRadius: 14, backgroundColor: "rgba(255,159,10,0.08)", color: "#ff9f0a" }}>
+                  <i className="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+                  <div className="small fw-medium">
+                    {Math.abs(caratBalance) > 0.001 && <div className="mb-1"><strong>Carat Mismatch:</strong> Split carats do not perfectly equal total lot carats.</div>}
+                    {hasDuplicates && <div><strong>Duplicate Check:</strong> Multiple sub-lots have the exact same Color, Size, and Grade.</div>}
+                  </div>
+                </div>
+              )}
+              
               <div className="card border-0 shadow-sm mb-5" style={{ borderRadius: 20, background: "#fff" }}>
-                <div className="card-body py-3 px-4 px-md-5 d-flex justify-content-between align-items-center">
+                <div className="card-body py-3 px-4 px-md-5 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
                   <Link href="/loose-diamonds" className="btn btn-link text-decoration-none text-muted fw-bold p-0">
                     <i className="bi bi-x-lg me-2"></i>Discard & Return
                   </Link>
@@ -685,7 +745,7 @@ export default function CreateLooseDiamondLot() {
                     <button 
                       type="submit" 
                       className="btn btn-primary px-5 py-2 fw-bold shadow-lg" 
-                      disabled={loading || items.length === 0} 
+                      disabled={loading || items.length === 0 || !!lotNumberError} 
                       style={{ 
                         borderRadius: 12, 
                         background: "linear-gradient(135deg, #0071e3 0%, #0077ed 100%)", 
@@ -805,6 +865,15 @@ export default function CreateLooseDiamondLot() {
         }
         .last-child-border-0:last-child {
             border-bottom: none !important;
+        }
+        /* Hide number input spinners */
+        .no-spinner::-webkit-inner-spin-button,
+        .no-spinner::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .no-spinner {
+          -moz-appearance: textfield;
         }
       `}</style>
     </div>

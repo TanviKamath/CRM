@@ -230,7 +230,7 @@ function StockMaintenancePageContent() {
                                                         href={isLoose ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} 
                                                         className="text-decoration-none fw-semibold text-dark"
                                                     >
-                                                        {isLoose ? d.lot_number : (d.certificate_number || "NO CERT")}
+                                                        {isLoose ? `LOT-${d.lot_number}` : (d.certificate_number || "NO CERT")}
                                                     </Link>
                                                     <div className="small text-muted">
                                                         {isLoose ? (d.supplier_name || "Direct") : (d.lab || "-")} | Buying: {isLoose ? (d.purchase_date?.split('T')[0] || "-") : (d.buying_date?.split('T')[0] || "-")}

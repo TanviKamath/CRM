@@ -423,7 +423,7 @@ export default function SalesForm({
                 {diamonds.map((d) => (
                   <option key={d.id} value={d.id}>
                     {user?.client_type === "Loose" 
-                      ? `${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${d.carats}ct)`
+                      ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${d.carats}ct)`
                       : `${d.certificate_number} (${d.shape} ${d.weight}ct ${d.color}/${d.clarity})`
                     }
                   </option>

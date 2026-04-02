@@ -191,7 +191,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                             </div>
                                             {data?.loose_item ? (
                                                 <>
-                                                    <div className="fw-semibold">Lot #{data.loose_item.lot_number || "-"}</div>
+                                                    <div className="fw-semibold">Lot #LOT-{data.loose_item.lot_number || "-"}</div>
                                                     <div className="text-muted small">
                                                         {data.loose_item.color_category} {data.loose_item.size_category} {data.loose_item.grade} ({data.loose_item.carats}ct)
                                                     </div>

@@ -163,7 +163,7 @@ function SalesShowContent() {
 
   const headline = useMemo(() => {
     if (sale?.loose_diamond_item_id) {
-        return `Lot ${loose_item?.lot_number || sale?.loose_lot_number || "Item"}`;
+        return `Lot LOT-${loose_item?.lot_number || sale?.loose_lot_number || "Item"}`;
     }
     const cert = diamond?.certificate_number ? `Diamond ${diamond.certificate_number}` : "Sale";
     return cert;
@@ -422,7 +422,7 @@ function SalesShowContent() {
                 <InfoRow
                   icon="bi-hash"
                   label="Lot Number"
-                  value={loose_item?.lot_number || sale?.loose_lot_number}
+                  value={loose_item?.lot_number ? `LOT-${loose_item.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "Item")}
                   href={`/loose-diamonds/${loose_item?.loose_diamond_id || sale?.loose_diamond_id}`}
                 />
                 <InfoRow icon="bi-palette" label="Color Category" value={loose_item?.color_category} />

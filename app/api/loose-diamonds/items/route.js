@@ -34,9 +34,7 @@ export async function GET(request) {
 
     // Filters
     if (onlyAvailable) {
-      query = query.whereNotExists(
-        db("sales").whereRaw("sales.loose_diamond_item_id = loose_diamond_items.id")
-      );
+      query = query.where("loose_diamond_items.carats", ">", 0);
     }
 
     if (lotNumber) {

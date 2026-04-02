@@ -72,6 +72,16 @@ export async function PUT(req, { params }) {
     if (!existingLot) return new Response("Lot not found", { status: 404 });
 
     await db.transaction(async (trx) => {
+      // 0. Check for existing lot number (exclude current)
+      const existing = await trx("loose_diamond")
+        .where({ user_id: decoded.id, lot_number })
+        .whereNot({ id })
+        .first();
+      
+      if (existing) {
+        throw new Error("ALREADY_EXISTS");
+      }
+
       // 1. Update Lot Details
       await trx("loose_diamond").where({ id }).update({
         lot_number,
@@ -106,6 +116,9 @@ export async function PUT(req, { params }) {
 
     return Response.json({ success: true });
   } catch (err) {
+    if (err.message === "ALREADY_EXISTS") {
+      return new Response("Lot number already exists. Please use a unique number.", { status: 400 });
+    }
     console.error("PUT Lot Error:", err);
     return new Response("Internal Server Error", { status: 500 });
   }
