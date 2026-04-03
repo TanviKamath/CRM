@@ -45,8 +45,10 @@ export async function createClientService(body) {
   }
 
   // Laravel: unique:clients,email
-  const exists = await findClientByEmail(data.email);
-  if (exists) throw new Error("Email already exists");
+  if (data.email) {
+    const exists = await findClientByEmail(data.email);
+    if (exists) throw new Error("Email already exists");
+  }
 
   if (data.password) {
     data.password = await bcrypt.hash(data.password, 10);
@@ -73,8 +75,10 @@ export async function updateClientService(id, body) {
   const data = parsed.data;
 
   // Laravel: unique:clients,email,$id
-  const exists = await findClientByEmail(data.email, id);
-  if (exists) throw new Error("Email already exists");
+  if (data.email) {
+    const exists = await findClientByEmail(data.email, id);
+    if (exists) throw new Error("Email already exists");
+  }
 
   if (data.password) {
     data.password = await bcrypt.hash(data.password, 10);

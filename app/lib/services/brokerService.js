@@ -36,9 +36,11 @@ export async function createBrokerService(body) {
   const data = parsed.data;
 
   // Laravel: unique:brokers,email
-  const existing = await findBrokerByEmail(data.email);
-  if (existing) {
-    throw new Error("Email already exists");
+  if (data.email) {
+    const existing = await findBrokerByEmail(data.email);
+    if (existing) {
+      throw new Error("Email already exists");
+    }
   }
 
   const broker = await createBroker(data);
@@ -62,9 +64,11 @@ export async function updateBrokerService(id, body) {
 
   const data = parsed.data;
 
-  const exists = await findBrokerByEmail(data.email, id);
-  if (exists) {
-    throw new Error("Email already exists");
+  if (data.email) {
+    const exists = await findBrokerByEmail(data.email, id);
+    if (exists) {
+      throw new Error("Email already exists");
+    }
   }
 
   const updated = await updateBroker(id, data);

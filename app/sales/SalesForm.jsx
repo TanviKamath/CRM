@@ -438,13 +438,14 @@ export default function SalesForm({
   }, [form.sale_amount, form.brokerage_amount, form.advance_amount]);
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
       <QuickAddEntityModal
         show={showModal}
         type={modalType}
         onClose={() => setShowModal(false)}
         onSuccess={handleModalSuccess}
       />
+      <form onSubmit={handleSubmit}>
       {/* Error Alert */}
       {error && (
         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
@@ -1161,5 +1162,6 @@ export default function SalesForm({
         }
       `}</style>
     </form>
+    </>
   );
 }

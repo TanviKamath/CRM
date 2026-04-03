@@ -23,10 +23,11 @@ export default function QuickAddEntityModal({ show, onClose, type = "client", on
             if (type === "client") {
                 body.contact_name = name;
                 body.company_name = companyName;
-                // Optional fields explicitly null
+                // Set owner_name to contact_name as it's required in DB
+                body.owner_name = name; 
+                // email should be null to avoid duplicate empty string error if it's unique
                 body.email = null;
                 body.phone = null;
-                body.owner_name = null;
                 body.bank_name = null;
                 body.branch = null;
                 body.bank_address = null;
