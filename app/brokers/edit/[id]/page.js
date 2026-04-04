@@ -141,8 +141,8 @@ export default function EditBroker() {
                     style={{ 
                       width: "48px", 
                       height: "48px", 
-                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                      boxShadow: "0 4px 15px rgba(245, 158, 11, 0.3)"
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.15)"
                     }}
                   >
                     <i className="bi bi-pencil-square text-white" style={{ fontSize: "1.25rem" }}></i>
@@ -192,7 +192,7 @@ export default function EditBroker() {
                     {broker?.name || `#${id}`}
                   </Link>
                 </li>
-                <li className="breadcrumb-item active text-warning" aria-current="page">
+                <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
                   Edit
                 </li>
               </ol>
@@ -203,7 +203,8 @@ export default function EditBroker() {
               className="card border-0 shadow-sm mb-4"
               style={{ 
                 borderRadius: "12px",
-                background: "linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(217, 119, 6, 0.05) 100%)"
+                background: "linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%)",
+                border: "1px solid rgba(0, 0, 0, 0.08)"
               }}
             >
               <div className="card-body p-4">
@@ -213,7 +214,7 @@ export default function EditBroker() {
                     style={{ 
                       width: "56px", 
                       height: "56px", 
-                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)"
                     }}
                   >
                     <span className="text-white fw-bold" style={{ fontSize: "1.25rem" }}>
@@ -247,12 +248,13 @@ export default function EditBroker() {
                     <span 
                       className="badge px-3 py-2"
                       style={{ 
-                        backgroundColor: "rgba(245, 158, 11, 0.1)",
-                        color: "#d97706",
-                        borderRadius: "8px"
+                        backgroundColor: "rgba(0,0,0,0.06)",
+                        color: "#111827",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(0,0,0,0.1)"
                       }}
                     >
-                      <i className="bi bi-pencil me-1"></i>
+                      <i className="bi bi-pencil me-1 opacity-50"></i>
                       Editing
                     </span>
                   </div>
@@ -276,10 +278,10 @@ export default function EditBroker() {
                     style={{ 
                       width: "40px", 
                       height: "40px", 
-                      backgroundColor: "rgba(245, 158, 11, 0.1)"
+                      backgroundColor: "rgba(0, 0, 0, 0.06)"
                     }}
                   >
-                    <i className="bi bi-person-badge text-warning" style={{ fontSize: "1.1rem" }}></i>
+                    <i className="bi bi-person-badge text-dark opacity-50" style={{ fontSize: "1.1rem" }}></i>
                   </div>
                   <div>
                     <h5 className="fw-semibold mb-0">Broker Information</h5>
@@ -303,14 +305,14 @@ export default function EditBroker() {
               className="card border-0 mt-4"
               style={{ 
                 borderRadius: "12px",
-                backgroundColor: "rgba(245, 158, 11, 0.05)",
-                borderLeft: "4px solid #f59e0b"
+                backgroundColor: "rgba(0, 0, 0, 0.03)",
+                borderLeft: "4px solid #111827"
               }}
             >
               <div className="card-body p-4">
                 <div className="d-flex">
                   <div className="me-3">
-                    <i className="bi bi-lightbulb text-warning" style={{ fontSize: "1.25rem" }}></i>
+                    <i className="bi bi-lightbulb text-dark opacity-50" style={{ fontSize: "1.25rem" }}></i>
                   </div>
                   <div>
                     <h6 className="fw-semibold mb-1">Quick Tip</h6>

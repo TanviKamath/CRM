@@ -118,7 +118,7 @@ export default function ShowExpense() {
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
                 <h2 className="fw-bold mb-1">
-                  <i className="bi bi-receipt me-2 text-primary"></i>
+                  <i className="bi bi-receipt me-2 text-dark opacity-50"></i>
                   Expense Details
                 </h2>
                 <p className="text-muted mb-0">View expense information</p>
@@ -144,7 +144,7 @@ export default function ShowExpense() {
                   <h1 className="display-5 fw-bold text-danger mb-2">
                     {formatCurrency(expense.amount)}
                   </h1>
-                  <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                  <span className="badge bg-dark bg-opacity-10 text-dark px-3 py-2 border border-secondary border-opacity-25" style={{ borderRadius: 999 }}>
                     {EXPENSE_CATEGORIES[expense.category] || expense.category}
                   </span>
                 </div>
@@ -153,9 +153,9 @@ export default function ShowExpense() {
                 <div className="row g-4">
                   <div className="col-md-6">
                     <div className="d-flex align-items-start">
-                      <div className="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                        <i className="bi bi-calendar3 text-primary"></i>
-                      </div>
+                    <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                      <i className="bi bi-calendar3 text-dark opacity-50"></i>
+                    </div>
                       <div>
                         <p className="text-muted small mb-0">Date</p>
                         <p className="fw-medium mb-0">{formatDate(expense.expense_date)}</p>
@@ -165,9 +165,9 @@ export default function ShowExpense() {
 
                   <div className="col-md-6">
                     <div className="d-flex align-items-start">
-                      <div className="rounded-circle bg-success bg-opacity-10 p-2 me-3">
-                        <i className="bi bi-credit-card text-success"></i>
-                      </div>
+                    <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                      <i className="bi bi-credit-card text-dark opacity-50"></i>
+                    </div>
                       <div>
                         <p className="text-muted small mb-0">Payment Method</p>
                         <p className="fw-medium mb-0">
@@ -179,9 +179,9 @@ export default function ShowExpense() {
 
                   <div className="col-md-6">
                     <div className="d-flex align-items-start">
-                      <div className="rounded-circle bg-info bg-opacity-10 p-2 me-3">
-                        <i className="bi bi-person text-info"></i>
-                      </div>
+                    <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                      <i className="bi bi-person text-dark opacity-50"></i>
+                    </div>
                       <div>
                         <p className="text-muted small mb-0">Paid To</p>
                         <p className="fw-medium mb-0">{expense.paid_to || "-"}</p>
@@ -191,9 +191,9 @@ export default function ShowExpense() {
 
                   <div className="col-md-6">
                     <div className="d-flex align-items-start">
-                      <div className="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
-                        <i className="bi bi-hash text-warning"></i>
-                      </div>
+                    <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                      <i className="bi bi-hash text-dark opacity-50"></i>
+                    </div>
                       <div>
                         <p className="text-muted small mb-0">Reference Number</p>
                         <p className="fw-medium mb-0">{expense.reference_number || "-"}</p>
@@ -203,9 +203,9 @@ export default function ShowExpense() {
 
                   <div className="col-12">
                     <div className="d-flex align-items-start">
-                      <div className="rounded-circle bg-secondary bg-opacity-10 p-2 me-3">
-                        <i className="bi bi-card-text text-secondary"></i>
-                      </div>
+                    <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
+                      <i className="bi bi-card-text text-dark opacity-50"></i>
+                    </div>
                       <div className="flex-grow-1">
                         <p className="text-muted small mb-0">Description</p>
                         <p className="fw-medium mb-0">{expense.description}</p>
@@ -217,7 +217,7 @@ export default function ShowExpense() {
                     <div className="col-12">
                       <div className="d-flex align-items-start">
                         <div className="rounded-circle bg-dark bg-opacity-10 p-2 me-3">
-                          <i className="bi bi-sticky text-dark"></i>
+                          <i className="bi bi-sticky text-dark opacity-50"></i>
                         </div>
                         <div className="flex-grow-1">
                           <p className="text-muted small mb-0">Notes</p>

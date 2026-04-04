@@ -152,8 +152,8 @@ function CreateSalePageContent() {
                     style={{
                       width: 48,
                       height: 48,
-                      background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-                      boxShadow: "0 6px 18px rgba(37,99,235,0.22)",
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                     }}
                   >
                     <i className="bi bi-cash-coin text-white" style={{ fontSize: "1.25rem" }} />
@@ -171,7 +171,7 @@ function CreateSalePageContent() {
                 {preSelectedDiamond && (
                   <div className="mt-2">
                     <span
-                      className="badge bg-info bg-opacity-10 text-info px-3 py-2"
+                      className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2"
                       style={{ borderRadius: 999 }}
                     >
                       <i className="bi bi-gem me-2" />
@@ -210,9 +210,9 @@ function CreateSalePageContent() {
                     Sales
                   </Link>
                 </li>
-                <li className="breadcrumb-item active text-info" aria-current="page">
-                  Create
-                </li>
+                 <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
+                   Create
+                 </li>
               </ol>
             </nav>
 
@@ -223,11 +223,11 @@ function CreateSalePageContent() {
                 style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
               >
                 <div className="d-flex align-items-center">
-                  <div
+                   <div
                     className="rounded-3 d-flex align-items-center justify-content-center me-3"
-                    style={{ width: 40, height: 40, backgroundColor: "rgba(14,165,233,0.10)" }}
+                    style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
                   >
-                    <i className="bi bi-receipt text-info" style={{ fontSize: "1.1rem" }} />
+                    <i className="bi bi-receipt text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
                   </div>
                   <div>
                     <div className="fw-bold">Sale Information</div>
@@ -252,16 +252,17 @@ function CreateSalePageContent() {
             {/* Tip Card */}
             <div
               className="card border-0 mt-4"
-              style={{
+               style={{
                 borderRadius: 12,
-                background: "linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(37,99,235,0.05) 100%)",
+                background: "linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)",
+                border: "1px solid rgba(0,0,0,0.08)",
               }}
             >
               <div className="card-body p-4">
                 <div className="d-flex">
-                  <div className="me-3">
-                    <i className="bi bi-info-circle text-info" style={{ fontSize: "1.25rem" }} />
-                  </div>
+                   <div className="me-3">
+                     <i className="bi bi-info-circle text-dark opacity-50" style={{ fontSize: "1.25rem" }} />
+                   </div>
                   <div>
                     <h6 className="fw-semibold mb-1">Tip</h6>
                     <p className="text-muted small mb-0">

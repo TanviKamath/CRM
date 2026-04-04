@@ -14,7 +14,7 @@ export default function CreateExpense() {
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
                 <h2 className="fw-bold mb-1">
-                  <i className="bi bi-plus-circle me-2 text-primary"></i>
+                  <i className="bi bi-plus-circle me-2 text-dark opacity-50"></i>
                   Add New Expense
                 </h2>
                 <p className="text-muted mb-0">Record a new business expense</p>

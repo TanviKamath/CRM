@@ -4,14 +4,14 @@
 import { useState } from "react";
 import Link from "next/link";
 
-function StatPill({ icon, label, value, tone = "success" }) {
+function StatPill({ icon, label, value }) {
     return (
         <span
-            className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`}
+            className="badge bg-dark bg-opacity-10 text-dark border-secondary border-opacity-25 border px-3 py-2"
             style={{ borderRadius: 999 }}
         >
-            <i className={`bi ${icon} me-2`} />
-            <span className="me-1">{label}:</span>
+            <i className={`bi ${icon} me-2 text-dark opacity-75`} />
+            <span className="me-1 opacity-75">{label}:</span>
             <span className="fw-semibold">{value}</span>
         </span>
     );
@@ -39,21 +39,21 @@ export default function AccountExport() {
     }, []);
 
     const categories = [
-        { value: "all", label: "All Transactions", icon: "bi-list-ul", color: "#6366f1" },
-        { value: "stock", label: "Stock Summary", icon: "bi-gem", color: "#ec4899" },
-        { value: "buy", label: "Diamond Purchases", icon: "bi-cart-check", color: "#f59e0b" },
+        { value: "all", label: "All Transactions", icon: "bi-list-ul", color: "#111827" },
+        { value: "stock", label: "Stock Summary", icon: "bi-gem", color: "#111827" },
+        { value: "buy", label: "Diamond Purchases", icon: "bi-cart-check", color: "#111827" },
         // Specific Expense Categories
-        { value: "brokerage", label: "Brokerage", icon: "bi-person-badge", color: "#8b5cf6" },
-        { value: "salaries", label: "Salaries & Wages", icon: "bi-cash-coin", color: "#ef4444" },
-        { value: "rent", label: "Rent & Lease", icon: "bi-building", color: "#06b6d4" },
-        { value: "utilities", label: "Utilities", icon: "bi-lightning-charge", color: "#eab308" },
-        { value: "office_supplies", label: "Office Supplies", icon: "bi-printer", color: "#64748b" },
-        { value: "travel", label: "Travel", icon: "bi-airplane", color: "#3b82f6" },
-        { value: "marketing", label: "Marketing", icon: "bi-megaphone", color: "#d946ef" },
-        { value: "miscellaneous", label: "Miscellaneous", icon: "bi-question-circle", color: "#94a3b8" },
+        { value: "brokerage", label: "Brokerage", icon: "bi-person-badge", color: "#111827" },
+        { value: "salaries", label: "Salaries & Wages", icon: "bi-cash-coin", color: "#111827" },
+        { value: "rent", label: "Rent & Lease", icon: "bi-building", color: "#111827" },
+        { value: "utilities", label: "Utilities", icon: "bi-lightning-charge", color: "#111827" },
+        { value: "office_supplies", label: "Office Supplies", icon: "bi-printer", color: "#111827" },
+        { value: "travel", label: "Travel", icon: "bi-airplane", color: "#111827" },
+        { value: "marketing", label: "Marketing", icon: "bi-megaphone", color: "#111827" },
+        { value: "miscellaneous", label: "Miscellaneous", icon: "bi-question-circle", color: "#111827" },
         // Payment Modes
-        { value: "bank", label: "Bank Statement", icon: "bi-bank", color: "#3b82f6" },
-        { value: "cash", label: "Cash Statement", icon: "bi-wallet2", color: "#10b981" },
+        { value: "bank", label: "Bank Statement", icon: "bi-bank", color: "#111827" },
+        { value: "cash", label: "Cash Statement", icon: "bi-wallet2", color: "#111827" },
     ];
 
     const currentYear = new Date().getFullYear();
@@ -192,8 +192,8 @@ export default function AccountExport() {
                                 style={{
                                     width: 52,
                                     height: 52,
-                                    background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                                    boxShadow: "0 6px 18px rgba(34,197,94,0.22)",
+                                    background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                                    boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                                 }}
                             >
                                 <i className="bi bi-file-earmark-spreadsheet text-white" style={{ fontSize: "1.3rem" }} />
@@ -208,7 +208,7 @@ export default function AccountExport() {
 
                         {getSelectedPeriodText() && (
                             <div className="mt-3">
-                                <StatPill icon="bi-calendar-check" label="Period" value={getSelectedPeriodText()} tone="primary" />
+                                <StatPill icon="bi-calendar-check" label="Period" value={getSelectedPeriodText()} />
                             </div>
                         )}
                     </div>
@@ -269,8 +269,8 @@ export default function AccountExport() {
                                         className="p-3 rounded-3 h-100 text-center d-flex flex-column align-items-center justify-content-center"
                                         style={{
                                             cursor: "pointer",
-                                            border: category === cat.value ? `2px solid ${cat.color}` : "2px solid #e5e7eb",
-                                            backgroundColor: category === cat.value ? `${cat.color}0a` : "#fff",
+                                            border: category === cat.value ? `2px solid #111827` : "2px solid #e5e7eb",
+                                            backgroundColor: category === cat.value ? "rgba(0,0,0,0.06)" : "#fff",
                                             transition: "all 0.2s ease"
                                         }}
                                     >
@@ -309,8 +309,8 @@ export default function AccountExport() {
                                     className="p-4 rounded-3 h-100"
                                     style={{
                                         cursor: "pointer",
-                                        border: selectionType === "dateRange" ? "2px solid #16a34a" : "2px solid #e5e7eb",
-                                        backgroundColor: selectionType === "dateRange" ? "rgba(34,197,94,0.06)" : "#fff",
+                                        border: selectionType === "dateRange" ? "2px solid #111827" : "2px solid #e5e7eb",
+                                        backgroundColor: selectionType === "dateRange" ? "rgba(0,0,0,0.06)" : "#fff",
                                         transition: "all 0.2s ease"
                                     }}
                                 >
@@ -320,7 +320,7 @@ export default function AccountExport() {
                                             width: 48,
                                             height: 48,
                                             background: selectionType === "dateRange"
-                                                ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+                                                ? "linear-gradient(135deg, #374151 0%, #111827 100%)"
                                                 : "#f3f4f6",
                                         }}
                                     >
@@ -341,8 +341,8 @@ export default function AccountExport() {
                                     className="p-4 rounded-3 h-100"
                                     style={{
                                         cursor: "pointer",
-                                        border: selectionType === "financialYear" ? "2px solid #16a34a" : "2px solid #e5e7eb",
-                                        backgroundColor: selectionType === "financialYear" ? "rgba(34,197,94,0.06)" : "#fff",
+                                        border: selectionType === "financialYear" ? "2px solid #111827" : "2px solid #e5e7eb",
+                                        backgroundColor: selectionType === "financialYear" ? "rgba(0,0,0,0.06)" : "#fff",
                                         transition: "all 0.2s ease"
                                     }}
                                 >
@@ -352,7 +352,7 @@ export default function AccountExport() {
                                             width: 48,
                                             height: 48,
                                             background: selectionType === "financialYear"
-                                                ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+                                                ? "linear-gradient(135deg, #374151 0%, #111827 100%)"
                                                 : "#f3f4f6",
                                         }}
                                     >
@@ -373,8 +373,8 @@ export default function AccountExport() {
                                     className="p-4 rounded-3 h-100"
                                     style={{
                                         cursor: "pointer",
-                                        border: selectionType === "quarter" ? "2px solid #16a34a" : "2px solid #e5e7eb",
-                                        backgroundColor: selectionType === "quarter" ? "rgba(34,197,94,0.06)" : "#fff",
+                                        border: selectionType === "quarter" ? "2px solid #111827" : "2px solid #e5e7eb",
+                                        backgroundColor: selectionType === "quarter" ? "rgba(0,0,0,0.06)" : "#fff",
                                         transition: "all 0.2s ease"
                                     }}
                                 >
@@ -384,7 +384,7 @@ export default function AccountExport() {
                                             width: 48,
                                             height: 48,
                                             background: selectionType === "quarter"
-                                                ? "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+                                                ? "linear-gradient(135deg, #374151 0%, #111827 100%)"
                                                 : "#f3f4f6",
                                         }}
                                     >
@@ -413,7 +413,7 @@ export default function AccountExport() {
                                         style={{
                                             width: 40,
                                             height: 40,
-                                            background: "linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)",
+                                            background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
                                         }}
                                     >
                                         <i className="bi bi-calendar-range text-white" />
@@ -460,7 +460,7 @@ export default function AccountExport() {
                                         style={{
                                             width: 40,
                                             height: 40,
-                                            background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                                            background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
                                         }}
                                     >
                                         <i className="bi bi-calendar-check text-white" />
@@ -479,8 +479,8 @@ export default function AccountExport() {
                                                 className="p-3 text-center rounded-3"
                                                 style={{
                                                     cursor: "pointer",
-                                                    border: financialYear === String(year) ? "2px solid #16a34a" : "2px solid #e5e7eb",
-                                                    backgroundColor: financialYear === String(year) ? "rgba(34,197,94,0.06)" : "#fff",
+                                                    border: financialYear === String(year) ? "2px solid #111827" : "2px solid #e5e7eb",
+                                                    backgroundColor: financialYear === String(year) ? "rgba(0,0,0,0.06)" : "#fff",
                                                     transition: "all 0.2s ease"
                                                 }}
                                             >
@@ -502,7 +502,7 @@ export default function AccountExport() {
                                         style={{
                                             width: 40,
                                             height: 40,
-                                            background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)",
+                                            background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
                                         }}
                                     >
                                         <i className="bi bi-calendar4-week text-white" />
@@ -542,8 +542,8 @@ export default function AccountExport() {
                                                 style={{
                                                     cursor: financialYear ? "pointer" : "not-allowed",
                                                     opacity: financialYear ? 1 : 0.5,
-                                                    border: quarter === q.value ? "2px solid #f59e0b" : "2px solid #e5e7eb",
-                                                    backgroundColor: quarter === q.value ? "rgba(245,158,11,0.08)" : "#fff",
+                                                    border: quarter === q.value ? "2px solid #111827" : "2px solid #e5e7eb",
+                                                    backgroundColor: quarter === q.value ? "rgba(0,0,0,0.06)" : "#fff",
                                                     transition: "all 0.2s ease"
                                                 }}
                                             >
@@ -566,18 +566,18 @@ export default function AccountExport() {
                                 <div
                                     className="d-flex align-items-center gap-2 px-3 py-2"
                                     style={{
-                                        backgroundColor: "rgba(34,197,94,0.06)",
-                                        border: "1px solid rgba(34,197,94,0.12)",
+                                        backgroundColor: "rgba(0,0,0,0.04)",
+                                        border: "1px solid rgba(0,0,0,0.08)",
                                         borderRadius: 10,
                                     }}
                                 >
-                                    <i className="bi bi-file-earmark-excel text-success" />
+                                    <i className="bi bi-file-earmark-excel text-dark opacity-50" />
                                     <span className="small text-muted">Export as Excel (.xlsx)</span>
                                 </div>
 
                                 {!isExportDisabled() && getSelectedPeriodText() && (
                                     <div className="d-none d-md-flex align-items-center gap-2 px-3 py-2" style={{ backgroundColor: "#f3f4f6", borderRadius: 10 }}>
-                                        <i className="bi bi-calendar-check text-primary" />
+                                        <i className="bi bi-calendar-check text-dark opacity-50" />
                                         <span className="small text-muted">{getSelectedPeriodText()}</span>
                                     </div>
                                 )}
@@ -586,7 +586,7 @@ export default function AccountExport() {
                             <button
                                 onClick={handleExport}
                                 disabled={isExportDisabled() || isExporting}
-                                className="btn btn-success px-4 py-2"
+                                className="btn btn-dark px-4 py-2"
                                 style={{ borderRadius: 10 }}
                             >
                                 {isExporting ? (
@@ -621,8 +621,8 @@ export default function AccountExport() {
                 }
                 .form-control:focus,
                 .form-select:focus {
-                    border-color: #16a34a;
-                    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+                    border-color: #111827;
+                    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
                 }
             `}</style>
         </div>

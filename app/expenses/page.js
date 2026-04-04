@@ -155,12 +155,12 @@ function ExpensesIndexContent() {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <div>
             <h2 className="fw-bold mb-1">
-              <i className="bi bi-receipt me-2 text-primary"></i>
+              <i className="bi bi-receipt me-2 text-dark opacity-50"></i>
               Expenses
             </h2>
             <p className="text-muted mb-0">Track and manage your business expenses</p>
           </div>
-          <Link href="/expenses/create" className="btn btn-primary px-4">
+          <Link href="/expenses/create" className="btn btn-dark px-4" style={{ borderRadius: 12, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}>
             <i className="bi bi-plus-lg me-2"></i>
             Add Expense
           </Link>
@@ -186,10 +186,10 @@ function ExpensesIndexContent() {
               <div className="card-body">
                 <div className="d-flex align-items-center">
                   <div
-                    className="rounded-circle bg-primary bg-opacity-10 p-3 me-3"
+                    className="rounded-circle bg-dark bg-opacity-10 p-3 me-3"
                     style={{ width: "56px", height: "56px" }}
                   >
-                    <i className="bi bi-cash-stack text-primary" style={{ fontSize: "1.5rem" }}></i>
+                    <i className="bi bi-cash-stack text-dark opacity-50" style={{ fontSize: "1.5rem" }}></i>
                   </div>
                   <div>
                     <p className="text-muted mb-0 small">Total Expenses</p>
@@ -204,10 +204,10 @@ function ExpensesIndexContent() {
               <div className="card-body">
                 <div className="d-flex align-items-center">
                   <div
-                    className="rounded-circle bg-success bg-opacity-10 p-3 me-3"
+                    className="rounded-circle bg-dark bg-opacity-10 p-3 me-3"
                     style={{ width: "56px", height: "56px" }}
                   >
-                    <i className="bi bi-receipt text-success" style={{ fontSize: "1.5rem" }}></i>
+                    <i className="bi bi-receipt text-dark opacity-50" style={{ fontSize: "1.5rem" }}></i>
                   </div>
                   <div>
                     <p className="text-muted mb-0 small">Total Records</p>
@@ -222,10 +222,10 @@ function ExpensesIndexContent() {
               <div className="card-body">
                 <div className="d-flex align-items-center">
                   <div
-                    className="rounded-circle bg-info bg-opacity-10 p-3 me-3"
+                    className="rounded-circle bg-dark bg-opacity-10 p-3 me-3"
                     style={{ width: "56px", height: "56px" }}
                   >
-                    <i className="bi bi-graph-down text-info" style={{ fontSize: "1.5rem" }}></i>
+                    <i className="bi bi-graph-down text-dark opacity-50" style={{ fontSize: "1.5rem" }}></i>
                   </div>
                   <div>
                     <p className="text-muted mb-0 small">Average per Record</p>
@@ -325,7 +325,8 @@ function ExpensesIndexContent() {
                       </td>
                       <td className="py-3">
                         <span
-                          className={`badge bg-${CATEGORY_COLORS[expense.category] || "secondary"} bg-opacity-10 text-${CATEGORY_COLORS[expense.category] || "secondary"} px-3 py-2`}
+                          className="badge bg-dark bg-opacity-10 text-dark border border-secondary border-opacity-25 px-3 py-2"
+                          style={{ borderRadius: 999 }}
                         >
                           {EXPENSE_CATEGORIES[expense.category] || expense.category}
                         </span>

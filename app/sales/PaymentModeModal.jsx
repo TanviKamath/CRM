@@ -67,7 +67,7 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
           {/* Header */}
           <div
             className="px-4 py-4"
-            style={{ background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" }}
+            style={{ background: "linear-gradient(135deg, #374151 0%, #111827 100%)" }}
           >
             <div className="d-flex justify-content-between align-items-center">
               <div className="d-flex align-items-center gap-3">
@@ -110,8 +110,8 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                     className="btn d-flex align-items-center gap-3 text-start px-4 py-3"
                     style={{
                       borderRadius: 14,
-                      border: "2px solid rgba(16,185,129,0.25)",
-                      backgroundColor: "rgba(16,185,129,0.05)",
+                      border: "2px solid rgba(0,0,0,0.12)",
+                      backgroundColor: "rgba(0,0,0,0.02)",
                       transition: "all 0.2s",
                     }}
                     onClick={() => handleModeSelect("Cash")}
@@ -119,9 +119,9 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                   >
                     <div
                       className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: 44, height: 44, backgroundColor: "rgba(16,185,129,0.15)" }}
+                      style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}
                     >
-                      <i className="bi bi-cash-stack" style={{ fontSize: "1.2rem", color: "#10b981" }} />
+                      <i className="bi bi-cash-stack text-dark opacity-50" style={{ fontSize: "1.2rem" }} />
                     </div>
                     <div>
                       <div className="fw-semibold text-dark">Cash</div>
@@ -136,8 +136,8 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                     className="btn d-flex align-items-center gap-3 text-start px-4 py-3"
                     style={{
                       borderRadius: 14,
-                      border: "2px solid rgba(37,99,235,0.25)",
-                      backgroundColor: "rgba(37,99,235,0.05)",
+                      border: "2px solid rgba(0,0,0,0.12)",
+                      backgroundColor: "rgba(0,0,0,0.02)",
                       transition: "all 0.2s",
                     }}
                     onClick={() => handleModeSelect("Online")}
@@ -145,9 +145,9 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                   >
                     <div
                       className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: 44, height: 44, backgroundColor: "rgba(37,99,235,0.12)" }}
+                      style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}
                     >
-                      <i className="bi bi-phone-fill" style={{ fontSize: "1.2rem", color: "#2563eb" }} />
+                      <i className="bi bi-phone-fill text-dark opacity-50" style={{ fontSize: "1.2rem" }} />
                     </div>
                     <div>
                       <div className="fw-semibold text-dark">Online</div>
@@ -162,8 +162,8 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                     className="btn d-flex align-items-center gap-3 text-start px-4 py-3"
                     style={{
                       borderRadius: 14,
-                      border: "2px solid rgba(245,158,11,0.25)",
-                      backgroundColor: "rgba(245,158,11,0.05)",
+                      border: "2px solid rgba(0,0,0,0.12)",
+                      backgroundColor: "rgba(0,0,0,0.02)",
                       transition: "all 0.2s",
                     }}
                     onClick={() => handleModeSelect("Export")}
@@ -171,9 +171,9 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                   >
                     <div
                       className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: 44, height: 44, backgroundColor: "rgba(245,158,11,0.12)" }}
+                      style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}
                     >
-                      <i className="bi bi-airplane-fill" style={{ fontSize: "1.2rem", color: "#f59e0b" }} />
+                      <i className="bi bi-airplane-fill text-dark opacity-50" style={{ fontSize: "1.2rem" }} />
                     </div>
                     <div>
                       <div className="fw-semibold text-dark">Export</div>
@@ -231,7 +231,7 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                   className="btn w-100 py-3 text-white fw-semibold"
                   style={{
                     borderRadius: 12,
-                    background: subMethod ? "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)" : "#adb5bd",
+                    background: subMethod ? "linear-gradient(135deg, #374151 0%, #111827 100%)" : "#adb5bd",
                     border: "none",
                     transition: "all 0.2s",
                   }}

@@ -47,8 +47,8 @@ export default function CreateBroker() {
                     style={{ 
                       width: "48px", 
                       height: "48px", 
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)"
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.15)"
                     }}
                   >
                     <i className="bi bi-person-plus-fill text-white" style={{ fontSize: "1.25rem" }}></i>
@@ -83,7 +83,7 @@ export default function CreateBroker() {
                     Brokers
                   </Link>
                 </li>
-                <li className="breadcrumb-item active text-primary" aria-current="page">
+                <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
                   Add New
                 </li>
               </ol>
@@ -105,10 +105,10 @@ export default function CreateBroker() {
                     style={{ 
                       width: "40px", 
                       height: "40px", 
-                      backgroundColor: "rgba(102, 126, 234, 0.1)"
+                      backgroundColor: "rgba(0, 0, 0, 0.06)"
                     }}
                   >
-                    <i className="bi bi-person-badge text-primary" style={{ fontSize: "1.1rem" }}></i>
+                    <i className="bi bi-person-badge text-dark opacity-50" style={{ fontSize: "1.1rem" }}></i>
                   </div>
                   <div>
                     <h5 className="fw-semibold mb-0">Broker Information</h5>
@@ -131,13 +131,14 @@ export default function CreateBroker() {
               className="card border-0 mt-4"
               style={{ 
                 borderRadius: "12px",
-                background: "linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)"
+                background: "linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%)",
+                border: "1px solid rgba(0, 0, 0, 0.08)"
               }}
             >
               <div className="card-body p-4">
                 <div className="d-flex">
                   <div className="me-3">
-                    <i className="bi bi-info-circle text-primary" style={{ fontSize: "1.25rem" }}></i>
+                    <i className="bi bi-info-circle text-dark opacity-50" style={{ fontSize: "1.25rem" }}></i>
                   </div>
                   <div>
                     <h6 className="fw-semibold mb-1">Need Help?</h6>

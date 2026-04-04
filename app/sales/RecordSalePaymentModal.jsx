@@ -143,7 +143,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
             >
                 <div className="bg-white shadow-lg" style={{ borderRadius: 20, overflow: "hidden", animation: "modalSlideIn 0.3s ease-out" }}>
                     {/* Header */}
-                    <div className="px-4 py-4" style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}>
+                    <div className="px-4 py-4" style={{ background: "linear-gradient(135deg, #374151 0%, #111827 100%)" }}>
                         <div className="d-flex justify-content-between align-items-start">
                             <div className="d-flex align-items-center gap-3">
                                 <div className="rounded-circle d-flex align-items-center justify-content-center" style={{ width: 52, height: 52, backgroundColor: "rgba(255,255,255,0.2)" }}>
@@ -166,7 +166,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                     <div className="p-4">
                         {loading && !data && (
                             <div className="text-center py-5">
-                                <div className="spinner-border mb-3" style={{ width: "3rem", height: "3rem", color: "#10b981" }} />
+                                <div className="spinner-border mb-3" style={{ width: "3rem", height: "3rem", color: "#374151" }} />
                                 <div className="text-muted">Loading payment details...</div>
                             </div>
                         )}
@@ -184,9 +184,9 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 {/* Sale & Client Info */}
                                 <div className="row g-3 mb-4">
                                     <div className="col-6">
-                                        <div className="p-3 h-100" style={{ borderRadius: 12, backgroundColor: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.12)" }}>
+                                        <div className="p-3 h-100" style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                             <div className="d-flex align-items-center gap-2 mb-2">
-                                                <i className="bi bi-gem text-info" />
+                                                <i className="bi bi-gem text-dark opacity-50" />
                                                 <span className="text-muted small">{data?.loose_item ? "Lot Information" : "Diamond"}</span>
                                             </div>
                                             {data?.loose_item ? (
@@ -207,9 +207,9 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         </div>
                                     </div>
                                     <div className="col-6">
-                                        <div className="p-3 h-100" style={{ borderRadius: 12, backgroundColor: "rgba(139,92,246,0.06)", border: "1px solid rgba(139,92,246,0.12)" }}>
+                                        <div className="p-3 h-100" style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                             <div className="d-flex align-items-center gap-2 mb-2">
-                                                <i className="bi bi-building" style={{ color: "#8b5cf6" }} />
+                                                <i className="bi bi-building text-dark opacity-50" />
                                                 <span className="text-muted small">Client</span>
                                             </div>
                                             <div className="fw-semibold">{data?.client?.company_name || "-"}</div>
@@ -219,10 +219,10 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 </div>
 
                                 {/* Payment Progress */}
-                                <div className="mb-4 p-3" style={{ borderRadius: 14, backgroundColor: "rgba(16,185,129,0.04)", border: "1px solid rgba(16,185,129,0.12)" }}>
+                                <div className="mb-4 p-3" style={{ borderRadius: 14, backgroundColor: "rgba(0,0,0,0.02)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <span className="text-muted small fw-medium">Collection Progress</span>
-                                        <span className="badge px-2 py-1" style={{ borderRadius: 999, backgroundColor: "rgba(16,185,129,0.15)", color: "#10b981" }}>
+                                        <span className={`badge px-2 py-1 ${paymentProgress >= 100 ? 'bg-success' : 'bg-dark bg-opacity-10 text-dark border'}`} style={{ borderRadius: 999 }}>
                                             {paymentProgress.toFixed(1)}% collected
                                         </span>
                                     </div>
@@ -232,12 +232,12 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                             style={{
                                                 width: `${Math.min(paymentProgress, 100)}%`,
                                                 borderRadius: 999,
-                                                background: "linear-gradient(90deg, #10b981 0%, #059669 100%)"
+                                                background: paymentProgress >= 100 ? "linear-gradient(90deg, #10b981 0%, #059669 100%)" : "#374151"
                                             }}
                                         />
                                     </div>
                                     <div className="d-flex justify-content-between small">
-                                        <span className="text-success fw-medium">{formatCurrency(totalReceivedInr)} received</span>
+                                        <span className={`${paymentProgress >= 100 ? 'text-success' : 'text-dark fw-medium'} opacity-75`}>{formatCurrency(totalReceivedInr)} received</span>
                                         <span className="text-muted">of {formatCurrency(saleAmountInr)}</span>
                                     </div>
                                 </div>
@@ -245,26 +245,26 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 {/* Key Metrics */}
                                 <div className="row g-3 mb-4">
                                     <div className="col-4">
-                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(14,165,233,0.06)", border: "1px solid rgba(14,165,233,0.12)" }}>
+                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                             <div className="text-muted small mb-1">Sale Amount</div>
-                                            <div className="fw-bold text-info">{formatCurrency(saleAmountInr)}</div>
+                                            <div className="fw-bold text-dark">{formatCurrency(saleAmountInr)}</div>
                                         </div>
                                     </div>
                                     <div className="col-4">
-                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.12)" }}>
+                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                             <div className="text-muted small mb-1">Received</div>
-                                            <div className="fw-bold text-success">{formatCurrency(totalReceivedInr)}</div>
+                                            <div className="fw-bold text-dark">{formatCurrency(totalReceivedInr)}</div>
                                             {advanceAmountInr > 0 && (
-                                                <div className="text-muted" style={{ fontSize: "0.7rem" }}>
+                                                <div className="text-muted opacity-50" style={{ fontSize: "0.7rem" }}>
                                                     (Adv: {formatCurrency(advanceAmountInr)})
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                     <div className="col-4">
-                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: currentOutstandingInr > 0 ? "rgba(245,158,11,0.08)" : "rgba(16,185,129,0.06)", border: `1px solid ${currentOutstandingInr > 0 ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.12)"}` }}>
+                                        <div className="p-3 text-center" style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
                                             <div className="text-muted small mb-1">Outstanding</div>
-                                            <div className="fw-bold" style={{ color: currentOutstandingInr > 0 ? "#f59e0b" : "#10b981" }}>
+                                            <div className="fw-bold text-dark">
                                                 {formatCurrency(currentOutstandingInr)}
                                             </div>
                                         </div>
@@ -273,9 +273,9 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
 
                                 {/* Due Date Info */}
                                 {data?.due_date && data.payment_status === 'on_terms' && (
-                                    <div className={`d-flex align-items-center gap-3 mb-4 p-3`} style={{ borderRadius: 12, backgroundColor: isOverdue() ? "rgba(220,53,69,0.06)" : "rgba(14,165,233,0.04)", border: `1px solid ${isOverdue() ? "rgba(220,53,69,0.15)" : "rgba(14,165,233,0.12)"}` }}>
-                                        <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 44, height: 44, backgroundColor: isOverdue() ? "rgba(220,53,69,0.1)" : "rgba(14,165,233,0.1)" }}>
-                                            <i className={`bi ${isOverdue() ? "bi-exclamation-triangle" : "bi-calendar-check"}`} style={{ color: isOverdue() ? "#dc3545" : "#0ea5e9", fontSize: "1.1rem" }} />
+                                    <div className={`d-flex align-items-center gap-3 mb-4 p-3`} style={{ borderRadius: 12, backgroundColor: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.08)" }}>
+                                        <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}>
+                                            <i className={`bi bi-calendar-check text-dark opacity-50`} style={{ fontSize: "1.1rem" }} />
                                         </div>
                                         <div className="flex-grow-1">
                                             <div className="text-muted small">Payment Due Date</div>
@@ -307,7 +307,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 {/* Payment Amount */}
                                 <div className="mb-3">
                                     <label className="form-label fw-medium">
-                                        <i className="bi bi-currency-rupee me-2 text-success" />
+                                        <i className="bi bi-currency-rupee me-2 text-dark opacity-50" />
                                         Amount Received <span className="text-danger">*</span>
                                     </label>
                                     <div className="input-group input-group-lg" style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
@@ -354,7 +354,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                 <div className="row g-3 mb-3">
                                     <div className="col-6">
                                         <label className="form-label fw-medium">
-                                            <i className="bi bi-calendar3 me-2 text-info" />Payment Date
+                                            <i className="bi bi-calendar3 me-2 text-dark opacity-50" />Payment Date
                                         </label>
                                         <input type="date" className="form-control" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} style={{ borderRadius: 12 }} />
                                     </div>
@@ -454,7 +454,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         type="submit"
                                         className="btn flex-grow-1 py-3 text-white"
                                         disabled={loading || remainingOutstanding < 0 || !amount}
-                                        style={{ borderRadius: 12, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", border: "none" }}
+                                        style={{ borderRadius: 12, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}
                                     >
                                         {loading ? (
                                             <><span className="spinner-border spinner-border-sm me-2" />Recording...</>

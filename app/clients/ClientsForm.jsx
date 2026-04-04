@@ -245,9 +245,9 @@ export default function ClientsForm({
         <div className="accordion-item border-0 shadow-sm mb-3" style={{ borderRadius: 16, overflow: "hidden" }}>
           <h2 className="accordion-header" id="headingBasic">
             <button className="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBasic">
-              <i className="bi bi-person-lines-fill me-2 text-success" />
+              <i className="bi bi-person-lines-fill me-2 text-dark opacity-50" />
               Basic Information
-              <span className="ms-auto badge bg-success bg-opacity-10 text-success">Required</span>
+              <span className="ms-auto badge bg-dark bg-opacity-10 text-dark border border-secondary border-opacity-25">Required</span>
             </button>
           </h2>
           <div id="collapseBasic" className="accordion-collapse collapse show" data-bs-parent="#clientsFormAccordion">
@@ -403,7 +403,7 @@ export default function ClientsForm({
         <div className="accordion-item border-0 shadow-sm mb-3" style={{ borderRadius: 16, overflow: "hidden" }}>
           <h2 className="accordion-header" id="headingAddress">
             <button className="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAddress">
-              <i className="bi bi-geo-alt me-2 text-success" />
+              <i className="bi bi-geo-alt me-2 text-dark opacity-50" />
               Address Information
             </button>
           </h2>
@@ -430,7 +430,7 @@ export default function ClientsForm({
                 <div className="col-md-6">
                   <div className="d-flex justify-content-between align-items-center">
                     <label className="form-label fw-medium mb-0">BDB Address</label>
-                    <button type="button" className="btn btn-sm btn-outline-success" onClick={copyRegToBdb} style={{ borderRadius: 10 }}>
+                    <button type="button" className="btn btn-sm btn-outline-dark" onClick={copyRegToBdb} style={{ borderRadius: 10 }}>
                       <i className="bi bi-clipboard me-2" />
                       Copy Registered
                     </button>
@@ -459,7 +459,7 @@ export default function ClientsForm({
         <div className="accordion-item border-0 shadow-sm mb-3" style={{ borderRadius: 16, overflow: "hidden" }}>
           <h2 className="accordion-header" id="headingBusiness">
             <button className="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBusiness">
-              <i className="bi bi-briefcase me-2 text-success" />
+              <i className="bi bi-briefcase me-2 text-dark opacity-50" />
               Business & KYC
             </button>
           </h2>
@@ -560,9 +560,9 @@ export default function ClientsForm({
         <div className="accordion-item border-0 shadow-sm" style={{ borderRadius: 16, overflow: "hidden" }}>
           <h2 className="accordion-header" id="headingBank">
             <button className="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBank">
-              <i className="bi bi-bank me-2 text-success" />
+              <i className="bi bi-bank me-2 text-dark opacity-50" />
               Bank Details
-              <span className="ms-auto badge bg-success bg-opacity-10 text-success">Required</span>
+              <span className="ms-auto badge bg-dark bg-opacity-10 text-dark border border-secondary border-opacity-25">Required</span>
             </button>
           </h2>
           <div id="collapseBank" className="accordion-collapse collapse" data-bs-parent="#clientsFormAccordion">
@@ -751,8 +751,8 @@ export default function ClientsForm({
         }
         .form-control:focus,
         .form-select:focus {
-          box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15) !important;
-          border-color: rgba(34, 197, 94, 0.35) !important;
+          box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
+          border-color: rgba(0, 0, 0, 0.25) !important;
         }
         .btn:focus {
           box-shadow: none !important;

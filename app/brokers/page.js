@@ -26,8 +26,8 @@ function BrokerAvatar({ name }) {
       style={{
         width: 38,
         height: 38,
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        boxShadow: "0 6px 18px rgba(102,126,234,0.22)",
+        background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
       }}
       aria-hidden="true"
     >
@@ -38,14 +38,14 @@ function BrokerAvatar({ name }) {
   );
 }
 
-function BadgePill({ icon, text, tone = "primary" }) {
+function BadgePill({ icon, text }) {
   return (
     <span
-      className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`}
+      className="badge bg-dark bg-opacity-10 text-dark border-secondary border-opacity-25 border px-3 py-2"
       style={{ borderRadius: 999 }}
     >
-      <i className={`bi ${icon} me-2`} />
-      {text}
+      <i className={`bi ${icon} me-2 text-dark opacity-75`} />
+      <span className="opacity-75">{text}</span>
     </span>
   );
 }
@@ -149,8 +149,8 @@ function BrokersIndexContent() {
                 style={{
                   width: 52,
                   height: 52,
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  boxShadow: "0 6px 18px rgba(102,126,234,0.25)",
+                  background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                 }}
               >
                 <i className="bi bi-person-badge-fill text-white" style={{ fontSize: "1.3rem" }} />
@@ -166,14 +166,14 @@ function BrokersIndexContent() {
             </div>
 
             <div className="mt-3 d-flex flex-wrap gap-2">
-              <BadgePill icon="bi-collection" text={`${totalItems} Total`} tone="primary" />
-              <BadgePill icon="bi-eye" text={`${totalDisplayed} Showing`} tone="success" />
-              <BadgePill icon="bi-hash" text={`Page ${currentPage}${totalPages > 1 ? ` / ${totalPages}` : ""}`} tone="secondary" />
+              <BadgePill icon="bi-collection" text={`${totalItems} Total`} />
+              <BadgePill icon="bi-eye" text={`${totalDisplayed} Showing`} />
+              <BadgePill icon="bi-hash" text={`Page ${currentPage}${totalPages > 1 ? ` / ${totalPages}` : ""}`} />
             </div>
           </div>
 
           <div className="d-flex gap-2">
-            <Link href="/brokers/create" className="btn btn-primary px-4" style={{ borderRadius: 10 }}>
+            <Link href="/brokers/create" className="btn btn-dark px-4" style={{ borderRadius: 10, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}>
               <i className="bi bi-plus-lg me-2" />
               Add Broker
             </Link>
@@ -226,12 +226,12 @@ function BrokersIndexContent() {
                 <div
                   className="d-flex align-items-center gap-2 p-2"
                   style={{
-                    backgroundColor: "rgba(102,126,234,0.06)",
-                    border: "1px solid rgba(102,126,234,0.12)",
+                    backgroundColor: "rgba(0,0,0,0.04)",
+                    border: "1px solid rgba(0,0,0,0.08)",
                     borderRadius: 14,
                   }}
                 >
-                  <i className="bi bi-info-circle text-primary ms-2" />
+                  <i className="bi bi-info-circle text-dark opacity-50 ms-2" />
                   <div className="small text-muted me-2">
                     Click a broker name to open details.
                   </div>
@@ -284,7 +284,7 @@ function BrokersIndexContent() {
                             <BrokerAvatar name={broker.name} />
                             <div>
                               <div className="fw-semibold">
-                                <Link className="text-decoration-none" href={`/brokers/show/${broker.id}`}>
+                                <Link className="text-decoration-none text-dark" href={`/brokers/show/${broker.id}`}>
                                   {broker.name || "-"}
                                 </Link>
                               </div>
@@ -304,7 +304,7 @@ function BrokersIndexContent() {
                             <div className="text-muted small">
                               <i className="bi bi-envelope me-2" />
                               {broker.email ? (
-                                <a className="text-decoration-none" href={`mailto:${broker.email}`}>
+                                <a className="text-decoration-none text-dark fw-medium" href={`mailto:${broker.email}`}>
                                   {broker.email}
                                 </a>
                               ) : (
@@ -314,7 +314,7 @@ function BrokersIndexContent() {
                             <div className="text-muted small">
                               <i className="bi bi-telephone me-2" />
                               {broker.phone ? (
-                                <a className="text-decoration-none" href={`tel:${broker.phone}`}>
+                                <a className="text-decoration-none text-dark fw-medium" href={`tel:${broker.phone}`}>
                                   {broker.phone}
                                 </a>
                               ) : (
@@ -326,10 +326,10 @@ function BrokersIndexContent() {
 
                         <td className="py-3 text-end">
                           <span
-                            className="badge bg-primary bg-opacity-10 text-primary px-3 py-2"
+                            className="badge bg-dark bg-opacity-10 text-dark border border-secondary border-opacity-25 px-3 py-2"
                             style={{ borderRadius: 999 }}
                           >
-                            <i className="bi bi-percent me-2" />
+                            <i className="bi bi-percent me-2 opacity-50" />
                             {formatPercent(broker.commission_rate)}
                           </span>
                         </td>

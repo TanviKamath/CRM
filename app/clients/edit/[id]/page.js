@@ -96,7 +96,7 @@ export default function EditClient() {
                       <i className="bi bi-arrow-clockwise me-2" />
                       Retry
                     </button>
-                    <Link className="btn btn-success px-4" style={{ borderRadius: 10 }} href="/clients">
+                    <Link className="btn btn-dark px-4" style={{ borderRadius: 10 }} href="/clients">
                       <i className="bi bi-arrow-left me-2" />
                       Back to Clients
                     </Link>
@@ -123,8 +123,8 @@ export default function EditClient() {
                 style={{
                   width: 50,
                   height: 50,
-                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                  boxShadow: "0 6px 18px rgba(34, 197, 94, 0.22)",
+                  background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                  boxShadow: "0 6px 18px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 <i className="bi bi-pencil-square text-white" style={{ fontSize: "1.25rem" }} />
@@ -176,7 +176,7 @@ export default function EditClient() {
                   {client?.company_name || client?.contact_name || `#${id}`}
                 </Link>
               </li>
-              <li className="breadcrumb-item active text-success" aria-current="page">
+              <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
                 Edit
               </li>
             </ol>
@@ -187,7 +187,8 @@ export default function EditClient() {
             className="card border-0 shadow-sm mb-4"
             style={{
               borderRadius: 12,
-              background: "linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(16, 185, 129, 0.05) 100%)",
+              background: "linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%)",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
             }}
           >
             <div className="card-body p-4">
@@ -197,7 +198,7 @@ export default function EditClient() {
                   style={{
                     width: 56,
                     height: 56,
-                    background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
+                    background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
                   }}
                 >
                   <span className="text-white fw-bold" style={{ fontSize: "1.25rem" }}>
@@ -231,9 +232,9 @@ export default function EditClient() {
 
                 <span
                   className="badge px-3 py-2"
-                  style={{ backgroundColor: "rgba(34,197,94,0.12)", color: "#16a34a", borderRadius: 10 }}
+                  style={{ backgroundColor: "rgba(0,0,0,0.06)", color: "#111827", borderRadius: 10, border: "1px solid rgba(0,0,0,0.1)" }}
                 >
-                  <i className="bi bi-pencil me-1" />
+                  <i className="bi bi-pencil me-1 opacity-50" />
                   Editing
                 </span>
               </div>
@@ -246,9 +247,9 @@ export default function EditClient() {
               <div className="d-flex align-items-center">
                 <div
                   className="rounded-3 d-flex align-items-center justify-content-center me-3"
-                  style={{ width: 40, height: 40, backgroundColor: "rgba(34, 197, 94, 0.10)" }}
+                  style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
                 >
-                  <i className="bi bi-building text-success" style={{ fontSize: "1.1rem" }} />
+                  <i className="bi bi-building text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
                 </div>
                 <div>
                   <div className="fw-bold">Client Information</div>
@@ -267,14 +268,14 @@ export default function EditClient() {
             className="card border-0 mt-4"
             style={{
               borderRadius: 12,
-              backgroundColor: "rgba(34, 197, 94, 0.05)",
-              borderLeft: "4px solid #22c55e",
+              backgroundColor: "rgba(0, 0, 0, 0.03)",
+              borderLeft: "4px solid #111827",
             }}
           >
             <div className="card-body p-4">
               <div className="d-flex">
                 <div className="me-3">
-                  <i className="bi bi-lightbulb text-success" style={{ fontSize: "1.25rem" }} />
+                  <i className="bi bi-lightbulb text-dark opacity-50" style={{ fontSize: "1.25rem" }} />
                 </div>
                 <div>
                   <h6 className="fw-semibold mb-1">Quick Tip</h6>

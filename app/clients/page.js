@@ -19,8 +19,8 @@ function ClientAvatar({ company_name, contact_name }) {
       style={{
         width: 38,
         height: 38,
-        background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-        boxShadow: "0 6px 18px rgba(34,197,94,0.20)",
+        background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+        boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
       }}
       aria-hidden="true"
     >
@@ -31,14 +31,14 @@ function ClientAvatar({ company_name, contact_name }) {
   );
 }
 
-function StatPill({ icon, label, value, tone = "success" }) {
+function StatPill({ icon, label, value }) {
   return (
     <span
-      className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`}
+      className="badge bg-dark bg-opacity-10 text-dark border-secondary border-opacity-25 border px-3 py-2"
       style={{ borderRadius: 999 }}
     >
-      <i className={`bi ${icon} me-2`} />
-      <span className="me-1">{label}:</span>
+      <i className={`bi ${icon} me-2 text-dark opacity-75`} />
+      <span className="me-1 opacity-75">{label}:</span>
       <span className="fw-semibold">{value}</span>
     </span>
   );
@@ -120,8 +120,8 @@ function ClientsIndexContent() {
                 style={{
                   width: 52,
                   height: 52,
-                  background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                  boxShadow: "0 6px 18px rgba(34,197,94,0.22)",
+                  background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                 }}
               >
                 <i className="bi bi-people-fill text-white" style={{ fontSize: "1.3rem" }} />
@@ -135,13 +135,13 @@ function ClientsIndexContent() {
             </div>
 
             <div className="mt-3 d-flex flex-wrap gap-2">
-              <StatPill icon="bi-collection" label="Total" value={clients.length} tone="success" />
-              <StatPill icon="bi-eye" label="Showing" value={filteredClients.length} tone="primary" />
+              <StatPill icon="bi-collection" label="Total" value={clients.length} />
+              <StatPill icon="bi-eye" label="Showing" value={filteredClients.length} />
             </div>
           </div>
 
           <div className="d-flex gap-2">
-            <Link href="/clients/create" className="btn btn-success px-4" style={{ borderRadius: 10 }}>
+            <Link href="/clients/create" className="btn btn-dark px-4" style={{ borderRadius: 10, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}>
               <i className="bi bi-person-plus-fill me-2" />
               Add Client
             </Link>
@@ -192,12 +192,12 @@ function ClientsIndexContent() {
                 <div
                   className="d-flex align-items-center gap-2 p-2"
                   style={{
-                    backgroundColor: "rgba(34,197,94,0.06)",
-                    border: "1px solid rgba(34,197,94,0.12)",
+                    backgroundColor: "rgba(0,0,0,0.04)",
+                    border: "1px solid rgba(0,0,0,0.08)",
                     borderRadius: 14,
                   }}
                 >
-                  <i className="bi bi-info-circle text-success ms-2" />
+                  <i className="bi bi-info-circle text-dark opacity-50 ms-2" />
                   <div className="small text-muted me-2">Click a client name to open details.</div>
                 </div>
               </div>
@@ -244,7 +244,7 @@ function ClientsIndexContent() {
                         </div>
                         <div className="fw-semibold">No clients found</div>
                         <div className="text-muted small mb-3">Try clearing the search or add a new client.</div>
-                        <Link href="/clients/create" className="btn btn-success px-4" style={{ borderRadius: 10 }}>
+                        <Link href="/clients/create" className="btn btn-dark px-4" style={{ borderRadius: 10, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}>
                           <i className="bi bi-person-plus-fill me-2" />
                           Add Client
                         </Link>
@@ -259,7 +259,7 @@ function ClientsIndexContent() {
                             <ClientAvatar company_name={client.company_name} contact_name={client.contact_name} />
                             <div>
                               <div className="fw-semibold">
-                                <Link className="text-decoration-none" href={`/clients/show/${client.id}`}>
+                                <Link className="text-decoration-none text-dark" href={`/clients/show/${client.id}`}>
                                   {client.company_name || "-"}
                                 </Link>
                               </div>
@@ -291,8 +291,8 @@ function ClientsIndexContent() {
                         {/* Email */}
                         <td className="py-3">
                           {client.email ? (
-                            <a className="text-decoration-none" href={`mailto:${client.email}`}>
-                              <i className="bi bi-envelope me-2 text-muted" />
+                            <a className="text-decoration-none text-dark fw-medium" href={`mailto:${client.email}`}>
+                              <i className="bi bi-envelope me-2 text-muted opacity-50" />
                               {client.email}
                             </a>
                           ) : (
@@ -303,8 +303,8 @@ function ClientsIndexContent() {
                         {/* Phone */}
                         <td className="py-3">
                           {client.phone ? (
-                            <a className="text-decoration-none" href={`tel:${client.phone}`}>
-                              <i className="bi bi-telephone me-2 text-muted" />
+                            <a className="text-decoration-none text-dark fw-medium" href={`tel:${client.phone}`}>
+                              <i className="bi bi-telephone me-2 text-muted opacity-50" />
                               {client.phone}
                             </a>
                           ) : (
@@ -356,7 +356,7 @@ function ClientsIndexContent() {
               </div>
 
               <div className="text-muted small">
-                <i className="bi bi-shield-check me-2" />
+                <i className="bi bi-shield-check me-2 opacity-50" />
                 Data is stored securely.
               </div>
             </div>

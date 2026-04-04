@@ -32,9 +32,9 @@ function StatusBadge({ status }) {
   const map = {
     pending: { bg: "warning", text: "Pending", icon: "bi-clock" },
     completed: { bg: "success", text: "Completed", icon: "bi-check2-circle" },
-    cancelled: { bg: "danger", text: "Cancelled", icon: "bi-x-circle" },
+    cancelled: { bg: "secondary", text: "Cancelled", icon: "bi-x-circle" },
   };
-  const s = map[status] || { bg: "secondary", text: status || "Unknown", icon: "bi-info-circle" };
+  const s = map[status] || { bg: "light", text: status || "Unknown", icon: "bi-info-circle" };
 
   return (
     <span className={`badge bg-${s.bg} ${s.bg === "warning" ? "text-dark" : ""} px-3 py-2`} style={{ borderRadius: 999 }}>
@@ -51,9 +51,9 @@ function SectionCard({ title, subtitle, icon, accent = "info", children }) {
         <div className="d-flex align-items-center">
           <div
             className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: `rgba(14,165,233,0.10)` }}
+            style={{ width: 40, height: 40, backgroundColor: `rgba(0,0,0,0.06)` }}
           >
-            <i className={`bi ${icon} text-${accent}`} style={{ fontSize: "1.1rem" }} />
+            <i className={`bi ${icon} text-dark opacity-50`} style={{ fontSize: "1.1rem" }} />
           </div>
           <div>
             <div className="fw-bold">{title}</div>
@@ -72,9 +72,9 @@ function InfoRow({ label, value, icon, href }) {
     <div className="d-flex align-items-start py-2">
       <div
         className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-        style={{ width: 36, height: 36, backgroundColor: "rgba(14,165,233,0.10)" }}
+        style={{ width: 36, height: 36, backgroundColor: "rgba(0,0,0,0.06)" }}
       >
-        <i className={`bi ${icon} text-info`} />
+        <i className={`bi ${icon} text-dark opacity-50`} />
       </div>
       <div className="flex-grow-1">
         <div className="text-muted" style={{ fontSize: "0.8rem" }}>
@@ -82,7 +82,7 @@ function InfoRow({ label, value, icon, href }) {
         </div>
         <div className="fw-semibold">
           {href && v !== "-" ? (
-            <a className="text-decoration-none" href={href}>
+            <a className="text-decoration-none text-dark border-bottom border-secondary border-opacity-25" href={href}>
               {v}
             </a>
           ) : (
@@ -298,8 +298,8 @@ function SalesShowContent() {
               style={{
                 width: 54,
                 height: 54,
-                background: "linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)",
-                boxShadow: "0 6px 18px rgba(37,99,235,0.22)",
+                background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
               }}
             >
               <span className="text-white fw-bold" style={{ fontSize: "1.25rem" }}>
@@ -317,11 +317,11 @@ function SalesShowContent() {
                   {formatDate(sale.created_at)}
                 </span>
                 <StatusBadge status={sale.status} />
-                <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
+                <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-cash-stack me-2" />
                   {formatCurrency(sale.sale_amount_inr || sale.sale_amount)}
                 </span>
-                <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
+                <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-gem me-2" />
                   {headline}
                 </span>
@@ -330,7 +330,7 @@ function SalesShowContent() {
           </div>
 
           <div className="d-flex gap-2">
-            <Link href={`/sales/edit/${sale.id}`} className="btn btn-warning px-4" style={{ borderRadius: 10 }}>
+            <Link href={`/sales/edit/${sale.id}`} className="btn btn-dark px-4" style={{ borderRadius: 10 }}>
               <i className="bi bi-pencil me-2" />
               Edit
             </Link>
@@ -355,7 +355,7 @@ function SalesShowContent() {
                 Sales
               </Link>
             </li>
-            <li className="breadcrumb-item active text-info" aria-current="page">
+            <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
               Details
             </li>
           </ol>
@@ -367,8 +367,8 @@ function SalesShowContent() {
             <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center">
-                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(14,165,233,0.10)" }}>
-                    <i className="bi bi-cash-coin text-info" />
+                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}>
+                    <i className="bi bi-cash-coin text-dark opacity-50" />
                   </div>
                   <div>
                     <div className="text-muted small">Total Amount (₹)</div>
@@ -386,8 +386,8 @@ function SalesShowContent() {
             <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center">
-                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(34,197,94,0.10)" }}>
-                    <i className="bi bi-currency-exchange text-success" />
+                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}>
+                    <i className="bi bi-currency-exchange text-dark opacity-50" />
                   </div>
                   <div>
                     <div className="text-muted small">Sale Amount (INR)</div>
@@ -405,8 +405,8 @@ function SalesShowContent() {
             <div className="card border-0 shadow-sm" style={{ borderRadius: 14 }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center">
-                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(245,158,11,0.12)" }}>
-                    <i className="bi bi-percent text-warning" />
+                  <div className="rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}>
+                    <i className="bi bi-percent text-dark opacity-50" />
                   </div>
                   <div>
                     <div className="text-muted small">Brokerage (INR)</div>
@@ -503,7 +503,7 @@ function SalesShowContent() {
           )}
 
           <div className="col-lg-6">
-            <SectionCard title="Sale Details" subtitle="Amounts and status" icon="bi-receipt" accent="info">
+            <SectionCard title="Sale Details" subtitle="Amounts and status" icon="bi-receipt">
               <InfoRow icon="bi-calendar3" label="Sale Date" value={formatDate(sale.selling_date)} />
               <InfoRow icon="bi-cash-stack" label="Sale Amount (INR)" value={formatCurrency(sale.sale_amount_inr || sale.sale_amount)} />
               <InfoRow icon="bi-graph-down" label="Brokerage Rate" value={sale.brokerage_rate ? `${formatNumber(sale.brokerage_rate)}%` : "-"} />

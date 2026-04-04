@@ -35,9 +35,9 @@ function InfoRow({ icon, label, value, href }) {
     <div className="d-flex align-items-start py-2">
       <div
         className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-        style={{ width: 36, height: 36, backgroundColor: "rgba(34,197,94,0.10)" }}
+        style={{ width: 36, height: 36, backgroundColor: "rgba(0,0,0,0.06)" }}
       >
-        <i className={`bi ${icon} text-success`} />
+        <i className={`bi ${icon} text-dark opacity-50`} />
       </div>
       <div className="flex-grow-1">
         <div className="text-muted" style={{ fontSize: "0.8rem" }}>
@@ -45,7 +45,7 @@ function InfoRow({ icon, label, value, href }) {
         </div>
         <div className="fw-semibold">
           {href && v !== "N/A" ? (
-            <a className="text-decoration-none" href={href}>
+            <a className="text-decoration-none text-dark border-bottom border-dark border-opacity-10" href={href}>
               {v}
             </a>
           ) : (
@@ -67,9 +67,9 @@ function SectionCard({ title, subtitle, icon, children }) {
         <div className="d-flex align-items-center">
           <div
             className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: "rgba(34,197,94,0.10)" }}
+            style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
           >
-            <i className={`bi ${icon} text-success`} style={{ fontSize: "1.1rem" }} />
+            <i className={`bi ${icon} text-dark opacity-50`} style={{ fontSize: "1.1rem" }} />
           </div>
           <div>
             <div className="fw-bold">{title}</div>
@@ -160,11 +160,11 @@ function ShowClientContent() {
                   <h4 className="fw-bold mb-2">Unable to load client</h4>
                   <p className="text-muted mb-4">{error}</p>
                   <div className="d-flex justify-content-center gap-2">
-                    <button className="btn btn-outline-success px-4" style={{ borderRadius: 10 }} onClick={() => window.location.reload()}>
+                    <button className="btn btn-outline-dark px-4" style={{ borderRadius: 10 }} onClick={() => window.location.reload()}>
                       <i className="bi bi-arrow-clockwise me-2" />
                       Retry
                     </button>
-                    <Link className="btn btn-success px-4" style={{ borderRadius: 10 }} href="/clients">
+                    <Link className="btn btn-dark px-4" style={{ borderRadius: 10 }} href="/clients">
                       <i className="bi bi-arrow-left me-2" />
                       Back to Clients
                     </Link>
@@ -218,8 +218,8 @@ function ShowClientContent() {
               style={{
                 width: 54,
                 height: 54,
-                background: "linear-gradient(135deg, #16a34a 0%, #22c55e 100%)",
-                boxShadow: "0 6px 18px rgba(34,197,94,0.22)",
+                background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
               }}
             >
               <span className="text-white fw-bold" style={{ fontSize: "1.25rem" }}>
@@ -270,7 +270,7 @@ function ShowClientContent() {
                 Clients
               </Link>
             </li>
-            <li className="breadcrumb-item active text-success" aria-current="page">
+            <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
               Details
             </li>
           </ol>

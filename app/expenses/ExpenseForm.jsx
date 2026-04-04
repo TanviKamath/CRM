@@ -299,7 +299,7 @@ export default function ExpenseForm({
           <div className="row">
             <div className="col-md-6 mb-3">
               <label htmlFor="expense_date" className="form-label fw-medium">
-                <i className="bi bi-calendar3 me-2 text-primary"></i>
+                <i className="bi bi-calendar3 me-2 text-dark opacity-50"></i>
                 Date <span className="text-danger">*</span>
               </label>
               <input
@@ -318,7 +318,7 @@ export default function ExpenseForm({
 
             <div className="col-md-6 mb-3">
               <label htmlFor="category" className="form-label fw-medium">
-                <i className="bi bi-tag me-2 text-primary"></i>
+                <i className="bi bi-tag me-2 text-dark opacity-50"></i>
                 Category <span className="text-danger">*</span>
               </label>
               <select
@@ -348,7 +348,7 @@ export default function ExpenseForm({
               /* Broker Name Autocomplete Field */
               <div className="col-md-8 mb-3">
                 <label htmlFor="broker_name" className="form-label fw-medium">
-                  <i className="bi bi-person-badge me-2 text-primary"></i>
+                  <i className="bi bi-person-badge me-2 text-dark opacity-50"></i>
                   Broker Name <span className="text-danger">*</span>
                 </label>
                 <div className="position-relative">
@@ -366,7 +366,7 @@ export default function ExpenseForm({
                   />
                   {loadingBrokers && (
                     <div className="position-absolute" style={{ right: "10px", top: "50%", transform: "translateY(-50%)" }}>
-                      <span className="spinner-border spinner-border-sm text-primary" role="status"></span>
+                      <span className="spinner-border spinner-border-sm text-dark opacity-50" role="status"></span>
                     </div>
                   )}
 
@@ -417,7 +417,7 @@ export default function ExpenseForm({
               /* Regular Description Field */
               <div className="col-md-8 mb-3">
                 <label htmlFor="description" className="form-label fw-medium">
-                  <i className="bi bi-card-text me-2 text-primary"></i>
+                  <i className="bi bi-card-text me-2 text-dark opacity-50"></i>
                   Description <span className="text-danger">*</span>
                 </label>
                 <input
@@ -438,7 +438,7 @@ export default function ExpenseForm({
 
             <div className="col-md-4 mb-3">
               <label htmlFor="amount" className="form-label fw-medium">
-                <i className="bi bi-currency-rupee me-2 text-primary"></i>
+                <i className="bi bi-currency-rupee me-2 text-dark opacity-50"></i>
                 Amount <span className="text-danger">*</span>
               </label>
               <div className="input-group">
@@ -466,7 +466,7 @@ export default function ExpenseForm({
           <div className="row">
             <div className="col-md-4 mb-3">
               <label htmlFor="payment_method" className="form-label fw-medium">
-                <i className="bi bi-credit-card me-2 text-primary"></i>
+                <i className="bi bi-credit-card me-2 text-dark opacity-50"></i>
                 Payment Method
               </label>
               <select
@@ -487,7 +487,7 @@ export default function ExpenseForm({
 
             <div className="col-md-4 mb-3">
               <label htmlFor="reference_number" className="form-label fw-medium">
-                <i className="bi bi-hash me-2 text-primary"></i>
+                <i className="bi bi-hash me-2 text-dark opacity-50"></i>
                 Reference / Receipt No.
               </label>
               <input
@@ -505,7 +505,7 @@ export default function ExpenseForm({
             {!isBrokerage && (
               <div className="col-md-4 mb-3">
                 <label htmlFor="paid_to" className="form-label fw-medium">
-                  <i className="bi bi-person me-2 text-primary"></i>
+                  <i className="bi bi-person me-2 text-dark opacity-50"></i>
                   Paid To
                 </label>
                 <input
@@ -525,7 +525,7 @@ export default function ExpenseForm({
           <div className="row">
             <div className="col-12 mb-3">
               <label htmlFor="notes" className="form-label fw-medium">
-                <i className="bi bi-sticky me-2 text-primary"></i>
+                <i className="bi bi-sticky me-2 text-dark opacity-50"></i>
                 Notes
               </label>
               <textarea

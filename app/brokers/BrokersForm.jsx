@@ -149,7 +149,10 @@ export default function BrokersForm({
       {error && <div className="alert alert-danger">{error}</div>}
 
       {/* Basic Info */}
-      <h5 className="mb-3">Basic Information</h5>
+      <h5 className="mb-3 fw-bold text-dark d-flex align-items-center">
+        <i className="bi bi-person-lines-fill me-2 opacity-50" />
+        Basic Information
+      </h5>
       <div className="row g-3 mb-4">
         <div className="col-md-6">
           <label className="form-label">Name *</label>
@@ -194,7 +197,10 @@ export default function BrokersForm({
       </div>
 
       {/* Addresses */}
-      <h5 className="mb-3">Address</h5>
+      <h5 className="mb-3 fw-bold text-dark d-flex align-items-center">
+        <i className="bi bi-geo-alt me-2 opacity-50" />
+        Address
+      </h5>
       <div className="mb-4">
         <textarea
           name="address"
@@ -213,7 +219,10 @@ export default function BrokersForm({
       </div>
 
       {/* Business */}
-      <h5 className="mb-3">Business Details</h5>
+      <h5 className="mb-3 fw-bold text-dark d-flex align-items-center">
+        <i className="bi bi-briefcase me-2 opacity-50" />
+        Business Details
+      </h5>
       <div className="row g-3 mb-4">
         <div className="col-md-4">
           <input
@@ -245,7 +254,10 @@ export default function BrokersForm({
       </div>
 
       {/* Reference JSON */}
-      <h5 className="mb-3">Associated Companies</h5>
+      <h5 className="mb-3 fw-bold text-dark d-flex align-items-center">
+        <i className="bi bi-building me-2 opacity-50" />
+        Associated Companies
+      </h5>
       {references.map((ref, i) => (
         <div className="row g-2 mb-2" key={i}>
           <div className="col-md-5">
@@ -283,14 +295,19 @@ export default function BrokersForm({
       ))}
       <button
         type="button"
-        className="btn btn-sm btn-outline-primary mb-4"
+        className="btn btn-sm btn-outline-dark mb-4"
         onClick={addReference}
+        style={{ borderRadius: 8 }}
       >
-        + Add Company
+        <i className="bi bi-plus-lg me-1" />
+        Add Company
       </button>
 
       {/* Bank */}
-      <h5 className="mb-3">Bank Details</h5>
+      <h5 className="mb-3 fw-bold text-dark d-flex align-items-center">
+        <i className="bi bi-bank me-2 opacity-50" />
+        Bank Details
+      </h5>
       <div className="row g-3 mb-4">
         <div className="col-md-4">
           <input
@@ -366,6 +383,16 @@ export default function BrokersForm({
           {loading ? "Saving..." : submitButtonText}
         </button>
       </div>
-    </form>
-  );
-}
+        <style jsx>{`
+          .form-control:focus,
+          .form-select:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
+            border-color: rgba(0, 0, 0, 0.25) !important;
+          }
+          .btn:focus {
+            box-shadow: none !important;
+          }
+        `}</style>
+      </form>
+    );
+  }

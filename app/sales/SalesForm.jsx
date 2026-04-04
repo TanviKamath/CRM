@@ -468,24 +468,24 @@ export default function SalesForm({
       <div
         className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3"
         style={{
-          background: "linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(5,150,105,0.05) 100%)",
-          border: "1px solid rgba(16,185,129,0.12)",
+          background: "linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)",
+          border: "1px solid rgba(0,0,0,0.12)",
           borderRadius: 14,
         }}
       >
         <div className="d-flex flex-wrap gap-2">
-          <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
+          <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
             <i className="bi bi-currency-rupee me-2" />
-            Total Sale: <span className="fw-semibold ms-1">{summary.amt}</span>
+            Total Sale: <span className="fw-bold ms-1">{summary.amt}</span>
           </span>
 
-          <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-arrow-down-circle me-2" />
+          <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
+            <i className="bi bi-arrow-down-circle me-2 opacity-50" />
             Advance: <span className="fw-semibold ms-1">{summary.advance}</span>
           </span>
 
-          <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-hourglass-split me-2" />
+          <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
+            <i className="bi bi-hourglass-split me-2 opacity-50" />
             Outstanding: <span className="fw-semibold ms-1">{summary.outstanding}</span>
           </span>
 
@@ -509,8 +509,8 @@ export default function SalesForm({
       {/* Section: Parties */}
       <div className="mb-4">
         <div className="d-flex align-items-center mb-3">
-          <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(14,165,233,0.10)" }}>
-            <i className="bi bi-people text-info" style={{ fontSize: "1.1rem" }} />
+          <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}>
+            <i className="bi bi-people text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
           </div>
           <div>
             <div className="fw-bold">Parties</div>
@@ -644,8 +644,8 @@ export default function SalesForm({
       {/* Section: Pricing & Calculations */}
       <div className="mb-4">
         <div className="d-flex align-items-center mb-3">
-          <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(14,165,233,0.10)" }}>
-            <i className="bi bi-calculator text-info" style={{ fontSize: "1.1rem" }} />
+          <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}>
+            <i className="bi bi-calculator text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
           </div>
           <div>
             <div className="fw-bold">Pricing & Calculations</div>
@@ -787,10 +787,10 @@ export default function SalesForm({
                 <div className="col-md-6">
                   <label className="form-label fw-medium">Brokerage Amount (INR)</label>
                   <div className="input-group">
-                    <span className="input-group-text bg-warning bg-opacity-25">₹</span>
+                    <span className="input-group-text bg-dark bg-opacity-10 border-end-0">₹</span>
                     <input
                       value={form.brokerage_amount}
-                      className="form-control bg-warning bg-opacity-10 fw-semibold"
+                      className="form-control bg-dark bg-opacity-5 fw-semibold border-start-0"
                       readOnly
                     />
                   </div>

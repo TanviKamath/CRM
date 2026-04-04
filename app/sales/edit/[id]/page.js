@@ -162,8 +162,8 @@ export default function EditSalePage() {
                     style={{
                       width: 48,
                       height: 48,
-                      background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                      boxShadow: "0 6px 18px rgba(245,158,11,0.22)",
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                     }}
                   >
                     <i className="bi bi-pencil-square text-white" style={{ fontSize: "1.25rem" }} />
@@ -179,29 +179,29 @@ export default function EditSalePage() {
 
                 {/* Context pill */}
                 <div className="mt-2 d-flex flex-wrap gap-2">
-                  <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2" style={{ borderRadius: 999 }}>
+                  <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                     <i className="bi bi-hash me-2" />
                     Sale ID: {saleId}
                   </span>
 
                   {selectedDiamond && (
-                    <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 999 }}>
-                      <i className="bi bi-gem me-2" />
+                    <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
+                      <i className="bi bi-gem me-2 opacity-50" />
                       {user?.client_type === "Loose" ? "Lot Item: " : "Diamond: "} 
                       {user?.client_type === "Loose" ? (selectedDiamond.lot_number ? `LOT-${selectedDiamond.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "")) : selectedDiamond.certificate_number}
                     </span>
                   )}
 
                   {selectedClient?.company_name && (
-                    <span className="badge bg-success bg-opacity-10 text-success px-3 py-2" style={{ borderRadius: 999 }}>
-                      <i className="bi bi-building me-2" />
+                    <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
+                      <i className="bi bi-building me-2 opacity-50" />
                       Client: {selectedClient.company_name}
                     </span>
                   )}
 
                   {sale?.sale_amount !== undefined && sale?.sale_amount !== null && (
-                    <span className="badge bg-info bg-opacity-10 text-info px-3 py-2" style={{ borderRadius: 999 }}>
-                      <i className="bi bi-cash-stack me-2" />
+                    <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
+                      <i className="bi bi-cash-stack me-2 opacity-50" />
                       Amount: {formatCurrencyINR(sale.sale_amount_inr || sale.sale_amount)}
                     </span>
                   )}
@@ -247,9 +247,9 @@ export default function EditSalePage() {
                     Sale #{saleId}
                   </Link>
                 </li>
-                <li className="breadcrumb-item active text-warning" aria-current="page">
-                  Edit
-                </li>
+                 <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
+                   Edit
+                 </li>
               </ol>
             </nav>
 
@@ -257,9 +257,9 @@ export default function EditSalePage() {
             <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: 16 }}>
               <div className="card-header bg-white py-4 px-4" style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
                 <div className="d-flex align-items-center">
-                  <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(245,158,11,0.12)" }}>
-                    <i className="bi bi-receipt text-warning" style={{ fontSize: "1.1rem" }} />
-                  </div>
+                   <div className="rounded-3 d-flex align-items-center justify-content-center me-3" style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}>
+                     <i className="bi bi-receipt text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
+                   </div>
                   <div>
                     <div className="fw-bold">Sale Information</div>
                     <div className="text-muted small">Review selections and update details</div>
@@ -283,17 +283,17 @@ export default function EditSalePage() {
             {/* Tip */}
             <div
               className="card border-0 mt-4"
-              style={{
+               style={{
                 borderRadius: 12,
-                backgroundColor: "rgba(245, 158, 11, 0.05)",
-                borderLeft: "4px solid #f59e0b",
+                background: "linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)",
+                border: "1px solid rgba(0,0,0,0.08)",
               }}
             >
               <div className="card-body p-4">
                 <div className="d-flex">
-                  <div className="me-3">
-                    <i className="bi bi-lightbulb text-warning" style={{ fontSize: "1.25rem" }} />
-                  </div>
+                   <div className="me-3">
+                     <i className="bi bi-lightbulb text-dark opacity-50" style={{ fontSize: "1.25rem" }} />
+                   </div>
                   <div>
                     <h6 className="fw-semibold mb-1">Quick Tip</h6>
                     <p className="text-muted small mb-0">

@@ -38,8 +38,8 @@ export default function CreateClient() {
                     style={{
                       width: 48,
                       height: 48,
-                      background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-                      boxShadow: "0 4px 15px rgba(34, 197, 94, 0.25)",
+                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.15)",
                     }}
                   >
                     <i className="bi bi-person-plus-fill text-white" style={{ fontSize: "1.25rem" }} />
@@ -80,7 +80,7 @@ export default function CreateClient() {
                     Clients
                   </Link>
                 </li>
-                <li className="breadcrumb-item active text-success" aria-current="page">
+                <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
                   Add New
                 </li>
               </ol>
@@ -96,9 +96,9 @@ export default function CreateClient() {
                 <div className="d-flex align-items-center">
                   <div
                     className="rounded-3 d-flex align-items-center justify-content-center me-3"
-                    style={{ width: 40, height: 40, backgroundColor: "rgba(34, 197, 94, 0.10)" }}
+                    style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
                   >
-                    <i className="bi bi-building text-success" style={{ fontSize: "1.1rem" }} />
+                    <i className="bi bi-building text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
                   </div>
                   <div>
                     <div className="fw-bold">Client Information</div>
@@ -119,13 +119,14 @@ export default function CreateClient() {
               style={{
                 borderRadius: 12,
                 background:
-                  "linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, rgba(16, 185, 129, 0.05) 100%)",
+                  "linear-gradient(135deg, rgba(0, 0, 0, 0.04) 0%, rgba(0, 0, 0, 0.02) 100%)",
+                border: "1px solid rgba(0,0,0,0.08)",
               }}
             >
               <div className="card-body p-4">
                 <div className="d-flex">
                   <div className="me-3">
-                    <i className="bi bi-info-circle text-success" style={{ fontSize: "1.25rem" }} />
+                    <i className="bi bi-info-circle text-dark opacity-50" style={{ fontSize: "1.25rem" }} />
                   </div>
                   <div>
                     <h6 className="fw-semibold mb-1">Tip</h6>

@@ -59,7 +59,7 @@ export default function EditExpense() {
             <div className="d-flex justify-content-between align-items-center mb-4">
               <div>
                 <h2 className="fw-bold mb-1">
-                  <i className="bi bi-pencil-square me-2 text-primary"></i>
+                  <i className="bi bi-pencil-square me-2 text-dark opacity-50"></i>
                   Edit Expense
                 </h2>
                 <p className="text-muted mb-0">Update expense details</p>

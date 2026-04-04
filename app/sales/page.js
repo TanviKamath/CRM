@@ -13,9 +13,9 @@ function StatusPill({ status }) {
   const map = {
     pending: { bg: "warning", text: "Pending", icon: "bi-clock", textClass: "text-dark" },
     completed: { bg: "success", text: "Completed", icon: "bi-check2-circle", textClass: "" },
-    cancelled: { bg: "danger", text: "Cancelled", icon: "bi-x-circle", textClass: "" },
+    cancelled: { bg: "secondary", text: "Cancelled", icon: "bi-x-circle", textClass: "" },
   };
-  const s = map[status] || { bg: "secondary", text: status || "Unknown", icon: "bi-info-circle", textClass: "" };
+  const s = map[status] || { bg: "light", text: status || "Unknown", icon: "bi-info-circle", textClass: "text-dark border" };
 
   return (
     <span className={`badge bg-${s.bg} ${s.textClass} px-2 py-1`} style={{ borderRadius: 999, fontSize: "0.75rem" }}>
@@ -30,7 +30,7 @@ function PaymentStatusPill({ status, outstanding }) {
   if (outstanding <= 0 || status === "completed") {
     config = { bg: "success", text: "Paid", icon: "bi-check-circle-fill" };
   } else if (status === "partial") {
-    config = { bg: "info", text: "Partial", icon: "bi-pie-chart-fill" };
+    config = { bg: "secondary", text: "Partial", icon: "bi-pie-chart-fill" };
   } else {
     config = { bg: "warning", text: "On Terms", icon: "bi-hourglass-split", textClass: "text-dark" };
   }
@@ -50,11 +50,11 @@ const formatINR = (value) => {
 };
 
 
-function StatPill({ icon, label, value, tone = "info" }) {
+function StatPill({ icon, label, value }) {
   return (
-    <span className={`badge bg-${tone} bg-opacity-10 text-${tone} px-3 py-2`} style={{ borderRadius: 999 }}>
-      <i className={`bi ${icon} me-2`} />
-      <span className="me-1">{label}:</span>
+    <span className="badge bg-dark bg-opacity-10 text-dark border-secondary border-opacity-25 border px-3 py-2" style={{ borderRadius: 999 }}>
+      <i className={`bi ${icon} me-2 text-dark opacity-75`} />
+      <span className="me-1 opacity-75">{label}:</span>
       <span className="fw-semibold">{value}</span>
     </span>
   );
@@ -285,8 +285,8 @@ function SalesIndexContent() {
                 style={{
                   width: 52,
                   height: 52,
-                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                  boxShadow: "0 6px 18px rgba(16,185,129,0.25)",
+                  background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                  boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                 }}
               >
                 <i className="bi bi-graph-up-arrow text-white" style={{ fontSize: "1.3rem" }} />
@@ -301,18 +301,18 @@ function SalesIndexContent() {
             </div>
 
             <div className="mt-3 d-flex flex-wrap gap-2">
-              <StatPill icon="bi-collection" label="Sales" value={totals.count} tone="primary" />
-              <StatPill icon="bi-cash-stack" label="Total" value={formatINR(totals.totalInr)} tone="info" />
-              <StatPill icon="bi-check-circle" label="Received" value={formatINR(totals.receivedInr)} tone="success" />
-              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatINR(totals.outstandingInr)} tone="warning" />
+              <StatPill icon="bi-collection" label="Sales" value={totals.count} />
+              <StatPill icon="bi-cash-stack" label="Total" value={formatINR(totals.totalInr)} />
+              <StatPill icon="bi-check-circle" label="Received" value={formatINR(totals.receivedInr)} />
+              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatINR(totals.outstandingInr)} />
             </div>
           </div>
 
           <div className="d-flex gap-2">
             <Link
               href="/sales/create"
-              className="btn text-white px-4 py-2"
-              style={{ borderRadius: 12, background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}
+              className="btn btn-dark text-white px-4 py-2"
+              style={{ borderRadius: 12, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}
             >
               <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
               New Sale
@@ -482,7 +482,7 @@ function SalesIndexContent() {
                       return (
                         <tr key={sale.id}>
                           <td className="px-4 py-3">
-                            <Link className="text-decoration-none fw-semibold" href={`/sales/show/${sale.id}`}>
+                            <Link className="text-decoration-none fw-semibold text-dark" href={`/sales/show/${sale.id}`}>
                               Sale #{sale.id}
                             </Link>
                             <div className="text-muted small">
@@ -497,8 +497,8 @@ function SalesIndexContent() {
 
                           <td className="py-3">
                             {sale.loose_diamond_item_id ? (
-                              <Link className="text-decoration-none" href={`/loose-diamonds/${sale.loose_diamond_id || (sale.loose_item?.loose_diamond_id)}`}>
-                                <i className="bi bi-box-seam me-2 text-info" />
+                              <Link className="text-decoration-none text-dark" href={`/loose-diamonds/${sale.loose_diamond_id || (sale.loose_item?.loose_diamond_id)}`}>
+                                <i className="bi bi-box-seam me-2 text-dark opacity-50" />
                                 {sale?.loose_item?.lot_number ? `LOT-${sale.loose_item.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "Lot Item")}
                                 <div className="small text-muted ms-4">
                                   {sale?.loose_item?.color_category} {sale?.loose_item?.size_category} / {sale?.loose_item?.grade}
@@ -506,8 +506,8 @@ function SalesIndexContent() {
                               </Link>
                             ) : (
                               sale.diamond_id ? (
-                                <Link className="text-decoration-none" href={`/diamonds/show/${sale.diamond_id}`}>
-                                  <i className="bi bi-gem me-2 text-info" />
+                                <Link className="text-decoration-none text-dark" href={`/diamonds/show/${sale.diamond_id}`}>
+                                  <i className="bi bi-gem me-2 text-dark opacity-50" />
                                   {diamondCert}
                                 </Link>
                               ) : (
@@ -518,8 +518,8 @@ function SalesIndexContent() {
 
                           <td className="py-3">
                             {sale.client_id ? (
-                              <Link className="text-decoration-none" href={`/clients/show/${sale.client_id}`}>
-                                <i className="bi bi-building me-2" style={{ color: "#8b5cf6" }} />
+                              <Link className="text-decoration-none text-dark" href={`/clients/show/${sale.client_id}`}>
+                                <i className="bi bi-building me-2 text-dark opacity-50" />
                                 {clientName}
                               </Link>
                             ) : (
@@ -532,11 +532,11 @@ function SalesIndexContent() {
                           </td>
 
                           <td className="py-3 text-end">
-                            <span className="text-success fw-medium">{formatINR(totalReceivedInr)}</span>
+                            <span className="text-dark fw-medium opacity-75">{formatINR(totalReceivedInr)}</span>
                           </td>
 
                           <td className="py-3 text-end">
-                            <span className={outstandingInr > 0 ? "text-warning fw-semibold" : "text-success"}>
+                            <span className={outstandingInr > 0 ? "text-dark fw-semibold" : "text-dark opacity-50"}>
                               {formatINR(outstandingInr)}
                             </span>
                           </td>
@@ -604,12 +604,12 @@ function SalesIndexContent() {
               </div>
               <div className="d-flex gap-3 text-muted small">
                 <span>
-                  <i className="bi bi-check-circle text-success me-1" />
-                  Collected: <span className="fw-semibold text-success">{formatINR(totals.receivedInr)}</span>
+                  <i className="bi bi-check-circle text-dark me-1" />
+                  Collected: <span className="fw-semibold text-dark">{formatINR(totals.receivedInr)}</span>
                 </span>
                 <span>
-                  <i className="bi bi-hourglass-split text-warning me-1" />
-                  Pending: <span className="fw-semibold text-warning">{formatINR(totals.outstandingInr)}</span>
+                  <i className="bi bi-hourglass-split text-dark me-1 opacity-50" />
+                  Pending: <span className="fw-semibold text-dark">{formatINR(totals.outstandingInr)}</span>
                 </span>
               </div>
             </div>

@@ -35,9 +35,9 @@ function InfoRow({ icon, label, value, href }) {
     <div className="d-flex align-items-start py-2">
       <div
         className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-        style={{ width: 36, height: 36, backgroundColor: "rgba(102,126,234,0.10)" }}
+        style={{ width: 36, height: 36, backgroundColor: "rgba(0,0,0,0.06)" }}
       >
-        <i className={`bi ${icon} text-primary`} />
+        <i className={`bi ${icon} text-dark opacity-50`} />
       </div>
       <div className="flex-grow-1">
         <div className="text-muted" style={{ fontSize: "0.8rem" }}>
@@ -45,7 +45,7 @@ function InfoRow({ icon, label, value, href }) {
         </div>
         <div className="fw-semibold">
           {href && value !== "N/A" ? (
-            <a className="text-decoration-none" href={href}>
+            <a className="text-decoration-none text-dark border-bottom border-dark border-opacity-10" href={href}>
               {value}
             </a>
           ) : (
@@ -67,9 +67,9 @@ function SectionCard({ title, subtitle, icon, children }) {
         <div className="d-flex align-items-center">
           <div
             className="rounded-3 d-flex align-items-center justify-content-center me-3"
-            style={{ width: 40, height: 40, backgroundColor: "rgba(102,126,234,0.10)" }}
+            style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
           >
-            <i className={`bi ${icon} text-primary`} style={{ fontSize: "1.1rem" }} />
+            <i className={`bi ${icon} text-dark opacity-50`} style={{ fontSize: "1.1rem" }} />
           </div>
           <div>
             <div className="fw-bold">{title}</div>
@@ -160,11 +160,11 @@ function ShowBrokerContent() {
                   <h4 className="fw-bold mb-2">Unable to load broker</h4>
                   <p className="text-muted mb-4">{error}</p>
                   <div className="d-flex justify-content-center gap-2">
-                    <button className="btn btn-outline-primary px-4" style={{ borderRadius: 10 }} onClick={() => window.location.reload()}>
+                    <button className="btn btn-outline-dark px-4" style={{ borderRadius: 10 }} onClick={() => window.location.reload()}>
                       <i className="bi bi-arrow-clockwise me-2" />
                       Retry
                     </button>
-                    <Link className="btn btn-primary px-4" style={{ borderRadius: 10 }} href="/brokers">
+                    <Link className="btn btn-dark px-4" style={{ borderRadius: 10 }} href="/brokers">
                       <i className="bi bi-arrow-left me-2" />
                       Back to Brokers
                     </Link>
@@ -218,8 +218,8 @@ function ShowBrokerContent() {
               style={{
                 width: 54,
                 height: 54,
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                boxShadow: "0 6px 18px rgba(102,126,234,0.25)",
+                background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
+                boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
               }}
             >
               <span className="text-white fw-bold" style={{ fontSize: "1.25rem" }}>
@@ -260,7 +260,7 @@ function ShowBrokerContent() {
                 Brokers
               </Link>
             </li>
-            <li className="breadcrumb-item active text-primary" aria-current="page">
+            <li className="breadcrumb-item active text-dark fw-bold" aria-current="page">
               Details
             </li>
           </ol>
@@ -293,8 +293,8 @@ function ShowBrokerContent() {
               <div className="pt-3 mt-3 border-top">
                 <div className="d-flex align-items-center justify-content-between">
                   <div className="text-muted small">Commission Rate</div>
-                  <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style={{ borderRadius: 10 }}>
-                    <i className="bi bi-percent me-2" />
+                  <span className="badge bg-dark bg-opacity-5 text-dark border border-secondary border-opacity-25 px-3 py-2" style={{ borderRadius: 10 }}>
+                    <i className="bi bi-percent me-2 opacity-50" />
                     {formatPercent(broker.commission_rate)}
                   </span>
                 </div>
@@ -322,9 +322,9 @@ function ShowBrokerContent() {
                   <div className="d-flex align-items-center">
                     <div
                       className="rounded-3 d-flex align-items-center justify-content-center me-3"
-                      style={{ width: 40, height: 40, backgroundColor: "rgba(102,126,234,0.10)" }}
+                      style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
                     >
-                      <i className="bi bi-building text-primary" style={{ fontSize: "1.1rem" }} />
+                      <i className="bi bi-building text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
                     </div>
                     <div>
                       <div className="fw-bold">Associated Companies</div>
@@ -339,17 +339,17 @@ function ShowBrokerContent() {
                         <div
                           className="p-3"
                           style={{
-                            backgroundColor: "rgba(102,126,234,0.05)",
+                            backgroundColor: "rgba(0,0,0,0.02)",
                             borderRadius: 12,
-                            border: "1px solid rgba(102,126,234,0.1)"
+                            border: "1px solid rgba(0,0,0,0.06)"
                           }}
                         >
                           <div className="d-flex align-items-start">
                             <div
                               className="rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0"
-                              style={{ width: 36, height: 36, backgroundColor: "rgba(102,126,234,0.15)" }}
+                              style={{ width: 36, height: 36, backgroundColor: "rgba(0,0,0,0.04)" }}
                             >
-                              <i className="bi bi-building text-primary" />
+                              <i className="bi bi-building text-dark opacity-50" />
                             </div>
                             <div className="flex-grow-1">
                               <div className="fw-semibold text-dark mb-1">
