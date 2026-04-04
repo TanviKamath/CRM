@@ -230,13 +230,10 @@ export default function SalesForm({
   // Fetch next invoice sequence when payment mode changes
   useEffect(() => {
     const isLoose = user?.client_type === "Loose";
-    if (!isLoose || !form.payment_mode || form.payment_mode === "Export") {
+    if (!isLoose || !form.payment_mode) {
       setInvoicePrefix("");
       setInvoiceYear("");
       setInvoiceSeq("");
-      if (form.payment_mode === "Export") {
-        setForm(prev => ({ ...prev, invoice_number: "" }));
-      }
       return;
     }
 
@@ -295,7 +292,7 @@ export default function SalesForm({
 
   // Real-time invoice uniqueness check
   useEffect(() => {
-    if (!form.invoice_number || form.payment_mode === "Export" || !user?.client_type === "Loose") {
+    if (!form.invoice_number || !user?.client_type === "Loose") {
       setIsInvoiceAvailable(true);
       return;
     }
@@ -352,7 +349,7 @@ export default function SalesForm({
         errors.payment_mode = "Mode of Payment is required";
       }
 
-      if (form.payment_mode && form.payment_mode !== "Export") {
+      if (form.payment_mode) {
         if (!invoiceSeq) {
           errors.invoice_number = "Invoice sequence is required";
         } else if (!isInvoiceAvailable) {
@@ -1012,13 +1009,12 @@ export default function SalesForm({
                 <option value="">Select Mode</option>
                 <option value="Online">Online</option>
                 <option value="Cash">Cash</option>
-                <option value="Export">Export</option>
               </select>
             </div>
             {hasError("payment_mode") && <div className="invalid-feedback d-block">{validationErrors.payment_mode}</div>}
           </div>
 
-          {user?.client_type === "Loose" && form.payment_mode && form.payment_mode !== "Export" && (
+          {user?.client_type === "Loose" && form.payment_mode && (
             <div className="col-12 mt-3">
               <div
                 className="p-3 shadow-sm"
@@ -1085,17 +1081,6 @@ export default function SalesForm({
               </div>
             </div>
           )}
-
-
-          {user?.client_type === "Loose" && form.payment_mode === "Export" && (
-            <div className="col-12 mt-2">
-              <div className="badge bg-secondary bg-opacity-10 text-secondary p-2 px-3 rounded-pill fw-normal">
-                <i className="bi bi-info-circle me-2"></i>
-                Invoice Number not required for Export sales
-              </div>
-            </div>
-          )}
-
 
           {/* Full payment confirmation */}
           {form.payment_status === "completed" && (

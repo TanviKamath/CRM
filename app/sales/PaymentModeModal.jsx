@@ -156,31 +156,6 @@ export default function PaymentModeModal({ show, onClose, onConfirm, loading = f
                     <i className="bi bi-chevron-right text-muted ms-auto" />
                   </button>
 
-                  {/* Export */}
-                  <button
-                    type="button"
-                    className="btn d-flex align-items-center gap-3 text-start px-4 py-3"
-                    style={{
-                      borderRadius: 14,
-                      border: "2px solid rgba(0,0,0,0.12)",
-                      backgroundColor: "rgba(0,0,0,0.02)",
-                      transition: "all 0.2s",
-                    }}
-                    onClick={() => handleModeSelect("Export")}
-                    disabled={loading}
-                  >
-                    <div
-                      className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                      style={{ width: 44, height: 44, backgroundColor: "rgba(0,0,0,0.06)" }}
-                    >
-                      <i className="bi bi-airplane-fill text-dark opacity-50" style={{ fontSize: "1.2rem" }} />
-                    </div>
-                    <div>
-                      <div className="fw-semibold text-dark">Export</div>
-                      <div className="text-muted small">International export invoice format</div>
-                    </div>
-                    <i className="bi bi-chevron-right text-muted ms-auto" />
-                  </button>
                 </div>
               </>
             )}
