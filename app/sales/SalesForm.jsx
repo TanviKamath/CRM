@@ -361,6 +361,12 @@ export default function SalesForm({
       }
     }
 
+    if (form.payment_status === "on_terms" && form.advance_amount && form.sale_amount) {
+      if (parseFloat(form.advance_amount) > parseFloat(form.sale_amount)) {
+        errors.advance_amount = "Advance amount cannot exceed sale amount";
+      }
+    }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -949,12 +955,12 @@ export default function SalesForm({
                     name="advance_amount"
                     value={form.advance_amount}
                     onChange={handleChange}
-                    className="form-control"
+                    className={controlClass("advance_amount")}
                     placeholder="0.00"
                     min="0"
-                    max={form.sale_amount}
                   />
                 </div>
+                {hasError("advance_amount") && <div className="invalid-feedback d-block">{validationErrors.advance_amount}</div>}
               </div>
 
               <div className="col-md-4">

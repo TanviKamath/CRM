@@ -101,7 +101,7 @@ function getModeChar(paymentMode) {
 // ─── TAX INVOICE (Cash / Online) ────────────────────────────────────────────
 function buildTaxInvoiceReplacements(sale) {
     const saleAmountINR = parseFloat(sale.sale_amount_inr) || 0;
-    const weight = parseFloat(sale.diamond?.weight) || 0;
+    const weight = parseFloat(sale.sold_carats) || parseFloat(sale.diamond?.weight) || 0;
     const ratePerCarat = weight > 0 ? saleAmountINR / weight : 0;
 
     const cgstAmount = saleAmountINR * 0.0075;
@@ -161,7 +161,7 @@ function buildTaxInvoiceReplacements(sale) {
 // ─── EXPORT INVOICE ──────────────────────────────────────────────────────────
 function buildExportInvoiceReplacements(sale) {
     const saleAmountUSD = parseFloat(sale.sale_amount) || 0;
-    const weight = parseFloat(sale.diamond?.weight) || 0;
+    const weight = parseFloat(sale.sold_carats) || parseFloat(sale.diamond?.weight) || 0;
     const ratePerCarat = weight > 0 ? saleAmountUSD / weight : 0;
 
     const sellingDate = sale.selling_date || sale.created_at || new Date();

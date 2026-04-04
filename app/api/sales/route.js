@@ -250,6 +250,8 @@ export async function POST(req) {
       terms_days: terms_days || 30,
       advance_amount: advance_amount || 0, // Stored in INR
       due_date: due_date || null,
+      payment_mode: payment_mode || null,
+      invoice_number: invoice_number || null,
     };
 
     console.log("Inserting sale with data:", insertData);

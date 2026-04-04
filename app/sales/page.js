@@ -198,19 +198,12 @@ function SalesIndexContent() {
     fetchSales();
   };
 
-  // Step 1: Open the payment mode modal
-  const handleGenerateInvoice = (saleId) => {
-    setPendingInvoiceSaleId(saleId);
-    setPaymentModeModalOpen(true);
-  };
-
-  // Step 2: User picked a mode — now fetch sale data and generate
-  const handlePaymentModeConfirm = async (paymentMode) => {
-    setPaymentModeModalOpen(false);
-    setGeneratingInvoice(pendingInvoiceSaleId);
+  // Open the invoice directly by fetching data and generating PDF
+  const handleGenerateInvoice = async (saleId) => {
+    setGeneratingInvoice(saleId);
 
     try {
-      const response = await fetch(`/api/sales/${pendingInvoiceSaleId}/invoice`);
+      const response = await fetch(`/api/sales/${saleId}/invoice`);
 
       if (!response.ok) {
         const err = await response.json();
@@ -218,7 +211,13 @@ function SalesIndexContent() {
       }
 
       const sale = await response.json();
-      const invoiceNo = generateInvoicePDF(sale, paymentMode);
+      
+      // If sale.payment_mode is missing (only for older records), default to 'Online' for GST compatibility
+      if (!sale.payment_mode) {
+        sale.payment_mode = "Online";
+      }
+
+      const invoiceNo = generateInvoicePDF(sale);
 
       setSuccessMessage(`Invoice ${invoiceNo} opened in new tab!`);
     } catch (err) {
@@ -226,9 +225,9 @@ function SalesIndexContent() {
       alert(err.message || "Failed to generate invoice");
     } finally {
       setGeneratingInvoice(null);
-      setPendingInvoiceSaleId(null);
     }
   };
+
 
   const filteredSales = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -627,16 +626,6 @@ function SalesIndexContent() {
           onSuccess={handlePaymentSuccess}
         />
 
-        {/* Payment Mode Modal (for invoice generation) */}
-        <PaymentModeModal
-          show={paymentModeModalOpen}
-          loading={generatingInvoice !== null}
-          onClose={() => {
-            setPaymentModeModalOpen(false);
-            setPendingInvoiceSaleId(null);
-          }}
-          onConfirm={handlePaymentModeConfirm}
-        />
 
         <style jsx global>{`
           .btn:focus {
