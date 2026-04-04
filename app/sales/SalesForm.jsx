@@ -464,46 +464,91 @@ export default function SalesForm({
         </div>
       )}
 
-      {/* Summary strip */}
+      {/* Summary strip - Slimmed down to match reference image */}
       <div
-        className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-3"
+        className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 p-2 px-3"
         style={{
-          background: "linear-gradient(135deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)",
-          border: "1px solid rgba(0,0,0,0.12)",
-          borderRadius: 14,
+          background: "linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%)",
+          border: "1px solid #e9ecef",
+          borderRadius: 20,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
         }}
       >
-        <div className="d-flex flex-wrap gap-2">
-          <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-currency-rupee me-2" />
-            Total Sale: <span className="fw-bold ms-1">{summary.amt}</span>
-          </span>
+        <div className="d-flex flex-wrap gap-2 py-1">
+          {/* Total Sale Pill - Slim Version */}
+          <div 
+            className="d-flex align-items-center px-3 py-2" 
+            style={{ 
+              backgroundColor: "#e2e8f0", 
+              borderRadius: "12px",
+              border: "1px solid rgba(0,0,0,0.05)"
+            }}
+          >
+            <div style={{ fontSize: "1.1rem", fontWeight: "700", marginRight: "10px", color: "#1e293b" }}>
+              ₹
+            </div>
+            <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#1e293b" }}>
+              Total Sale: <span className="ms-1">{summary.amt}</span>
+            </div>
+          </div>
 
-          <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-arrow-down-circle me-2 opacity-50" />
-            Advance: <span className="fw-semibold ms-1">{summary.advance}</span>
-          </span>
+          <div 
+            className="d-flex align-items-center px-3 py-2" 
+            style={{ 
+              backgroundColor: "#1e293b", 
+              borderRadius: "12px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            }}
+          >
+            <i className="bi bi-arrow-down-circle me-2 text-white opacity-75" style={{ fontSize: "0.9rem" }} />
+            <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#f8fafc" }}>
+              Advance: <span className="ms-1 text-white">{summary.advance}</span>
+            </div>
+          </div>
 
-          <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
-            <i className="bi bi-hourglass-split me-2 opacity-50" />
-            Outstanding: <span className="fw-semibold ms-1">{summary.outstanding}</span>
-          </span>
+          <div 
+            className="d-flex align-items-center px-3 py-2" 
+            style={{ 
+              backgroundColor: "#1e293b", 
+              borderRadius: "12px",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+            }}
+          >
+            <i className="bi bi-hourglass-split me-2 text-white opacity-75" style={{ fontSize: "0.9rem" }} />
+            <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#f8fafc" }}>
+              Outstanding: <span className="ms-1 text-white fw-bold">{summary.outstanding}</span>
+            </div>
+          </div>
 
           {form.brokerage_amount && (
-            <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2" style={{ borderRadius: 999 }}>
-              <i className="bi bi-percent me-2" />
-              Brokerage: <span className="fw-semibold ms-1">{summary.bro}</span>
-            </span>
+             <div 
+              className="d-flex align-items-center px-3 py-2" 
+              style={{ 
+                backgroundColor: "rgba(79, 70, 229, 0.05)", 
+                borderRadius: "12px",
+                border: "1px solid rgba(79, 70, 229, 0.1)"
+              }}
+            >
+              <i className="bi bi-percent me-2 text-indigo" style={{ fontSize: "0.9rem", color: "#4f46e5" }} />
+              <div style={{ fontSize: "0.85rem", fontWeight: "600", color: "#4338ca" }}>
+                Brokerage: <span className="ms-1">{summary.bro}</span>
+              </div>
+            </div>
           )}
         </div>
 
-        <span
-          className={`badge px-3 py-2 ${form.payment_status === 'completed' ? 'bg-success' : 'bg-warning text-dark'}`}
-          style={{ borderRadius: 999 }}
+        <div
+          className={`d-flex align-items-center px-3 py-2 ${form.payment_status === 'completed' ? 'text-white bg-success' : 'text-dark bg-warning'}`}
+          style={{ 
+            borderRadius: "12px",
+            fontWeight: "700",
+            fontSize: "0.85rem",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+          }}
         >
           <i className={`bi ${form.payment_status === 'completed' ? 'bi-check-circle-fill' : 'bi-clock-history'} me-2`} />
-          {form.payment_status === 'completed' ? 'Paid in Full' : 'On Terms'}
-        </span>
+          {form.payment_status === 'completed' ? 'PAID IN FULL' : 'On Terms'}
+        </div>
       </div>
 
       {/* Section: Parties */}
@@ -756,19 +801,19 @@ export default function SalesForm({
         {/* Brokerage Section */}
         <div className="row g-3 mt-2">
           <div className="col-12">
-            <div className="p-3" style={{ backgroundColor: "rgba(108,117,125,0.05)", borderRadius: 12, border: "1px solid rgba(108,117,125,0.1)" }}>
+            <div className="p-4" style={{ backgroundColor: "rgba(79, 70, 229, 0.04)", borderRadius: 20, border: "1px solid rgba(79, 70, 229, 0.1)" }}>
               <div className="d-flex align-items-center mb-3">
-                <i className="bi bi-person-badge text-secondary me-2" />
-                <span className="fw-medium">Brokerage (Calculated on INR)</span>
+                <i className="bi bi-person-badge text-indigo me-2" style={{ color: "#4f46e5" }} />
+                <span className="fw-bold" style={{ color: "#3730a3" }}>Brokerage (Calculated on INR)</span>
               </div>
               <div className="row g-3">
                 <div className="col-md-6">
-                  <label htmlFor="brokerage_rate" className="form-label fw-medium">
+                  <label htmlFor="brokerage_rate" className="form-label fw-medium text-dark">
                     Brokerage Rate (%)
                   </label>
                   <div className="input-group">
-                    <span className="input-group-text bg-white">
-                      <i className="bi bi-percent text-muted" />
+                    <span className="input-group-text">
+                      <i className="bi bi-percent" />
                     </span>
                     <input
                       type="number"
@@ -785,13 +830,14 @@ export default function SalesForm({
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-medium">Brokerage Amount (INR)</label>
+                  <label className="form-label fw-medium text-dark">Brokerage Amount (INR)</label>
                   <div className="input-group">
-                    <span className="input-group-text bg-dark bg-opacity-10 border-end-0">₹</span>
+                    <span className="input-group-text border-end-0">₹</span>
                     <input
                       value={form.brokerage_amount}
-                      className="form-control bg-dark bg-opacity-5 fw-semibold border-start-0"
+                      className="form-control fw-bold border-start-0"
                       readOnly
+                      style={{ backgroundColor: "rgba(0,0,0,0.02)" }}
                     />
                   </div>
                   <div className="text-muted small mt-1">
@@ -1125,12 +1171,15 @@ export default function SalesForm({
 
       <style jsx global>{`
         .input-group-text {
-          border-color: rgba(0, 0, 0, 0.08) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
+          background-color: #fbfbfb !important;
         }
         .form-control,
         .form-select {
-          border-color: rgba(0, 0, 0, 0.08) !important;
+          border-color: rgba(0, 0, 0, 0.06) !important;
           border-radius: 12px;
+          padding: 0.65rem 1rem;
+          font-size: 0.95rem;
         }
         .input-group .form-control,
         .input-group .form-select {
@@ -1138,6 +1187,7 @@ export default function SalesForm({
         }
         .input-group .input-group-text {
           border-radius: 12px 0 0 12px;
+          color: #64748b;
         }
         .input-group .input-group-text:last-child {
           border-radius: 0 12px 12px 0;
@@ -1154,8 +1204,9 @@ export default function SalesForm({
         }
         .form-control:focus,
         .form-select:focus {
-          box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.15) !important;
-          border-color: rgba(16, 185, 129, 0.35) !important;
+          box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08) !important;
+          border-color: rgba(79, 70, 229, 0.3) !important;
+          background-color: #fff !important;
         }
         .btn:focus {
           box-shadow: none !important;

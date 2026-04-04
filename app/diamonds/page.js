@@ -1110,7 +1110,7 @@ function DiamondsIndexPageContent() {
             <input placeholder="Search inventory..." value={query} onChange={(e) => setQuery(e.target.value)} suppressHydrationWarning />
           </div>
 
-          <button className={`adv-btn ${advFilterCount > 0 ? "has-filters" : ""}`} onClick={() => setShowModal(true)}>
+          <button className={`adv-btn ${advFilterCount > 0 ? "has-filters" : ""}`} onClick={() => setShowModal(true)} suppressHydrationWarning>
             <i className="bi bi-sliders" style={{ fontSize: ".82rem" }} />
             Advanced
             {advFilterCount > 0 && (
@@ -1143,7 +1143,7 @@ function DiamondsIndexPageContent() {
             {chips.map((ch) => (
               <span key={ch.key} className="chip">
                 {ch.label}
-                <button onClick={() => removeChip(ch.key)}><i className="bi bi-x" style={{ fontSize: ".7rem" }} /></button>
+                <button onClick={() => removeChip(ch.key)} suppressHydrationWarning><i className="bi bi-x" style={{ fontSize: ".7rem" }} /></button>
               </span>
             ))}
             <button
@@ -1510,6 +1510,7 @@ function DiamondsIndexPageContent() {
                               )}
 
                               <button
+                                suppressHydrationWarning
                                 className="act-btn del act-tooltip"
                                 data-tip="Delete"
                                 title="Delete"

@@ -149,12 +149,13 @@ function CreateSalePageContent() {
                 <div className="d-flex align-items-center mb-2">
                   <div
                     className="rounded-circle d-flex align-items-center justify-content-center me-3"
-                    style={{
-                      width: 48,
-                      height: 48,
-                      background: "linear-gradient(135deg, #374151 0%, #111827 100%)",
-                      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
-                    }}
+                      style={{
+                        width: 56,
+                        height: 56,
+                        background: "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
+                        boxShadow: "0 10px 25px rgba(79, 70, 229, 0.2)",
+                        borderRadius: 18
+                      }}
                   >
                     <i className="bi bi-cash-coin text-white" style={{ fontSize: "1.25rem" }} />
                   </div>
@@ -225,9 +226,9 @@ function CreateSalePageContent() {
                 <div className="d-flex align-items-center">
                    <div
                     className="rounded-3 d-flex align-items-center justify-content-center me-3"
-                    style={{ width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.06)" }}
+                    style={{ width: 40, height: 40, backgroundColor: "rgba(79, 70, 229, 0.08)" }}
                   >
-                    <i className="bi bi-receipt text-dark opacity-50" style={{ fontSize: "1.1rem" }} />
+                    <i className="bi bi-receipt text-indigo" style={{ fontSize: "1.1rem", color: "#4f46e5" }} />
                   </div>
                   <div>
                     <div className="fw-bold">Sale Information</div>
