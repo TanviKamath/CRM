@@ -1,9 +1,31 @@
 // app/lib/generateInvoice.js
-// Generates a bill by populating bill.html (domestic) or export-bill.html (export) template
+// Generates a bill by populating bill.html or export-bill.html template and opening in a new tab
 
-// Number-to-words converter for Indian Rupees
+// ─── Company config from env (NEXT_PUBLIC_ prefix required for client-side) ──
+function getCompanyConfig() {
+    return {
+        "{{COMPANY_NAME}}":          process.env.NEXT_PUBLIC_COMPANY_NAME          || "",
+        "{{COMPANY_ADDRESS_LINE1}}": process.env.NEXT_PUBLIC_COMPANY_ADDRESS_LINE1 || "",
+        "{{COMPANY_ADDRESS_LINE2}}": process.env.NEXT_PUBLIC_COMPANY_ADDRESS_LINE2 || "",
+        "{{COMPANY_ADDRESS_LINE3}}": process.env.NEXT_PUBLIC_COMPANY_ADDRESS_LINE3 || "",
+        "{{COMPANY_GST}}":           process.env.NEXT_PUBLIC_COMPANY_GST           || "",
+        "{{COMPANY_PAN}}":           process.env.NEXT_PUBLIC_COMPANY_PAN           || "",
+        "{{COMPANY_IE_CODE}}":       process.env.NEXT_PUBLIC_COMPANY_IE_CODE       || "",
+        "{{COMPANY_PHONE}}":         process.env.NEXT_PUBLIC_COMPANY_PHONE         || "",
+        "{{COMPANY_EMAIL}}":         process.env.NEXT_PUBLIC_COMPANY_EMAIL         || "",
+        "{{COMPANY_CITY}}":          process.env.NEXT_PUBLIC_COMPANY_CITY          || "",
+        "{{COMPANY_PORT_OF_LOADING}}": process.env.NEXT_PUBLIC_COMPANY_PORT_OF_LOADING || "",
+        "{{COMPANY_JURISDICTION}}":  process.env.NEXT_PUBLIC_COMPANY_JURISDICTION  || "",
+        "{{COMPANY_BANK_NAME}}":     process.env.NEXT_PUBLIC_COMPANY_BANK_NAME     || "",
+        "{{COMPANY_BANK_ADDRESS}}":  process.env.NEXT_PUBLIC_COMPANY_BANK_ADDRESS  || "",
+        "{{COMPANY_BANK_ACCOUNT}}":  process.env.NEXT_PUBLIC_COMPANY_BANK_ACCOUNT  || "",
+        "{{COMPANY_BANK_IFSC}}":     process.env.NEXT_PUBLIC_COMPANY_BANK_IFSC     || "",
+    };
+}
+
+// Number-to-words converter
 function numberToWords(num) {
-    if (num === 0) return "ZERO RUPEES ONLY";
+    if (num === 0) return "ZERO";
 
     const ones = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
         "TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN",
@@ -28,41 +50,22 @@ function numberToWords(num) {
     if (thousand) words += convertChunk(thousand) + " THOUSAND ";
     if (remainder) words += convertChunk(remainder);
 
-    return words.trim() + " RUPEES ONLY";
+    return words.trim();
 }
 
-// Number-to-words converter for USD
-function numberToWordsUSD(num) {
-    if (num === 0) return "ZERO US DOLLARS ONLY";
+function inrToWords(num) {
+    const rupees = Math.floor(num);
+    const paise = Math.round((num - rupees) * 100);
+    let words = numberToWords(rupees) + " RUPEES";
+    if (paise > 0) words += " AND " + numberToWords(paise) + " PAISE";
+    return words + " ONLY";
+}
 
-    const ones = ["", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
-        "TEN", "ELEVEN", "TWELVE", "THIRTEEN", "FOURTEEN", "FIFTEEN", "SIXTEEN",
-        "SEVENTEEN", "EIGHTEEN", "NINETEEN"];
-    const tens = ["", "", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY", "NINETY"];
-
-    function convertChunk(n) {
-        if (n === 0) return "";
-        if (n < 20) return ones[n];
-        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
-        return ones[Math.floor(n / 100)] + " HUNDRED" + (n % 100 ? " " + convertChunk(n % 100) : "");
-    }
-
-    const wholePart = Math.floor(num);
-    const centPart = Math.round((num - wholePart) * 100);
-
-    const billion = Math.floor(wholePart / 1000000000);
-    const million = Math.floor((wholePart % 1000000000) / 1000000);
-    const thousand = Math.floor((wholePart % 1000000) / 1000);
-    const remainder = wholePart % 1000;
-
-    let words = "";
-    if (billion) words += convertChunk(billion) + " BILLION ";
-    if (million) words += convertChunk(million) + " MILLION ";
-    if (thousand) words += convertChunk(thousand) + " THOUSAND ";
-    if (remainder) words += convertChunk(remainder);
-
-    words = words.trim() + " US DOLLARS";
-    if (centPart > 0) words += " AND " + convertChunk(centPart) + " CENTS";
+function usdToWords(num) {
+    const dollars = Math.floor(num);
+    const cents = Math.round((num - dollars) * 100);
+    let words = numberToWords(dollars) + " DOLLARS";
+    if (cents > 0) words += " AND " + numberToWords(cents) + " CENTS";
     return words + " ONLY";
 }
 
@@ -89,9 +92,14 @@ function formatNumber(num) {
     return n.toFixed(2);
 }
 
-// ─── DOMESTIC INVOICE ────────────────────────────────────────────────────────
+function getModeChar(paymentMode) {
+    if (paymentMode === "online") return "O";
+    if (paymentMode === "export") return "E";
+    return "C";
+}
 
-function generateDomesticInvoice(sale, paymentMode) {
+// ─── TAX INVOICE (Cash / Online) ────────────────────────────────────────────
+function buildTaxInvoiceReplacements(sale) {
     const saleAmountINR = parseFloat(sale.sale_amount_inr) || 0;
     const weight = parseFloat(sale.diamond?.weight) || 0;
     const ratePerCarat = weight > 0 ? saleAmountINR / weight : 0;
@@ -105,7 +113,10 @@ function generateDomesticInvoice(sale, paymentMode) {
     const sellingDate = sale.selling_date || sale.created_at || new Date();
     const invoiceDate = formatDate(sellingDate);
     const financialYear = getFinancialYear(sellingDate);
-    const invoiceNo = `LS/${sale.id}/${financialYear}`;
+
+    const modeChar = getModeChar(sale.payment_mode);
+    const seq = sale.invoice_sequence || sale.id;
+    const invoiceNo = sale.invoice_number || `LS/${modeChar}/${seq}/${financialYear}`;
 
     const client = sale.client || {};
     const buyerName = client.company_name || client.contact_name || "N/A";
@@ -118,9 +129,14 @@ function generateDomesticInvoice(sale, paymentMode) {
     const consigneeInfo = `DIRECT - PARCEL<br>${consigneeCity}, ${consigneeState}`;
 
     const termsDays = sale.terms_days || "N/A";
-    const amountInWords = numberToWords(totalRounded);
+    const paymentMode = sale.payment_mode
+        ? sale.payment_mode.charAt(0).toUpperCase() + sale.payment_mode.slice(1)
+        : "N/A";
 
-    const replacements = {
+    const amountInWords = inrToWords(totalRounded);
+
+    return {
+        ...getCompanyConfig(),  // ← company fields from env
         "{{INVOICE_DATE}}": invoiceDate,
         "{{INVOICE_NO}}": invoiceNo,
         "{{FINANCIAL_YEAR}}": financialYear,
@@ -130,6 +146,7 @@ function generateDomesticInvoice(sale, paymentMode) {
         "{{BUYER_GST}}": buyerGST,
         "{{BUYER_PAN}}": buyerPAN,
         "{{TERMS_DAYS}}": String(termsDays),
+        "{{PAYMENT_MODE}}": paymentMode,
         "{{DIAMOND_WEIGHT}}": formatNumber(weight),
         "{{RATE_PER_CARAT}}": formatNumber(ratePerCarat),
         "{{NET_AMOUNT}}": formatNumber(saleAmountINR),
@@ -138,94 +155,82 @@ function generateDomesticInvoice(sale, paymentMode) {
         "{{ROUND_OFF}}": roundOff,
         "{{TOTAL_BILL_AMOUNT}}": formatNumber(totalRounded),
         "{{AMOUNT_IN_WORDS}}": amountInWords + ".",
-        "{{PAYMENT_MODE}}": paymentMode || "N/A",
     };
-
-    return { template: "/bill.html", replacements, invoiceNo };
 }
 
-// ─── EXPORT INVOICE ───────────────────────────────────────────────────────────
-
-function generateExportInvoice(sale, paymentMode) {
-    const client = sale.client || {};
-    const diamond = sale.diamond || {};
-
-    // Simplified: Export invoices also in INR as per user request
-    const currencySymbol = "₹";
-    const saleAmount = parseFloat(sale.sale_amount_inr || sale.sale_amount) || 0;
-
-    const weight = parseFloat(diamond.weight) || 0;
-    const ratePerCarat = weight > 0 ? saleAmount / weight : 0;
+// ─── EXPORT INVOICE ──────────────────────────────────────────────────────────
+function buildExportInvoiceReplacements(sale) {
+    const saleAmountUSD = parseFloat(sale.sale_amount) || 0;
+    const weight = parseFloat(sale.diamond?.weight) || 0;
+    const ratePerCarat = weight > 0 ? saleAmountUSD / weight : 0;
 
     const sellingDate = sale.selling_date || sale.created_at || new Date();
     const invoiceDate = formatDate(sellingDate);
     const financialYear = getFinancialYear(sellingDate);
 
-    // Export invoice number: EXPLP/saleId/YY-YY
-    const fyShort = financialYear.slice(2, 4) + "-" + financialYear.slice(-2); // "25-26" from "2025-2026"
-    const invoiceNo = `EXPLP/${sale.id}/${fyShort}`;
+    const seq = sale.invoice_sequence || sale.id;
+    const invoiceNo = sale.invoice_number || `LS/E/${seq}/${financialYear}`;
+
+    const client = sale.client || {};
+    const diamond = sale.diamond || {};
 
     const buyerName = client.company_name || client.contact_name || "N/A";
     const buyerAddress = client.reg_address || client.bdb_address || "N/A";
-    const buyerCity = client.city || client.billing_city || client.shipping_city || client.destination_city || "N/A";
-    const buyerCountry = client.country || client.billing_country || client.destination_country || "N/A";
+    const consigneeName = client.company_name || "N/A";
+    const consigneeAddress = client.reg_address || client.bdb_address || "N/A";
+    const destinationCountry = client.country || "N/A";
+    const termsDays = sale.terms_days || "N/A";
 
-    const totalPcs = diamond.pieces || 1;
-    const amountInWords = numberToWords(saleAmount);
+    const diamondDesc = [diamond.shape, diamond.color, diamond.clarity]
+        .filter(Boolean)
+        .join(" / ");
 
+    const amountInWords = usdToWords(saleAmountUSD);
 
-    // Diamond details
-    const shape = diamond.shape || "ROUND FANCY";
-    const color = diamond.color || "";
-    const clarity = diamond.clarity || "";
-    const measurement = diamond.measurement || "AS PER PL";
-
-    const replacements = {
+    return {
+        ...getCompanyConfig(),  // ← company fields from env
         "{{INVOICE_DATE}}": invoiceDate,
         "{{INVOICE_NO}}": invoiceNo,
         "{{FINANCIAL_YEAR}}": financialYear,
+        "{{BUYER_ORDER_NO}}": "N/A",
+        "{{OTHER_REF}}": "N/A",
         "{{BUYER_NAME}}": buyerName,
         "{{BUYER_ADDRESS}}": buyerAddress,
-        "{{BUYER_CITY}}": buyerCity,
-        "{{BUYER_COUNTRY}}": buyerCountry,
-        "{{BUYER_GST}}": client.gst_no || client.gst_number || "N/A",
-        "{{BUYER_PAN}}": client.pan_no || client.pan_number || "N/A",
+        "{{CONSIGNEE_NAME}}": consigneeName,
+        "{{CONSIGNEE_ADDRESS}}": consigneeAddress,
+        "{{DESTINATION_COUNTRY}}": destinationCountry,
         "{{TERMS_DAYS}}": String(termsDays),
-        "{{CURRENCY_SYMBOL}}": currencySymbol,
+        "{{FLIGHT_NO}}": "N/A",
+        "{{PORT_OF_DISCHARGE}}": destinationCountry,
+        "{{FINAL_DESTINATION}}": destinationCountry,
+        "{{MARKS_NOS}}": `Sale #${sale.id}`,
+        "{{PKG_COUNT}}": "1",
+        "{{PKG_TYPE}}": "Parcel",
+        "{{DIAMOND_DESCRIPTION}}": diamondDesc,
         "{{DIAMOND_WEIGHT}}": formatNumber(weight),
-        "{{DIAMOND_SHAPE}}": shape,
-        "{{DIAMOND_COLOR}}": color,
-        "{{DIAMOND_CLARITY}}": clarity,
-        "{{DIAMOND_MEASUREMENT}}": measurement,
-        "{{DIAMOND_CERT}}": diamond.certificate_number || "N/A",
-        "{{DIAMOND_PCS}}": String(totalPcs),
-        "{{BUYER_PHONE}}": client.phone || client.contact_phone || "N/A",
-        "{{GROSS_WEIGHT}}": formatNumber(parseFloat(diamond.gross_weight) || 0),
         "{{RATE_PER_CARAT}}": formatNumber(ratePerCarat),
-        "{{SALE_AMOUNT}}": formatNumber(saleAmount),
+        "{{NET_AMOUNT}}": formatNumber(saleAmountUSD),
         "{{AMOUNT_IN_WORDS}}": amountInWords,
-        "{{PAYMENT_MODE}}": paymentMode || "N/A",
     };
-
-    return { template: "/export-bill.html", replacements, invoiceNo };
 }
 
-// ─── MAIN EXPORT ─────────────────────────────────────────────────────────────
+// ─── Main export ─────────────────────────────────────────────────────────────
+export function generateInvoicePDF(sale) {
+    const isExport = sale.payment_mode === "export";
+    const templateUrl = isExport ? "/export-bill.html" : "/bill.html";
+    const replacements = isExport
+        ? buildExportInvoiceReplacements(sale)
+        : buildTaxInvoiceReplacements(sale);
 
-/**
- * @param {object} sale   - Sale object with client, diamond, etc.
- * @param {string} paymentMode - e.g. "Cash" | "Online - UPI" | "Export"
- */
-export function generateInvoicePDF(sale, paymentMode = "") {
-    const isExport = paymentMode === "Export";
+    const sellingDate = sale.selling_date || sale.created_at || new Date();
+    const financialYear = getFinancialYear(sellingDate);
+    const modeChar = getModeChar(sale.payment_mode);
+    const seq = sale.invoice_sequence || sale.id;
+    const invoiceNo = sale.invoice_number || `LS/${modeChar}/${seq}/${financialYear}`;
 
-    const { template, replacements, invoiceNo } = isExport
-        ? generateExportInvoice(sale, paymentMode)
-        : generateDomesticInvoice(sale, paymentMode);
-
-    fetch(`${template}?v=${Date.now()}`, { cache: "no-store" })
+    fetch(templateUrl)
         .then((res) => {
-            if (!res.ok) throw new Error(`Could not load template: ${template}`);
+            if (!res.ok) throw new Error(`Could not load template: ${templateUrl}`);
             return res.text();
         })
         .then((html) => {
@@ -243,8 +248,8 @@ export function generateInvoicePDF(sale, paymentMode = "") {
             }
         })
         .catch((err) => {
-            console.error("Invoice generation error:", err);
-            alert("Failed to generate invoice: " + err.message);
+            console.error("Bill generation error:", err);
+            alert("Failed to generate bill: " + err.message);
         });
 
     return invoiceNo;

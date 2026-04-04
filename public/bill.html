@@ -100,7 +100,7 @@
 
         <table>
             <tr>
-                <td colspan="3" class="center big bold">VARNI DIAM</td>
+                <td colspan="3" class="center big bold">{{COMPANY_NAME}}</td>
             </tr>
             <tr>
                 <td colspan="3" class="center bold">TAX INVOICE</td>
@@ -109,14 +109,14 @@
             <tr>
                 <td width="40%">
                     <b>Exporter-Seller</b><br>
-                    VARNI DIAM<br>
-                    5/1105 TO 7 4TH FLOOR OFF 402 TULSI APT<br>
-                    SOMNATH MAHADEV NI SHERI MAHIDHARPURA<br>
-                    NR-BLUE DIAMOND SURAT GUJARAT INDIA-395003<br>
-                    Email: varnidiam@gmail.com<br>
-                    Tel: +91 9727228282<br>
-                    PAN: AAKFV0176E<br>
-                    GST: 24AAKFV0176E1ZA
+                    {{COMPANY_NAME}}<br>
+                    {{COMPANY_ADDRESS_LINE1}}<br>
+                    {{COMPANY_ADDRESS_LINE2}}<br>
+                    {{COMPANY_ADDRESS_LINE3}}<br>
+                    Email: {{COMPANY_EMAIL}}<br>
+                    Tel: {{COMPANY_PHONE}}<br>
+                    PAN: {{COMPANY_PAN}}<br>
+                    GST: {{COMPANY_GST}}
                 </td>
 
                 <td width="35%">
@@ -155,8 +155,8 @@
 
                 <td colspan="2">
                     Terms: {{TERMS_DAYS}} DAYS<br>
-                    <div>Amount: Rs.{{TOTAL_BILL_AMOUNT}}/-</div><div><b>Mode of Payment: {{PAYMENT_MODE}}</b></div>
-                    
+                    Mode of Payment: {{PAYMENT_MODE}}<br>
+                    Amount: Rs.{{TOTAL_BILL_AMOUNT}}/-
                 </td>
             </tr>
 
@@ -166,12 +166,10 @@
                 </td>
 
                 <td colspan="2">
-                    OUR BANK: INDUSIND BANK<br>
-                    M-2 Empire State Building,<br>
-                    Near Udhana Darwaja, Ring Road,<br>
-                    Surat-395002<br>
-                    A/C No: 259727228282<br>
-                    IFSC: INDB0000023
+                    OUR BANK: {{COMPANY_BANK_NAME}}<br>
+                    {{COMPANY_BANK_ADDRESS}}<br>
+                    A/C No: {{COMPANY_BANK_ACCOUNT}}<br>
+                    IFSC: {{COMPANY_BANK_IFSC}}
                 </td>
             </tr>
         </table>
@@ -256,18 +254,16 @@
                     <b>Declaration:</b><br>
                     The Diamonds herein invoiced are exclusively of natural origin and untreated based on personal
                     Knowledge and/or written guarantees provided by the supplier of these diamonds. The acceptance of
-                    goods herein in invoiced will be as
-                    per WFDB guideline.<br>
+                    goods herein in invoiced will be as per WFDB guideline.<br>
                     To the best of our knowledge and / or written assurance from our suppliers, we state that diamonds
                     herein invoiced have not been obtained in violation of applicable national laws and / or selections
-                    by the US departments of
-                    treasuries office of foreign assets control (OFAC).<br>
+                    by the US departments of treasuries office of foreign assets control (OFAC).<br>
                     The diamonds herein invoiced have been purchased from legitimate sources not invoiced in funding
                     conflict and in compliance with United Nations Resolutions. The seller hereby guarantees that these
-                    diamonds are conflict free
-                    based on personal knowledge and/or written guarantees provided by supplier of these diamonds.<br>
+                    diamonds are conflict free based on personal knowledge and/or written guarantees provided by
+                    supplier of these diamonds.<br>
                     We declare that this invoice shows the actual price of the goods described and that all particulars
-                    are true and correct. Subject to Surat Jurisdiction.
+                    are true and correct. Subject to {{COMPANY_JURISDICTION}} Jurisdiction.
                 </td>
             </tr>
 
@@ -281,7 +277,7 @@
                             </td>
 
                             <td class="right">
-                                FOR VARNI DIAM<br><br><br>
+                                FOR {{COMPANY_NAME}}<br><br><br>
                                 Authorised Signatory<br>
                                 Date: {{INVOICE_DATE}}
                             </td>
