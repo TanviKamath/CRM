@@ -246,13 +246,14 @@ export default function LooseDiamondDashboard() {
           </div>
           <div className="table-responsive">
             <table className="table table-hover mb-0 align-middle">
-              <thead className="bg-light">
+   <thead className="bg-light">
                 <tr className="text-muted small fw-bold text-uppercase">
                   <th className="px-4 py-3 border-0">Lot Number</th>
                   <th className="px-4 py-3 border-0">Supplier</th>
                   <th className="px-4 py-3 border-0">Carats</th>
                   <th className="px-4 py-3 border-0">Purchase Value</th>
                   <th className="px-4 py-3 border-0">Status</th>
+                  <th className="px-4 py-3 border-0 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -279,8 +280,8 @@ export default function LooseDiamondDashboard() {
                     </td>
                   </tr>
                 ) : (
-                  lots.map((lot) => (
-                    <tr key={lot.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/loose-diamonds/${lot.id}`)}>
+lots.map((lot) => (
+                    <tr key={lot.id}>
                       <td className="px-4 py-4">
                         <div className="fw-bold text-dark">LOT-{lot.lot_number}</div>
                         <div className="text-muted small">{lot.purchase_date ? new Date(lot.purchase_date).toLocaleDateString() : "-"}</div>
@@ -297,6 +298,43 @@ export default function LooseDiamondDashboard() {
                         <span className={`badge rounded-pill px-3 py-2 ${lot.status === 'Active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}`}>
                           {lot.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="d-flex gap-2 justify-content-center">
+                          <Link
+                            href={`/loose-diamonds/${lot.id}`}
+                            className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center"
+                            style={{ width: 34, height: 34, borderRadius: 10, padding: 0 }}
+                            title="View"
+                          >
+                            <i className="bi bi-eye" />
+                          </Link>
+                          <Link
+                            href={`/loose-diamonds/edit/${lot.id}`}
+                            className="btn btn-sm btn-outline-warning d-flex align-items-center justify-content-center"
+                            style={{ width: 34, height: 34, borderRadius: 10, padding: 0 }}
+                            title="Edit"
+                          >
+                            <i className="bi bi-pencil" />
+                          </Link>
+                          <button
+                            className="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center"
+                            style={{ width: 34, height: 34, borderRadius: 10, padding: 0 }}
+                            title="Delete"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm(`Delete LOT-${lot.lot_number}? This cannot be undone.`)) return;
+                              const res = await fetch(`/api/loose-diamonds/${lot.id}`, { method: "DELETE" });
+                              if (res.ok) {
+                                setLots((prev) => prev.filter((l) => l.id !== lot.id));
+                              } else {
+                                alert("Failed to delete lot.");
+                              }
+                            }}
+                          >
+                            <i className="bi bi-trash3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
