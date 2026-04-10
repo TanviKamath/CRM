@@ -250,15 +250,24 @@ export default function Navbar() {
                   onMouseEnter={() => openDropdown(item.id)}
                   onMouseLeave={scheduleClose}
                 >
-                  <button
-                    className={`nav-item ${item.active ? "active" : ""}`}
-                    onClick={() => toggleDropdown(item.id)}
-                    aria-expanded={activeDropdown === item.id}
-                  >
-                    <i className={`bi ${item.icon}`} />
-                    <span>{item.label}</span>
-                    <i className={`bi bi-chevron-down dd-chev ${activeDropdown === item.id ? "open" : ""}`} />
-                  </button>
+       <div style={{ display: "flex", alignItems: "center" }}>
+  <Link
+    href={item.id === "diamonds" ? "/diamonds" : item.id === "sales" ? "/sales" : item.id === "kyc" ? "/clients" : item.id === "accounting" ? "/accounts" : "#"}
+    className={`nav-item ${item.active ? "active" : ""}`}
+    style={{ paddingRight: 4 }}
+  >
+    <i className={`bi ${item.icon}`} />
+    <span>{item.label}</span>
+  </Link>
+  <button
+    className={`nav-item ${item.active ? "active" : ""}`}
+    onClick={() => toggleDropdown(item.id)}
+    aria-expanded={activeDropdown === item.id}
+    style={{ padding: "7px 8px", paddingLeft: 2 }}
+  >
+    <i className={`bi bi-chevron-down dd-chev ${activeDropdown === item.id ? "open" : ""}`} />
+  </button>
+</div>
 
                   <div
                     className={`nav-dropdown ${activeDropdown === item.id ? "show" : ""}`}
