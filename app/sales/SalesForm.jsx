@@ -153,12 +153,10 @@ export default function SalesForm({
         rap_rate: isLoose ? "" : (selectedDiamond.rap_rate || ""),
       });
 
-      let saleAmount = 0;
-      if (isLoose) {
-        saleAmount = parseFloat(selectedDiamond.total_value) || 0;
-      } else {
-        saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
-      }
+     let saleAmount = 0;
+if (!isLoose) {
+  saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
+}
 
       const saleAmountInr = calculateSaleAmountInr(saleAmount);
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
@@ -212,17 +210,7 @@ export default function SalesForm({
       updated.advance_amount = "";
     }
 
-    // Sold carats changes -> recalculate sale amount proportionally if rate is consistent
-    if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
-      const sold = parseFloat(value) || 0;
-      const total = parseFloat(selectedDiamond.carats) || 1;
-      const totalVal = parseFloat(selectedDiamond.total_value) || 0;
-      const proportionalAmount = (sold / total) * totalVal;
-
-      updated.sale_amount = proportionalAmount.toFixed(2);
-      updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
-      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
-    }
+ 
 
     setForm(updated);
   };
@@ -318,6 +306,11 @@ export default function SalesForm({
     const errors = {};
     if (!form.diamond_id) errors.diamond_id = "Item is required";
     if (!form.client_id) errors.client_id = "Client is required";
+    if (user?.client_type === "Loose") {
+    if (!form.sale_amount || parseFloat(form.sale_amount) <= 0) {
+      errors.sale_amount = "Selling price is required";
+    }
+  }
     if (!form.status) errors.status = "Status is required";
     if (user?.client_type !== "Loose") {
       if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
@@ -448,7 +441,7 @@ export default function SalesForm({
         onClose={() => setShowModal(false)}
         onSuccess={handleModalSuccess}
       />
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
       {/* Error Alert */}
       {error && (
         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-start" style={{ borderRadius: 14 }}>
@@ -710,6 +703,7 @@ export default function SalesForm({
               </span>
               <input 
                 value={(() => {
+ 
                   if (user?.client_type === "Loose" && initial?.id) {
                     const currentStock = parseFloat(selectedDiamond?.carats || 0);
                     const thisSale = parseFloat(initial.sold_carats || 0);
@@ -785,7 +779,10 @@ export default function SalesForm({
           )}
 
           <div className="col-md-12">
-            <label className="form-label fw-medium">Sale Amount (INR)</label>
+         <label className="form-label fw-medium">
+  Selling Price (INR) {user?.client_type === "Loose" && <span className="text-danger">*</span>}
+</label>
+
             <div className="input-group">
               <span className="input-group-text bg-white">₹</span>
               <input
@@ -794,9 +791,10 @@ export default function SalesForm({
                 name="sale_amount"
                 value={form.sale_amount}
                 onChange={handleChange}
-                className="form-control fw-semibold"
+              className={`form-control fw-semibold ${hasError("sale_amount") ? "is-invalid" : ""}`}
               />
             </div>
+            {hasError("sale_amount") && <div className="invalid-feedback d-block">{validationErrors.sale_amount}</div>}
           </div>
 
         </div>
