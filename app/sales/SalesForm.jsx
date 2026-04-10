@@ -838,13 +838,6 @@ export default function SalesForm({
               </span>
               <input 
                 value={(() => {
-<<<<<<< HEAD
- 
-                  if (user?.client_type === "Loose" && initial?.id) {
-                    const currentStock = parseFloat(selectedDiamond?.carats || 0);
-                    const thisSale = parseFloat(initial.sold_carats || 0);
-                    return (currentStock + thisSale).toFixed(3);
-=======
                   if (user?.client_type === "Loose") {
                     if (!selectedDiamond) return "0.000";
                     const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
@@ -858,7 +851,6 @@ export default function SalesForm({
                       available += parseFloat(initial.sold_carats || 0);
                     }
                     return available.toFixed(3);
->>>>>>> 53d2af7 (memo)
                   }
                   return diamondInfo.weight;
                 })()} 
