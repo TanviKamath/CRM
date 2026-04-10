@@ -130,7 +130,9 @@ export default function Navbar() {
           {
             items: [
               { href: "/sales", icon: "bi-list-ul", label: "All Sales", color: "#0071e3" },
+              { href: "/memos", icon: "bi-hourglass-split", label: "All Memos", color: "#ff9f0a" },
               { href: "/sales/create", icon: "bi-plus-circle", label: "New Sale", color: "#34c759" },
+              { href: "/diamonds/stock", icon: "bi-plus-circle", label: "New Memo", color: "#f59e0b" },
             ],
           },
           {

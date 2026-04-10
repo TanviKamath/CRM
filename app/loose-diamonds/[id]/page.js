@@ -286,8 +286,19 @@ export default function LooseDiamondDetail() {
                     <td className="px-4 py-4">{item.size_category}</td>
                     <td className="px-4 py-4 fw-bold text-muted">{item.grade}</td>
                     <td className="px-4 py-4">
-                        <span className="fw-bold">{parseFloat(item.carats).toFixed(3)}</span> 
-                        <span className="small text-muted ms-1">cts</span>
+                        <div className="fw-bold">
+                          {parseFloat(item.carats - (item.total_on_memo_carats || 0)).toFixed(3)}
+                          <span className="small text-muted ms-1">cts</span>
+                        </div>
+                        {parseFloat(item.total_on_memo_carats || 0) > 0 && (
+                          <div className="text-warning small" style={{ fontSize: '0.7rem' }}>
+                            <i className="bi bi-hourglass-split me-1"></i>
+                            {parseFloat(item.total_on_memo_carats).toFixed(3)} on memo
+                          </div>
+                        )}
+                        <div className="text-muted extra-small" style={{ fontSize: '0.65rem' }}>
+                          Total: {parseFloat(item.carats).toFixed(3)}
+                        </div>
                     </td>
                     <td className="px-4 py-4 fw-bold text-dark">${parseFloat(item.base_price).toLocaleString()}</td>
                     <td className="px-4 py-4">

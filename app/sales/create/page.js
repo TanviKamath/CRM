@@ -18,8 +18,13 @@ function CreateSalePageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Pre-selected diamond from URL (e.g., from diamonds list "Record Sale" button)
+  // Pre-selected values from URL (e.g., from memos list)
   const preSelectedDiamondId = searchParams.get("diamond_id") || "";
+  const preSelectedClientId = searchParams.get("client_id") || "";
+  const preSelectedBrokerId = searchParams.get("broker_id") || "";
+  const preSelectedSoldCarats = searchParams.get("sold_carats") || "";
+  const preSelectedSaleAmount = searchParams.get("sale_amount") || "";
+  const memoId = searchParams.get("memo_id") || "";
 
   const preSelectedDiamond = useMemo(() => {
     if (!preSelectedDiamondId) return null;
@@ -244,6 +249,11 @@ function CreateSalePageContent() {
                   clients={clients}
                   brokers={brokers}
                   preSelectedDiamondId={preSelectedDiamondId}
+                  preSelectedClientId={preSelectedClientId}
+                  preSelectedBrokerId={preSelectedBrokerId}
+                  preSelectedSoldCarats={preSelectedSoldCarats}
+                  preSelectedSaleAmount={preSelectedSaleAmount}
+                  memoId={memoId}
                   submitButtonText="Create Sale"
                   onSubmit={handleSubmit}
                 />

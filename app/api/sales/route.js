@@ -185,6 +185,7 @@ export async function POST(req) {
       payment_mode,
       invoice_number,
       sold_carats, // Added for partial loose sales
+      memo_id,
     } = body;
 
     // Strict client-type validation
@@ -340,6 +341,13 @@ export async function POST(req) {
       } catch (e) {
         console.log("Could not create advance payment record:", e.message);
       }
+    }
+
+    // If memo_id exists, mark it as sold
+    if (memo_id) {
+      await knex("on_memo")
+        .where("id", memo_id)
+        .update({ status: "sold", updated_at: new Date() });
     }
 
     const created = await knex("sales").where({ id }).first();

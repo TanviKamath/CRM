@@ -288,8 +288,15 @@ lots.map((lot) => (
                       </td>
                       <td className="px-4 py-4 text-muted">{lot.supplier_name || "Direct Purchase"}</td>
                       <td className="px-4 py-4">
-                        <span className="fw-semibold">{parseFloat(lot.total_carats).toFixed(2)}</span>
-                        <span className="text-muted small ms-1">cts</span>
+                        <div className="fw-semibold">
+                          {parseFloat(lot.total_carats - (lot.total_on_memo || 0)).toFixed(2)}
+                          <span className="text-muted small ms-1">cts</span>
+                        </div>
+                        {parseFloat(lot.total_on_memo || 0) > 0 && (
+                          <div className="badge bg-warning-subtle text-warning border-warning border-opacity-25 border p-1 px-2 mt-1" style={{ fontSize: '0.65rem' }}>
+                            {parseFloat(lot.total_on_memo).toFixed(2)} on memo
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <div className="fw-bold text-primary">${parseFloat(lot.total_purchase_value).toLocaleString()}</div>

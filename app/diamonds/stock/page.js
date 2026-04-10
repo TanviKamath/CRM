@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import Link from "next/link";
 import TableSkeleton from "../../components/TableSkeleton";
 import { useSearchParams } from "next/navigation";
+import MemoModal from "../../components/MemoModal";
 
 function StatusPill({ status }) {
     const map = {
@@ -41,6 +42,7 @@ const formatNum = (value) => {
 function StockMaintenancePageContent() {
     const [user, setUser] = useState(null);
     const [diamonds, setDiamonds] = useState([]);
+    const [selectedMemoItem, setSelectedMemoItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("current"); // current, sold, bought
     const [q, setQ] = useState("");
@@ -99,6 +101,12 @@ function StockMaintenancePageContent() {
             } else {
                 base = diamonds.filter(d => d.availability === "sold");
             }
+        } else if (activeTab === "memo") {
+            if (isLoose) {
+                base = diamonds.filter(d => parseFloat(d.total_on_memo_carats || 0) > 0);
+            } else {
+                base = diamonds.filter(d => ["memo", "subject_to_sale"].includes(d.availability));
+            }
         } else {
             base = diamonds;
         }
@@ -154,7 +162,7 @@ function StockMaintenancePageContent() {
                     <div className="card-body p-4">
                         <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
                             <div className="btn-group p-1 bg-light rounded-pill">
-                                {["current", "sold", "bought"].map((tab) => (
+                                {["current", "memo", "sold", "bought"].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -249,7 +257,16 @@ function StockMaintenancePageContent() {
                                                         </>
                                                     )}
                                                 </td>
-                                                <td className="text-end fw-medium">{formatNum(isLoose ? d.carats : d.weight)} ct</td>
+                                                <td className="text-end">
+                                                    {isLoose ? (
+                                                        <>
+                                                            <div className="fw-medium">{formatNum(d.carats)} ct</div>
+                                                            {parseFloat(d.total_on_memo_carats || 0) > 0 && <div className="small text-warning fw-bold">Memo: {formatNum(d.total_on_memo_carats)} ct</div>}
+                                                        </>
+                                                    ) : (
+                                                        <div className="fw-medium">{formatNum(d.weight)} ct</div>
+                                                    )}
+                                                </td>
                                                 <td className="text-end fw-semibold text-dark">{formatCurrency(isLoose ? d.final_price_per_carat : d.amount_usd)}</td>
                                                 <td className="text-center">
                                                     <StatusPill status={isLoose ? "available" : d.availability} />
@@ -257,6 +274,7 @@ function StockMaintenancePageContent() {
                                                 <td className="text-center">
                                                     <div className="d-flex justify-content-center gap-2">
                                                         <Link href={isLoose ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} className="btn btn-sm btn-outline-success rounded-pill px-3">Sell</Link>
+                                                        {isLoose && <button onClick={() => setSelectedMemoItem(d)} className="btn btn-sm btn-outline-info rounded-pill px-3">Memo</button>}
                                                         <Link href={isLoose ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} className="btn btn-sm btn-outline-warning rounded-pill px-3">Edit</Link>
                                                         <Link href={isLoose ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} className="btn btn-sm btn-outline-primary rounded-pill px-3">View</Link>
                                                     </div>
@@ -269,6 +287,14 @@ function StockMaintenancePageContent() {
                         </table>
                     </div>
                 </div>
+                {selectedMemoItem && (
+                    <MemoModal 
+                        show={true} 
+                        item={selectedMemoItem} 
+                        onClose={() => setSelectedMemoItem(null)} 
+                        onRefresh={() => fetchDiamonds(user.client_type)} 
+                    />
+                )}
             </div>
         </div>
     );

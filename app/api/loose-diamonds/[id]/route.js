@@ -19,8 +19,17 @@ export async function GET(req, { params }) {
     if (!lot) return new Response("Lot not found", { status: 404 });
 
     const items = await db("loose_diamond_items")
-      .where("loose_diamond_id", id)
-      .orderBy("id", "asc");
+      .leftJoin("on_memo", function() {
+        this.on("loose_diamond_items.id", "=", "on_memo.loose_diamond_item_id")
+            .andOn("on_memo.status", "=", db.raw("?", ["active"]));
+      })
+      .where("loose_diamond_items.loose_diamond_id", id)
+      .select(
+        "loose_diamond_items.*",
+        db.raw("COALESCE(SUM(on_memo.carats), 0) as total_on_memo_carats")
+      )
+      .groupBy("loose_diamond_items.id")
+      .orderBy("loose_diamond_items.id", "asc");
 
     return Response.json({ ...lot, items });
   } catch (err) {

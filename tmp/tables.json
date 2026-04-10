@@ -1,0 +1,65 @@
+[
+  {
+    "Tables_in_diamond_db": "brokers"
+  },
+  {
+    "Tables_in_diamond_db": "cache"
+  },
+  {
+    "Tables_in_diamond_db": "cache_locks"
+  },
+  {
+    "Tables_in_diamond_db": "clients"
+  },
+  {
+    "Tables_in_diamond_db": "diamonds"
+  },
+  {
+    "Tables_in_diamond_db": "expenses"
+  },
+  {
+    "Tables_in_diamond_db": "failed_jobs"
+  },
+  {
+    "Tables_in_diamond_db": "job_batches"
+  },
+  {
+    "Tables_in_diamond_db": "jobs"
+  },
+  {
+    "Tables_in_diamond_db": "loose_diamond"
+  },
+  {
+    "Tables_in_diamond_db": "loose_diamond_items"
+  },
+  {
+    "Tables_in_diamond_db": "loose_diamond_sales"
+  },
+  {
+    "Tables_in_diamond_db": "migrations"
+  },
+  {
+    "Tables_in_diamond_db": "mix_lot_items"
+  },
+  {
+    "Tables_in_diamond_db": "mix_lots"
+  },
+  {
+    "Tables_in_diamond_db": "password_reset_tokens"
+  },
+  {
+    "Tables_in_diamond_db": "payment_outstanding"
+  },
+  {
+    "Tables_in_diamond_db": "sale_payments"
+  },
+  {
+    "Tables_in_diamond_db": "sales"
+  },
+  {
+    "Tables_in_diamond_db": "sessions"
+  },
+  {
+    "Tables_in_diamond_db": "users"
+  }
+]

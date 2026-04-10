@@ -12,8 +12,18 @@ export async function GET() {
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
     const lots = await db("loose_diamond")
-      .where("user_id", decoded.id)
-      .orderBy("created_at", "desc");
+      .leftJoin("loose_diamond_items", "loose_diamond.id", "loose_diamond_items.loose_diamond_id")
+      .leftJoin("on_memo", function() {
+          this.on("loose_diamond_items.id", "=", "on_memo.loose_diamond_item_id")
+              .andOn("on_memo.status", "=", db.raw("?", ["active"]));
+      })
+      .where("loose_diamond.user_id", decoded.id)
+      .select(
+        "loose_diamond.*",
+        db.raw("COALESCE(SUM(on_memo.carats), 0) as total_on_memo")
+      )
+      .groupBy("loose_diamond.id")
+      .orderBy("loose_diamond.created_at", "desc");
 
     return Response.json(lots);
   } catch (err) {

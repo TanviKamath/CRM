@@ -12,17 +12,22 @@ export default function SalesForm({
   clients = [],
   brokers = [],
   preSelectedDiamondId = "",
+  preSelectedClientId = "",
+  preSelectedBrokerId = "",
+  preSelectedSoldCarats = "",
+  preSelectedSaleAmount = "",
+  memoId = "",
   submitButtonText = "Create Sale",
   onSubmit,
 }) {
   const [form, setForm] = useState({
     diamond_id: (user?.client_type === "Loose" ? initial.loose_diamond_item_id : initial.diamond_id) || preSelectedDiamondId || "",
-    client_id: initial.client_id || "",
-    broker_id: initial.broker_id || "",
+    client_id: initial.client_id || preSelectedClientId || "",
+    broker_id: initial.broker_id || preSelectedBrokerId || "",
     status: initial.status || "pending",
     sale_rap_discount: initial.sale_rap_discount ?? "",
-    sale_amount: initial.sale_amount ?? "",
-    sale_amount_inr: initial.sale_amount_inr ?? "",
+    sale_amount: initial.sale_amount || preSelectedSaleAmount || "",
+    sale_amount_inr: initial.sale_amount_inr ?? preSelectedSaleAmount ?? "",
     brokerage_rate: initial.brokerage_rate ?? "",
     brokerage_amount: initial.brokerage_amount ?? "", // Now in INR
     notes: initial.notes || "",
@@ -32,9 +37,10 @@ export default function SalesForm({
     payment_status: initial.payment_status || "on_terms",
     terms_days: initial.terms_days ?? "30",
     advance_amount: initial.advance_amount ?? "",
-    sold_carats: initial.sold_carats ?? "",
+    sold_carats: initial.sold_carats || preSelectedSoldCarats || "",
     payment_mode: initial.payment_mode || "",
     invoice_number: initial.invoice_number || "",
+    memo_id: memoId || "",
   });
 
   const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "" });
@@ -143,6 +149,22 @@ export default function SalesForm({
     return Math.max(0, saleAmount - advance);
   }, [form.sale_amount, form.advance_amount]);
 
+  const maxAvailableCarats = useMemo(() => {
+    if (!selectedDiamond || user?.client_type !== "Loose") return 9999;
+    const itemCarats = parseFloat(selectedDiamond.carats || 0);
+    const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
+    const originalSale = initial?.id ? (parseFloat(initial.sold_carats) || 0) : 0;
+    
+    let maxAvail = itemCarats - totalOnMemo;
+    if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
+      maxAvail += parseFloat(preSelectedSoldCarats || 0);
+    }
+    if (initial?.id) {
+      maxAvail += originalSale;
+    }
+    return Math.max(0, maxAvail);
+  }, [selectedDiamond, user?.client_type, memoId, preSelectedSoldCarats, form.diamond_id, initial]);
+
   // Update diamond info when diamond changes
   useEffect(() => {
     if (selectedDiamond) {
@@ -153,21 +175,50 @@ export default function SalesForm({
         rap_rate: isLoose ? "" : (selectedDiamond.rap_rate || ""),
       });
 
-     let saleAmount = 0;
-if (!isLoose) {
-  saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
-}
+      // Avoid overwriting pre-filled values from memo/URL on the very first mount
+      if (isInitialMount.current && (form.sold_carats || form.sale_amount)) {
+        return;
+      }
+
+      let saleAmount = 0;
+      let availableWeight = selectedDiamond.carats || 0;
+      
+      if (isLoose) {
+        const itemCarats = parseFloat(selectedDiamond.carats || 0);
+        const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
+        availableWeight = itemCarats - totalOnMemo;
+        
+        // Add back memo carats if we are explicitly converting a memo
+        if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
+            availableWeight += parseFloat(preSelectedSoldCarats || 0);
+        }
+        
+        // Add back edit carats
+        if (initial?.id && String(selectedDiamond.id) === String(initial.loose_diamond_item_id || initial.diamond_id)) {
+            availableWeight += parseFloat(initial.sold_carats || 0);
+        }
+        
+        // Use proportional value for the available weight
+        saleAmount = (parseFloat(availableWeight) / itemCarats) * parseFloat(selectedDiamond.total_value || 0) || 0;
+      } else {
+        saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
+      }
 
       const saleAmountInr = calculateSaleAmountInr(saleAmount);
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
 
+      // Only preserve prev.sold_carats if it's the initial load or a memo conversion, otherwise update to new available weight.
+      const shouldPreserve = isInitialMount.current || (memoId && String(selectedDiamond.id) === String(form.diamond_id));
+
       setForm(prev => ({
         ...prev,
-        sold_carats: isLoose ? selectedDiamond.carats : "",
-        sale_amount: saleAmount > 0 ? saleAmount.toFixed(2) : "",
+        sold_carats: isLoose ? (shouldPreserve ? (prev.sold_carats || availableWeight.toFixed(3)) : availableWeight.toFixed(3)) : "",
+        sale_amount: shouldPreserve ? (prev.sale_amount || (saleAmount > 0 ? saleAmount.toFixed(2) : "")) : (saleAmount > 0 ? saleAmount.toFixed(2) : ""),
         sale_amount_inr: saleAmountInr,
         brokerage_amount: brokerageAmount,
       }));
+
+
     } else {
       setDiamondInfo({ weight: "", rap_rate: "" });
     }
@@ -210,10 +261,36 @@ if (!isLoose) {
       updated.advance_amount = "";
     }
 
- 
+    // Sold carats changes -> recalculate sale amount proportionally if rate is consistent
+    if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
+      const sold = parseFloat(value) || 0;
+      
+      // Real-time validation
+      if (sold > (maxAvailableCarats + 0.0001)) {
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          sold_carats: `Cannot exceed available (${maxAvailableCarats.toFixed(3)} ct)` 
+        }));
+      } else {
+        setValidationErrors(prev => {
+          const next = { ...prev };
+          delete next.sold_carats;
+          return next;
+        });
+      }
+
+      const itemCarats = parseFloat(selectedDiamond.carats || 0);
+      const totalVal = parseFloat(selectedDiamond.total_value) || 0;
+      const proportionalAmount = (sold / itemCarats) * totalVal;
+
+      updated.sale_amount = proportionalAmount.toFixed(2);
+      updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
+      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
+    }
 
     setForm(updated);
   };
+
 
   // Fetch next invoice sequence when payment mode changes
   useEffect(() => {
@@ -327,13 +404,27 @@ if (!isLoose) {
     }
 
     if (user?.client_type === "Loose") {
-      const currentStock = parseFloat(selectedDiamond?.carats || 0);
+      const item = selectedDiamond;
+      const totalOnMemo = item ? parseFloat(item.total_on_memo_carats || 0) : 0;
+      const itemCarats = item ? parseFloat(item.carats || 0) : 0;
       const originalSale = initial?.id ? (parseFloat(initial.sold_carats) || 0) : 0;
-      const maxAvailable = currentStock + originalSale;
+      
+      // Available = Stock - OnMemo
+      let maxAvailable = itemCarats - totalOnMemo;
+      
+      // If converting a memo, add back its carats
+      if (memoId && item && String(item.id) === String(form.diamond_id)) {
+        maxAvailable += parseFloat(preSelectedSoldCarats || 0);
+      }
+      
+      // If editing, add back original sale carats
+      if (initial?.id) {
+        maxAvailable += originalSale;
+      }
       
       if (!form.sold_carats || parseFloat(form.sold_carats) <= 0) {
         errors.sold_carats = "Sold carats is required";
-      } else if (selectedDiamond && parseFloat(form.sold_carats) > maxAvailable) {
+      } else if (selectedDiamond && parseFloat(form.sold_carats) > (maxAvailable + 0.0001)) { // Small epsilon for float comparison
         errors.sold_carats = `Cannot sell more than available (${maxAvailable.toFixed(3)} ct)`;
       }
 
@@ -405,6 +496,7 @@ if (!isLoose) {
         sold_carats: user?.client_type === "Loose" ? parseFloat(form.sold_carats) : null,
         payment_mode: form.payment_mode || null,
         invoice_number: form.invoice_number || null,
+        memo_id: form.memo_id || null,
       };
 
       await onSubmit(dataToSend);
@@ -418,6 +510,10 @@ if (!isLoose) {
   const hasError = (field) => Boolean(validationErrors[field]);
   const controlClass = (field) => `form-control ${hasError(field) ? "is-invalid" : ""}`;
   const selectClass = (field) => `form-select ${hasError(field) ? "is-invalid" : ""}`;
+
+  useEffect(() => {
+    isInitialMount.current = false;
+  }, []);
 
   const summary = useMemo(() => {
     const amt = parseFloat(form.sale_amount) || 0;
@@ -577,19 +673,58 @@ if (!isLoose) {
                 required
               >
                 <option value="">Select {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}</option>
-                {diamonds.map((d) => {
-                  const isCurrentItem = initial?.id && String(d.id) === String(initial.loose_diamond_item_id || initial.diamond_id);
-                  const displayWeight = isCurrentItem ? (parseFloat(d.carats || 0) + (parseFloat(initial.sold_carats) || 0)) : (d.carats || d.weight || 0);
-
-                  return (
-                    <option key={d.id} value={d.id}>
-                      {user?.client_type === "Loose"
-                        ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${parseFloat(displayWeight).toFixed(3)}ct)`
-                        : `${d.certificate_number} (${d.shape} ${displayWeight}ct ${d.color}/${d.clarity})`
+                {diamonds
+                  .filter((d) => {
+                    // Always show the currently selected item
+                    if (String(d.id) === String(form.diamond_id)) return true;
+                    
+                    if (user?.client_type === "Loose") {
+                      const totalOnMemo = parseFloat(d.total_on_memo_carats || 0);
+                      const itemCarats = parseFloat(d.carats || 0);
+                      let available = itemCarats - totalOnMemo;
+                      // Only show if there's carats left to sell
+                      return available > 0.0001;
+                    }
+                    return true; // For GIA, the API already filters for 'available'
+                  })
+                  .map((d) => {
+                    const isCurrentItem = initial?.id && String(d.id) === String(initial.loose_diamond_item_id || initial.diamond_id);
+                    const isMemoConversion = String(d.id) === String(form.diamond_id) && memoId;
+                    
+                    let displayWeight = d.carats || d.weight || 0;
+                    
+                    if (user?.client_type === "Loose") {
+                      const totalOnMemo = parseFloat(d.total_on_memo_carats || 0);
+                      const itemCarats = parseFloat(d.carats || 0);
+                      
+                      // Available = Total - OnMemo
+                      let available = itemCarats - totalOnMemo;
+                      
+                      // If we are currently converting a memo for THIS diamond, add back its carats
+                      if (isMemoConversion) {
+                        available += parseFloat(preSelectedSoldCarats || 0);
                       }
-                    </option>
-                  );
-                })}
+                      
+                      // If we are editing an existing sale, add back its sold carats
+                      if (isCurrentItem) {
+                        available += parseFloat(initial.sold_carats || 0);
+                      }
+                      
+                      displayWeight = available;
+                    } else {
+                      displayWeight = isCurrentItem ? (parseFloat(d.carats || 0) + (parseFloat(initial.sold_carats) || 0)) : (d.carats || d.weight || 0);
+                    }
+
+                    return (
+                      <option key={d.id} value={d.id}>
+                        {user?.client_type === "Loose"
+                          ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${parseFloat(displayWeight).toFixed(3)}ct available)`
+                          : `${d.certificate_number} (${d.shape} ${displayWeight}ct ${d.color}/${d.clarity})`
+                        }
+                      </option>
+                    );
+
+                  })}
               </select>
             </div>
             {hasError("diamond_id") && <div className="invalid-feedback d-block">{validationErrors.diamond_id}</div>}
@@ -703,11 +838,27 @@ if (!isLoose) {
               </span>
               <input 
                 value={(() => {
+<<<<<<< HEAD
  
                   if (user?.client_type === "Loose" && initial?.id) {
                     const currentStock = parseFloat(selectedDiamond?.carats || 0);
                     const thisSale = parseFloat(initial.sold_carats || 0);
                     return (currentStock + thisSale).toFixed(3);
+=======
+                  if (user?.client_type === "Loose") {
+                    if (!selectedDiamond) return "0.000";
+                    const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
+                    const itemCarats = parseFloat(selectedDiamond.carats || 0);
+                    let available = itemCarats - totalOnMemo;
+                    
+                    if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
+                      available += parseFloat(preSelectedSoldCarats || 0);
+                    }
+                    if (initial?.id && String(selectedDiamond.id) === String(initial.loose_diamond_item_id || initial.diamond_id)) {
+                      available += parseFloat(initial.sold_carats || 0);
+                    }
+                    return available.toFixed(3);
+>>>>>>> 53d2af7 (memo)
                   }
                   return diamondInfo.weight;
                 })()} 
@@ -737,6 +888,7 @@ if (!isLoose) {
                   className={controlClass("sold_carats")}
                   placeholder="e.g. 2.50"
                   required
+                  max={maxAvailableCarats}
                 />
               </div>
               {hasError("sold_carats") && <div className="invalid-feedback d-block">{validationErrors.sold_carats}</div>}

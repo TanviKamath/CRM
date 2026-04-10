@@ -24,12 +24,24 @@ export async function GET(request) {
 
     let query = db("loose_diamond_items")
       .join("loose_diamond", "loose_diamond_items.loose_diamond_id", "loose_diamond.id")
+      .leftJoin("on_memo", function() {
+        this.on("loose_diamond_items.id", "=", "on_memo.loose_diamond_item_id")
+            .andOn("on_memo.status", "=", db.raw("?", ["active"]));
+      })
       .where("loose_diamond.user_id", decoded.id)
       .select(
         "loose_diamond_items.*",
         "loose_diamond.lot_number",
         "loose_diamond.supplier_name",
-        "loose_diamond.purchase_date"
+        "loose_diamond.purchase_date",
+        db.raw("COALESCE(SUM(on_memo.carats), 0) as total_on_memo_carats")
+      )
+      .groupBy(
+        "loose_diamond_items.id",
+        "loose_diamond.lot_number",
+        "loose_diamond.supplier_name",
+        "loose_diamond.purchase_date",
+        "loose_diamond.created_at"
       );
 
     // Filters
