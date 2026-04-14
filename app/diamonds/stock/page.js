@@ -167,6 +167,7 @@ function StockMaintenancePageContent() {
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
                                         className={`btn border-0 py-2 px-4 rounded-pill fw-medium ${activeTab === tab ? "bg-white shadow-sm text-primary" : "text-muted"}`}
+                                        suppressHydrationWarning
                                     >
                                         {tab.charAt(0).toUpperCase() + tab.slice(1)} Stock
                                     </button>
@@ -185,6 +186,7 @@ function StockMaintenancePageContent() {
                                         value={q}
                                         onChange={(e) => setQ(e.target.value)}
                                         style={{ boxShadow: "none" }}
+                                        suppressHydrationWarning
                                     />
                                 </div>
                             </div>
@@ -274,7 +276,7 @@ function StockMaintenancePageContent() {
                                                 <td className="text-center">
                                                     <div className="d-flex justify-content-center gap-2">
                                                         <Link href={isLoose ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} className="btn btn-sm btn-outline-success rounded-pill px-3">Sell</Link>
-                                                        {isLoose && <button onClick={() => setSelectedMemoItem(d)} className="btn btn-sm btn-outline-info rounded-pill px-3">Memo</button>}
+                                                        {isLoose && <button onClick={() => setSelectedMemoItem(d)} className="btn btn-sm btn-outline-info rounded-pill px-3" suppressHydrationWarning>Memo</button>}
                                                         <Link href={isLoose ? `/loose-diamonds/edit/${d.loose_diamond_id}` : `/diamonds/edit/${d.id}`} className="btn btn-sm btn-outline-warning rounded-pill px-3">Edit</Link>
                                                         <Link href={isLoose ? `/loose-diamonds/${d.loose_diamond_id}` : `/diamonds/show/${d.id}`} className="btn btn-sm btn-outline-primary rounded-pill px-3">View</Link>
                                                     </div>

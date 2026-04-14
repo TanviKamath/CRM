@@ -41,6 +41,7 @@ export default function SalesForm({
     payment_mode: initial.payment_mode || "",
     invoice_number: initial.invoice_number || "",
     memo_id: memoId || "",
+    original_memo_carats: initial.sold_carats || preSelectedSoldCarats || "", // New field to stabilize available carats calculation
   });
 
   const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "" });
@@ -156,14 +157,47 @@ export default function SalesForm({
     const originalSale = initial?.id ? (parseFloat(initial.sold_carats) || 0) : 0;
     
     let maxAvail = itemCarats - totalOnMemo;
-    if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
-      maxAvail += parseFloat(preSelectedSoldCarats || 0);
+    // If we are converting a memo, add back its ORIGINAL carats to available pool
+    if (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id)) {
+      maxAvail += parseFloat(form.original_memo_carats || 0);
     }
     if (initial?.id) {
       maxAvail += originalSale;
     }
     return Math.max(0, maxAvail);
-  }, [selectedDiamond, user?.client_type, memoId, preSelectedSoldCarats, form.diamond_id, initial]);
+  }, [selectedDiamond, user?.client_type, form.memo_id, form.original_memo_carats, form.diamond_id, initial]);
+  
+  // Smart Autofill: If a diamond is selected and it has exactly one active memo, autofill the client/details
+  useEffect(() => {
+    // Only trigger if we don't already have memoId from props (direct conversion) and not editing existing sale
+    if (!form.diamond_id || memoId || initial?.id) return;
+
+    const fetchMemoInfo = async () => {
+      try {
+        const res = await fetch(`/api/memo?item_id=${form.diamond_id}`);
+        if (!res.ok) return;
+        const memos = await res.json();
+        
+        // If exactly one active memo exists, autofill the form
+        if (memos && memos.length === 1) {
+          const m = memos[0];
+          setForm(prev => ({
+            ...prev,
+            client_id: m.client_id || prev.client_id,
+            broker_id: m.broker_id || prev.broker_id,
+            sold_carats: m.carats || prev.sold_carats,
+            original_memo_carats: m.carats, // Store original memo carats for stable calculation
+            sale_amount: (parseFloat(m.carats) * parseFloat(m.selling_price_per_carat || 0)).toFixed(2),
+            memo_id: m.id
+          }));
+        }
+      } catch (err) {
+        console.error("Autofill memo error:", err);
+      }
+    };
+
+    fetchMemoInfo();
+  }, [form.diamond_id, memoId, initial?.id]);
 
   // Update diamond info when diamond changes
   useEffect(() => {
@@ -189,8 +223,8 @@ export default function SalesForm({
         availableWeight = itemCarats - totalOnMemo;
         
         // Add back memo carats if we are explicitly converting a memo
-        if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
-            availableWeight += parseFloat(preSelectedSoldCarats || 0);
+        if (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id)) {
+            availableWeight += parseFloat(form.original_memo_carats || 0);
         }
         
         // Add back edit carats
@@ -208,7 +242,7 @@ export default function SalesForm({
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
 
       // Only preserve prev.sold_carats if it's the initial load or a memo conversion, otherwise update to new available weight.
-      const shouldPreserve = isInitialMount.current || (memoId && String(selectedDiamond.id) === String(form.diamond_id));
+      const shouldPreserve = isInitialMount.current || (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id));
 
       setForm(prev => ({
         ...prev,
@@ -265,11 +299,23 @@ export default function SalesForm({
     if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
       const sold = parseFloat(value) || 0;
       
+      // Calculate max available locally to avoid stale state in real-time validation
+      const itemCarats = parseFloat(selectedDiamond.carats || 0);
+      const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
+      let localMax = itemCarats - totalOnMemo;
+      
+      if (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id)) {
+        localMax += parseFloat(form.original_memo_carats || 0);
+      }
+      if (initial?.id && String(selectedDiamond.id) === String(initial.loose_diamond_item_id || initial.diamond_id)) {
+        localMax += parseFloat(initial.sold_carats || 0);
+      }
+
       // Real-time validation
-      if (sold > (maxAvailableCarats + 0.0001)) {
+      if (sold > (localMax + 0.0001)) {
         setValidationErrors(prev => ({ 
           ...prev, 
-          sold_carats: `Cannot exceed available (${maxAvailableCarats.toFixed(3)} ct)` 
+          sold_carats: `Cannot exceed available (${localMax.toFixed(3)} ct)` 
         }));
       } else {
         setValidationErrors(prev => {
@@ -279,7 +325,6 @@ export default function SalesForm({
         });
       }
 
-      const itemCarats = parseFloat(selectedDiamond.carats || 0);
       const totalVal = parseFloat(selectedDiamond.total_value) || 0;
       const proportionalAmount = (sold / itemCarats) * totalVal;
 
@@ -413,8 +458,8 @@ export default function SalesForm({
       let maxAvailable = itemCarats - totalOnMemo;
       
       // If converting a memo, add back its carats
-      if (memoId && item && String(item.id) === String(form.diamond_id)) {
-        maxAvailable += parseFloat(preSelectedSoldCarats || 0);
+      if (form.memo_id && item && String(item.id) === String(form.diamond_id)) {
+        maxAvailable += parseFloat(form.original_memo_carats || 0);
       }
       
       // If editing, add back original sale carats
@@ -844,11 +889,11 @@ export default function SalesForm({
                     const itemCarats = parseFloat(selectedDiamond.carats || 0);
                     let available = itemCarats - totalOnMemo;
                     
-                    if (memoId && String(selectedDiamond.id) === String(form.diamond_id)) {
-                      available += parseFloat(preSelectedSoldCarats || 0);
+                    if (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id)) {
+                      available += parseFloat(form.original_memo_carats || 0);
                     }
                     if (initial?.id && String(selectedDiamond.id) === String(initial.loose_diamond_item_id || initial.diamond_id)) {
-                      available += parseFloat(initial.sold_carats || 0);
+                      available += parseFloat(form.sold_carats || 0);
                     }
                     return available.toFixed(3);
                   }

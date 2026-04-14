@@ -168,18 +168,32 @@ export default function ShowDiamond() {
             </div>
           </div>
 
-          <div className="d-flex gap-2">
+          <div className="d-flex gap-2 pt-1">
             {diamond.availability === "available" && (
-              <Link href={`/sales/create?diamond_id=${diamond.id}`} className="btn btn-success px-4" style={{ borderRadius: 10 }}>
+              <Link href={`/sales/create?diamond_id=${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
                 <i className="bi bi-cart-check me-2" />
                 Sell
               </Link>
             )}
-            <Link href={`/diamonds/edit/${diamond.id}`} className="btn btn-warning px-4" style={{ borderRadius: 10 }}>
+            <Link href={`/diamonds/edit/${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
               <i className="bi bi-pencil me-2" />
               Edit
             </Link>
-            <Link href="/diamonds" className="btn btn-outline-secondary px-4" style={{ borderRadius: 10 }}>
+            <button
+               className="btn btn-dark rounded-pill px-4 shadow-sm border-0"
+               onClick={() => {
+                 if (confirm("Delete this diamond? Cannot be undone.")) {
+                   fetch(`/api/diamonds/${diamond.id}`, { method: "DELETE" }).then((r) => {
+                     if (r.ok) window.location.href = "/diamonds";
+                     else alert("Failed to delete");
+                   });
+                 }
+               }}
+            >
+              <i className="bi bi-trash me-2" />
+              Delete
+            </button>
+            <Link href="/diamonds" className="btn btn-dark rounded-pill px-4 shadow-sm border-0 opacity-75">
               <i className="bi bi-arrow-left me-2" />
               Back
             </Link>
@@ -335,22 +349,9 @@ export default function ShowDiamond() {
             </div>
           </div>
 
-          {/* Danger Zone */}
-          <div className="col-12 text-end mt-4">
-            <button
-              className="btn btn-outline-danger"
-              onClick={() => {
-                if (confirm("Delete this diamond? Cannot be undone.")) {
-                  fetch(`/api/diamonds/${diamond.id}`, { method: "DELETE" }).then((r) => {
-                    if (r.ok) window.location.href = "/diamonds";
-                    else alert("Failed to delete");
-                  });
-                }
-              }}
-            >
-              <i className="bi bi-trash me-2" />
-              Delete Diamond
-            </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

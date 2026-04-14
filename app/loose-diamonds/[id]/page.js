@@ -145,17 +145,17 @@ export default function LooseDiamondDetail() {
                </div>
              </div>
           </div>
-          <div className="d-flex gap-2 pt-2">
-            <button className="btn btn-outline-primary px-3 shadow-sm border-0 bg-white" onClick={exportCSV} style={{ borderRadius: "10px" }}>
+          <div className="d-flex gap-2 pt-2 action-buttons">
+            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={exportCSV}>
               <i className="bi bi-file-earmark-arrow-down me-2"></i>Export CSV
             </button>
-            <button className="btn btn-outline-danger px-3 shadow-sm border-0 bg-white" onClick={handleDelete} style={{ borderRadius: "10px" }}>
-              <i className="bi bi-trash"></i>
+            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={handleDelete}>
+              <i className="bi bi-trash me-2"></i>Delete Lot
             </button>
-            <Link href={`/loose-diamonds/edit/${id}`} className="btn btn-outline-primary px-3 shadow-sm border-0 bg-white" style={{ borderRadius: "10px" }}>
+            <Link href={`/loose-diamonds/edit/${id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
               <i className="bi bi-pencil me-2"></i>Edit Lot
             </Link>
-            <button className="btn btn-primary px-3 shadow-lg" onClick={() => window.print()} style={{ borderRadius: "10px" }}>
+            <button className="btn btn-dark rounded-pill px-4 shadow-lg border-0" onClick={() => window.print()}>
               <i className="bi bi-printer me-2"></i>Print PDF
             </button>
           </div>
@@ -333,6 +333,17 @@ export default function LooseDiamondDetail() {
       <style jsx>{`
         .ls-1 { letter-spacing: 1px; }
         .breadcrumb-item + .breadcrumb-item::before { color: #ccc; }
+        .action-buttons .btn {
+          transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+          font-weight: 500;
+        }
+        .action-buttons .btn:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.1);
+        }
+        .action-buttons .btn-dark:hover {
+          background-color: #000 !important;
+        }
       `}</style>
     </div>
   );

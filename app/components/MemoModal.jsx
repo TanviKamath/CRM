@@ -234,7 +234,7 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
                     <input type="number" step="0.01" min="0" className="form-control fw-semibold" value={form.selling_price_per_carat} onChange={e=>setForm({...form, selling_price_per_carat: e.target.value})} placeholder={pricePerCarat} />
                 </div>
                 <div className="col-md-2">
-                    <button type="submit" className="btn btn-primary w-100" disabled={loading || availableCarats <= 0}>Give</button>
+                    <button type="submit" className="btn btn-primary w-100" disabled={loading || availableCarats <= 0}>On Memo</button>
                 </div>
                 {form.carats > 0 && (
                   <div className="col-12 mt-2 text-end text-muted small">

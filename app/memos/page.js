@@ -329,6 +329,9 @@ function MemosIndexContent() {
                             <i className="bi bi-box-seam me-2 text-dark opacity-50" />
                             LOT-{memo.lot_number}
                           </Link>
+                          <div className="text-muted mt-1 fw-medium" style={{ fontSize: '0.75rem' }}>
+                             {memo.color_category} • {memo.size_category} • {memo.grade}
+                          </div>
                         </td>
 
                         <td className="py-3 fw-bold">
