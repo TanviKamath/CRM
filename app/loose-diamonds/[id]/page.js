@@ -146,16 +146,16 @@ export default function LooseDiamondDetail() {
              </div>
           </div>
           <div className="d-flex gap-2 pt-2 action-buttons">
-            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={exportCSV}>
+            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={exportCSV} style={{ backgroundColor: "#000000" }}>
               <i className="bi bi-file-earmark-arrow-down me-2"></i>Export CSV
             </button>
-            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={handleDelete}>
+            <button className="btn btn-dark rounded-pill px-4 shadow-sm border-0" onClick={handleDelete} style={{ backgroundColor: "#000000" }}>
               <i className="bi bi-trash me-2"></i>Delete Lot
             </button>
-            <Link href={`/loose-diamonds/edit/${id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
+            <Link href={`/loose-diamonds/edit/${id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0" style={{ backgroundColor: "#000000" }}>
               <i className="bi bi-pencil me-2"></i>Edit Lot
             </Link>
-            <button className="btn btn-dark rounded-pill px-4 shadow-lg border-0" onClick={() => window.print()}>
+            <button className="btn btn-dark rounded-pill px-4 shadow-lg border-0" onClick={() => window.print()} style={{ backgroundColor: "#000000" }}>
               <i className="bi bi-printer me-2"></i>Print PDF
             </button>
           </div>

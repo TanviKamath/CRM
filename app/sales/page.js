@@ -310,18 +310,18 @@ function SalesIndexContent() {
           <div className="d-flex gap-2">
             <Link
               href="/memos"
-              className="btn btn-outline-dark px-4 py-2 d-flex align-items-center"
-              style={{ borderRadius: 12, borderWidth: "1.5px", fontWeight: "600" }}
+              className="btn btn-outline-dark rounded-pill px-4 d-flex align-items-center"
+              style={{ borderWidth: "1.5px", fontWeight: "600", color: "#000000" }}
             >
-              <i className="bi bi-hourglass-split me-2" style={{ fontSize: "1.1rem" }} />
+              <i className="bi bi-hourglass-split me-2" />
               Memos
             </Link>
             <Link
               href="/sales/create"
-              className="btn btn-dark text-white px-4 py-2"
-              style={{ borderRadius: 12, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}
+              className="btn btn-dark rounded-pill px-4"
+              style={{ backgroundColor: "#000000", border: "none", color: "#ffffff" }}
             >
-              <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
+              <i className="bi bi-plus-lg me-2" />
               New Sale
             </Link>
           </div>

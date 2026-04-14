@@ -206,10 +206,10 @@ function MemosIndexContent() {
           <div className="d-flex gap-2">
             <Link
               href="/diamonds/stock"
-              className="btn btn-dark text-white px-4 py-2"
-              style={{ borderRadius: 12, background: "linear-gradient(135deg, #374151 0%, #111827 100%)", border: "none" }}
+              className="btn btn-dark rounded-pill px-4"
+              style={{ backgroundColor: "#000000", border: "none", color: "#ffffff" }}
             >
-              <i className="bi bi-plus-lg me-2" style={{ fontSize: "1.1rem" }} />
+              <i className="bi bi-plus-lg me-2" />
               New Memo (via Stock)
             </Link>
           </div>

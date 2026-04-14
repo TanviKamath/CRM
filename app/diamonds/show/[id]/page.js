@@ -170,23 +170,22 @@ export default function ShowDiamond() {
 
           <div className="d-flex gap-2 pt-1">
             {diamond.availability === "available" && (
-              <Link href={`/sales/create?diamond_id=${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
+              <Link href={`/sales/create?diamond_id=${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0" style={{ backgroundColor: "#000000" }}>
                 <i className="bi bi-cart-check me-2" />
                 Sell
               </Link>
             )}
-            <Link href={`/diamonds/edit/${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0">
+            <Link href={`/diamonds/edit/${diamond.id}`} className="btn btn-dark rounded-pill px-4 shadow-sm border-0" style={{ backgroundColor: "#000000" }}>
               <i className="bi bi-pencil me-2" />
               Edit
             </Link>
             <button
                className="btn btn-dark rounded-pill px-4 shadow-sm border-0"
+               style={{ backgroundColor: "#000000" }}
                onClick={() => {
                  if (confirm("Delete this diamond? Cannot be undone.")) {
-                   fetch(`/api/diamonds/${diamond.id}`, { method: "DELETE" }).then((r) => {
-                     if (r.ok) window.location.href = "/diamonds";
-                     else alert("Failed to delete");
-                   });
+                   fetch(`/api/diamonds/${diamond.id}`, { method: 'DELETE' })
+                    .then(r => r.ok && window.location.replace('/diamonds/stock'));
                  }
                }}
             >
