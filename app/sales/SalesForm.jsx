@@ -38,6 +38,9 @@ export default function SalesForm({
     terms_days: initial.terms_days ?? "30",
     advance_amount: initial.advance_amount ?? "",
     sold_carats: initial.sold_carats || preSelectedSoldCarats || "",
+    selling_price_per_carat: initial.sale_amount && initial.sold_carats
+      ? (parseFloat(initial.sale_amount) / parseFloat(initial.sold_carats)).toFixed(2)
+      : "",
     payment_mode: initial.payment_mode || "",
     invoice_number: initial.invoice_number || "",
     memo_id: memoId || "",
@@ -295,7 +298,7 @@ export default function SalesForm({
       updated.advance_amount = "";
     }
 
-    // Sold carats changes -> recalculate sale amount proportionally if rate is consistent
+    // Sold carats changes -> recalculate sale amount using selling_price_per_carat if set, otherwise proportionally
     if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
       const sold = parseFloat(value) || 0;
       
@@ -325,12 +328,26 @@ export default function SalesForm({
         });
       }
 
-      const totalVal = parseFloat(selectedDiamond.total_value) || 0;
-      const proportionalAmount = (sold / itemCarats) * totalVal;
-
-      updated.sale_amount = proportionalAmount.toFixed(2);
+      const pricePerCarat = parseFloat(updated.selling_price_per_carat) || 0;
+      if (pricePerCarat > 0) {
+        updated.sale_amount = (sold * pricePerCarat).toFixed(2);
+      } else {
+        const totalVal = parseFloat(selectedDiamond.total_value) || 0;
+        updated.sale_amount = ((sold / itemCarats) * totalVal).toFixed(2);
+      }
       updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
       updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
+    }
+
+    // Selling price per carat changes -> recalculate total
+    if (name === "selling_price_per_carat" && user?.client_type === "Loose") {
+      const pricePerCarat = parseFloat(value) || 0;
+      const sold = parseFloat(updated.sold_carats) || 0;
+      if (pricePerCarat > 0 && sold > 0) {
+        updated.sale_amount = (sold * pricePerCarat).toFixed(2);
+        updated.sale_amount_inr = calculateSaleAmountInr(updated.sale_amount);
+        updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
+      }
     }
 
     setForm(updated);
@@ -932,6 +949,57 @@ export default function SalesForm({
             </div>
           )}
 
+          {user?.client_type === "Loose" && (
+            <div className="col-md-3">
+              <label htmlFor="selling_price_per_carat" className="form-label fw-medium">
+                Selling Price / Carat <span className="text-danger">*</span>
+              </label>
+              <div className="input-group">
+                <span className="input-group-text bg-white">₹</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  id="selling_price_per_carat"
+                  name="selling_price_per_carat"
+                  value={form.selling_price_per_carat}
+                  onChange={handleChange}
+                  className={controlClass("selling_price_per_carat")}
+                  placeholder="e.g. 5000.00"
+                />
+                <span className="input-group-text bg-white">/ct</span>
+              </div>
+            </div>
+          )}
+
+          {user?.client_type === "Loose" && (
+            <div className="col-md-6">
+              <label className="form-label fw-medium">Selling Price Total</label>
+              <div className="input-group">
+                <span className="input-group-text bg-white">₹</span>
+                <input
+                  type="text"
+                  value={
+                    form.sale_amount
+                      ? parseFloat(form.sale_amount).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : ""
+                  }
+                  className={`form-control fw-semibold bg-light ${hasError("sale_amount") ? "is-invalid" : ""}`}
+                  readOnly
+                  placeholder="Auto-calculated"
+                />
+              </div>
+              {hasError("sale_amount") && <div className="invalid-feedback d-block">{validationErrors.sale_amount}</div>}
+              {form.sold_carats && form.selling_price_per_carat && (
+                <div className="text-muted small mt-1">
+                  {parseFloat(form.sold_carats).toFixed(3)} ct × ₹{parseFloat(form.selling_price_per_carat).toLocaleString("en-IN")}
+                </div>
+              )}
+            </div>
+          )}
+
           {user?.client_type !== "Loose" && (
             <>
               <div className="col-md-3">
@@ -964,27 +1032,24 @@ export default function SalesForm({
                 </div>
                 {hasError("sale_rap_discount") && <div className="invalid-feedback d-block">{validationErrors.sale_rap_discount}</div>}
               </div>
+
+              <div className="col-md-12">
+                <label className="form-label fw-medium">Selling Price (INR)</label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">₹</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="sale_amount"
+                    value={form.sale_amount}
+                    onChange={handleChange}
+                    className={`form-control fw-semibold ${hasError("sale_amount") ? "is-invalid" : ""}`}
+                  />
+                </div>
+                {hasError("sale_amount") && <div className="invalid-feedback d-block">{validationErrors.sale_amount}</div>}
+              </div>
             </>
           )}
-
-          <div className="col-md-12">
-         <label className="form-label fw-medium">
-  Selling Price (INR) {user?.client_type === "Loose" && <span className="text-danger">*</span>}
-</label>
-
-            <div className="input-group">
-              <span className="input-group-text bg-white">₹</span>
-              <input
-                type="number"
-                step="0.01"
-                name="sale_amount"
-                value={form.sale_amount}
-                onChange={handleChange}
-              className={`form-control fw-semibold ${hasError("sale_amount") ? "is-invalid" : ""}`}
-              />
-            </div>
-            {hasError("sale_amount") && <div className="invalid-feedback d-block">{validationErrors.sale_amount}</div>}
-          </div>
 
         </div>
 

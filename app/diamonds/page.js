@@ -784,6 +784,7 @@ function DiamondsIndexPageContent() {
   const [selected, setSelected] = useState(new Set());
   const [hoveredCell, setHoveredCell] = useState(null);
   const [hasMounted, setHasMounted] = useState(false);
+  const [viewMode, setViewMode] = useState("matrix"); // "matrix" | "table"
 
   useEffect(() => {
     setHasMounted(true);
@@ -1075,20 +1076,69 @@ function DiamondsIndexPageContent() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Link
+ <Link
   href="/loose-diamonds"
   style={{
-    background: "#fff", color: C.purple, padding: "10px 20px", borderRadius: 12,
-    fontSize: ".82rem", fontWeight: 600, border: `0.5px solid ${C.border}`,
-    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-    transition: "all .2s", textDecoration: "none", whiteSpace: "nowrap"
+    background: "#fff",
+    color: C.text, // ✅ black text
+    padding: "10px 20px",
+    borderRadius: 12,
+    fontSize: ".82rem",
+    fontWeight: 600,
+    border: `0.5px solid ${C.border}`,
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    cursor: "pointer",
+    transition: "all .2s",
+    textDecoration: "none",
+    whiteSpace: "nowrap"
   }}
-  onMouseEnter={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.borderColor = C.purple; }}
-  onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = C.border; }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = C.light; // ✅ same hover as others
+    e.currentTarget.style.borderColor = C.border;
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "#fff";
+    e.currentTarget.style.borderColor = C.border;
+  }}
 >
-  <i className="bi bi-layers" style={{ fontSize: ".82rem", color: C.purple }} />
+  <i className="bi bi-layers" style={{ fontSize: ".82rem", color: C.text }} />
   Loose Diamond Management
-</Link>
+</Link>{hasMounted && user?.client_type === "Loose" && (
+  <div style={{
+    display: "flex", border: `0.5px solid ${C.border}`, borderRadius: 12,
+    overflow: "hidden", background: "#fff"
+  }}>
+    <button
+      suppressHydrationWarning
+      onClick={() => setViewMode("matrix")}
+      style={{
+        padding: "10px 16px", fontSize: ".8rem", fontWeight: 600, border: "none",
+        cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 6,
+        background: viewMode === "matrix" ? C.text : "transparent",
+        color: viewMode === "matrix" ? "#fff" : C.sub,
+      }}
+    >
+      <i className="bi bi-grid-3x3-gap" style={{ fontSize: ".82rem" }} />
+      Matrix
+    </button>
+    <button
+      suppressHydrationWarning
+      onClick={() => setViewMode("table")}
+      style={{
+        padding: "10px 16px", fontSize: ".8rem", fontWeight: 600, border: "none",
+        cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", gap: 6,
+        background: viewMode === "table" ? C.text : "transparent",
+        color: viewMode === "table" ? "#fff" : C.sub,
+        borderLeft: `0.5px solid ${C.border}`
+      }}
+    >
+      <i className="bi bi-table" style={{ fontSize: ".82rem" }} />
+      Table
+    </button>
+  </div>
+)}
             <button
                onClick={handleExport}
                suppressHydrationWarning
@@ -1098,11 +1148,11 @@ function DiamondsIndexPageContent() {
                  display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
                  transition: "all .2s"
                }}
-               onMouseEnter={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.borderColor = C.blue; }}
+               onMouseEnter={(e) => { e.currentTarget.style.background = C.light; e.currentTarget.style.borderColor = C.text; }}
                onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = C.border; }}
                title={selected.size > 0 ? `Export ${selected.size} selected` : "Export all visible"}
              >
-               <i className="bi bi-file-earmark-spreadsheet" style={{ fontSize: ".82rem", color: C.green }} />
+               <i className="bi bi-file-earmark-spreadsheet" style={{ fontSize: ".82rem", color: C.text }} />
                Export{selected.size > 0 ? ` (${selected.size})` : ""}
              </button>
             <Link
@@ -1190,181 +1240,205 @@ function DiamondsIndexPageContent() {
       </div>
     );
   }
+
+  // ✅ MATRIX VIEW (DEFAULT)
+if (viewMode === "matrix") {
   return (
-    <div className="fi" style={{ animationDelay: ".1s", display: "flex", gap: 16, alignItems: "flex-start" }}>
+    <div className="fi" style={{ animationDelay: ".1s" }}>
       
-      {/* ── LEFT: Matrix ── */}
-      <div style={{ flex: "0 0 55%", minWidth: 0, background: "#fff", borderRadius: 14, padding: "20px", border: "0.5px solid rgba(0,0,0,.05)", boxShadow: "0 1px 3px rgba(0,0,0,.02)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+      {/* ✅ PASTE YOUR ORIGINAL MATRIX TABLE HERE (FULL WIDTH) */
+      }
+      <div style={{ width: "100%", background: "#fff", borderRadius: 14, padding: "20px", border: "0.5px solid rgba(0,0,0,.05)", boxShadow: "0 1px 3px rgba(0,0,0,.02)" }}>
+  
+  {/* Header */}
+  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+    
+    <div>
+      <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>
+        Inventory Matrix
+      </h3>
+      <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>
+        Weight by Size & Color
+      </p>
+    </div>
+
+    {/* Hover Dashboard */}
+    <div style={{
+      background: "#f9f9f9",
+      borderRadius: 10,
+      padding: "6px 14px",
+      display: "flex",
+      gap: 20,
+      alignItems: "center",
+      minWidth: 240,
+      minHeight: 48,
+      border: `1px solid ${C.light}`,
+      transition: "all 0.25s ease",
+      opacity: hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? 1 : 0.6,
+    }}>
+      {hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <i className="bi bi-gem" style={{ color: C.blue, fontSize: "0.9rem" }} />
+            <div style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+              {hoveredCell.s} | {hoveredCell.c}
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 16, background: C.border }} />
+
           <div>
-            <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>Inventory Matrix</h3>
-            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>Weight by Size & Color</p>
+            <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>
+              Rate
+            </span>
+            <span style={{ fontSize: "0.85rem", color: C.green, fontWeight: 800 }}>
+              {fmt(matrixData.grid[hoveredCell.c][hoveredCell.s].totalPrice / matrixData.grid[hoveredCell.c][hoveredCell.s].carats)}
+            </span>
           </div>
 
-          {/* Hover Dashboard */}
-          <div style={{
-            background: "#f9f9f9", borderRadius: 10, padding: "6px 14px",
-            display: "flex", gap: 20, alignItems: "center", minWidth: 240, minHeight: 48,
-            border: `1px solid ${C.light}`, transition: "all 0.25s ease",
-            opacity: hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? 1 : 0.6,
-          }}>
-            {hoveredCell && matrixData.grid[hoveredCell.c]?.[hoveredCell.s]?.carats > 0 ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <i className="bi bi-gem" style={{ color: C.blue, fontSize: "0.9rem" }} />
-                  <div style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
-                    {hoveredCell.s} | {hoveredCell.c}
-                  </div>
-                </div>
-                <div style={{ width: 1, height: 16, background: C.border }} />
-                <div>
-                  <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>Rate</span>
-                  <span style={{ fontSize: "0.85rem", color: C.green, fontWeight: 800 }}>
-                    {fmt(matrixData.grid[hoveredCell.c][hoveredCell.s].totalPrice / matrixData.grid[hoveredCell.c][hoveredCell.s].carats)}
-                  </span>
-                </div>
-                <div style={{ width: 1, height: 16, background: C.border }} />
-                <div>
-                  <span style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
-                    {matrixData.grid[hoveredCell.c][hoveredCell.s].count} <span style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 600 }}>lots</span>
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div style={{ fontSize: "0.75rem", color: C.sub, width: "100%", textAlign: "center", fontWeight: 500 }}>
-                Hover cells for insights
-              </div>
-            )}
+          <div style={{ width: 1, height: 16, background: C.border }} />
+
+          <div>
+            <span style={{ fontSize: "0.85rem", color: C.text, fontWeight: 800 }}>
+              {matrixData.grid[hoveredCell.c][hoveredCell.s].count}
+              <span style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 600 }}> lots</span>
+            </span>
           </div>
+        </>
+      ) : (
+        <div style={{ fontSize: "0.75rem", color: C.sub, width: "100%", textAlign: "center", fontWeight: 500 }}>
+          Hover cells for insights
         </div>
+      )}
+    </div>
+  </div>
 
-        <div style={{ overflowX: "auto" }}>
-          <table className="matrix-table">
-            <thead>
-              <tr>
-                <th className="row-header" style={{ zIndex: 10 }}>Color \ Size</th>
-                {matrixData.sizes.map(s => (
-                  <th key={s} className="col-header">{s}</th>
-                ))}
-                <th className="col-header matrix-row-total">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {matrixData.colors.map(c => (
-                <tr key={c}>
-                  <th className="row-header">{c}</th>
-                  {matrixData.sizes.map(s => {
-                    const cellVal = matrixData.grid[c][s].carats;
-                    return (
-                      <td
-                        key={s}
-                        className={cellVal === 0 ? "matrix-zero" : ""}
-                        onMouseEnter={() => setHoveredCell({ c, s })}
-                        onMouseLeave={() => setHoveredCell(null)}
-                        onClick={() => cellVal > 0 && router.push(`/diamonds/matrix/analysis?color=${encodeURIComponent(c)}&size=${encodeURIComponent(s)}`)}
-                      >
-                        {cellVal > 0 ? cellVal.toFixed(3) : "-"}
-                      </td>
-                    );
-                  })}
-                  <td className="matrix-row-total">
-                    {matrixData.rowTotals[c] > 0 ? matrixData.rowTotals[c].toFixed(3) : "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th className="row-header" style={{ color: C.text }}>Total</th>
-                {matrixData.sizes.map(s => (
-                  <td key={s} style={{ fontWeight: 800, color: C.text }}>
-                    {matrixData.colTotals[s] > 0 ? matrixData.colTotals[s].toFixed(3) : "-"}
-                  </td>
-                ))}
-                <td className="matrix-grand-total">{matrixData.grandTotal.toFixed(3)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+  {/* Matrix Table */}
+  <div style={{ overflowX: "auto" }}>
+    <table className="matrix-table">
+      <thead>
+        <tr>
+          <th className="row-header" style={{ zIndex: 10 }}>Color \ Size</th>
+          {matrixData.sizes.map(s => (
+            <th key={s} className="col-header">{s}</th>
+          ))}
+          <th className="col-header matrix-row-total">Total</th>
+        </tr>
+      </thead>
 
-      {/* ── RIGHT: Lot Table ── */}
-      <div style={{ flex: "1 1 0", minWidth: 0, background: "#fff", borderRadius: 14, border: "0.5px solid rgba(0,0,0,.05)", boxShadow: "0 1px 3px rgba(0,0,0,.02)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <tbody>
+        {matrixData.colors.map(c => (
+          <tr key={c}>
+            <th className="row-header">{c}</th>
+
+            {matrixData.sizes.map(s => {
+              const cellVal = matrixData.grid[c][s].carats;
+
+              return (
+                <td
+                  key={s}
+                  className={cellVal === 0 ? "matrix-zero" : ""}
+                  onMouseEnter={() => setHoveredCell({ c, s })}
+                  onMouseLeave={() => setHoveredCell(null)}
+                  onClick={() =>
+                    cellVal > 0 &&
+                    router.push(`/diamonds/matrix/analysis?color=${encodeURIComponent(c)}&size=${encodeURIComponent(s)}`)
+                  }
+                >
+                  {cellVal > 0 ? cellVal.toFixed(3) : "-"}
+                </td>
+              );
+            })}
+
+            <td className="matrix-row-total">
+              {matrixData.rowTotals[c] > 0 ? matrixData.rowTotals[c].toFixed(3) : "-"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+
+      <tfoot>
+        <tr>
+          <th className="row-header">Total</th>
+
+          {matrixData.sizes.map(s => (
+            <td key={s} className="matrix-row-total">
+              {matrixData.colTotals[s] > 0 ? matrixData.colTotals[s].toFixed(3) : "-"}
+            </td>
+          ))}
+
+          <td className="matrix-grand-total">
+            {matrixData.grandTotal > 0 ? matrixData.grandTotal.toFixed(3) : "-"}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+</div>
+      
+
+    </div>
+  );
+}
+
+  // ✅ TABLE VIEW (FULL WIDTH WHEN CLICKED)
+  if (viewMode === "table") {
+    return (
+      <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
         
-        {/* Table Header */}
-        <div style={{ padding: "16px 20px", borderBottom: `0.5px solid ${C.light}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        {/* Header */}
+        <div style={{ padding: "16px 20px", borderBottom: `0.5px solid ${C.light}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800, letterSpacing: "-0.01em" }}>Lot List</h3>
-            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>{rows.length} lot{rows.length !== 1 ? "s" : ""} · {rows.reduce((s, d) => s + (parseFloat(d.carats) || 0), 0).toFixed(3)} ct total</p>
+            <h3 style={{ margin: 0, fontSize: "1rem", color: C.text, fontWeight: 800 }}>Lot List</h3>
+            <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: C.sub }}>
+              {rows.length} lot{rows.length !== 1 ? "s" : ""} · {rows.reduce((s, d) => s + (parseFloat(d.carats) || 0), 0).toFixed(3)} ct total
+            </p>
           </div>
         </div>
 
-        {/* Scrollable Table */}
-   <div style={{ overflowY: "auto", overflowX: "auto", maxHeight: 480, paddingTop: 2 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.78rem" }}>
+        {/* FULL WIDTH TABLE */}
+        <div style={{ overflow: "auto", maxHeight: "70vh" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
             <thead>
-              <tr style={{ background: "#fafafa", position: "sticky"}}>
-                {[
-                  { label: "#", w: 36 },
-                  { label: "Lot #", w: 80 },
-                  { label: "Color", w: 90 },
-                  { label: "Size", w: 70 },
-                  { label: "Grade", w: 120 },
-                  { label: "Carats", w: 70 },
-                  { label: "₹/ct", w: 90 },
-                  { label: "Total Value", w: 100 },
-                ].map(col => (
-                  <th key={col.label} style={{
-                    padding: "10px 12px", textAlign: col.label === "#" ? "center" : "left",
-                    fontWeight: 700, fontSize: "0.65rem", textTransform: "uppercase",
-                    letterSpacing: "0.06em", color: C.sub,
-                    borderBottom: `1.5px solid ${C.light}`, whiteSpace: "nowrap",
-                    width: col.w, minWidth: col.w
+              <tr style={{ background: "#fafafa" }}>
+                {["#", "Lot #", "Color", "Size", "Grade", "Carats", "₹/ct", "Total Value", "Actions"].map(h => (
+                  <th key={h} style={{
+                    padding: "12px",
+                    textAlign: h === "#" ? "center" : "left",
+                    fontSize: "0.65rem",
+                    color: C.sub,
+                    textTransform: "uppercase",
+                    borderBottom: `1px solid ${C.light}`
                   }}>
-                    {col.label}
+                    {h}
                   </th>
                 ))}
-                <th style={{
-                  padding: "10px 12px", textAlign: "center",
-                  fontWeight: 700, fontSize: "0.65rem", textTransform: "uppercase",
-                  letterSpacing: "0.06em", color: C.sub,
-                  borderBottom: `1.5px solid ${C.light}`, whiteSpace: "nowrap",
-                }}>
-                  Actions
-                </th>
               </tr>
             </thead>
+
             <tbody>
-              {rows.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ padding: "32px", textAlign: "center", color: C.sub, fontSize: "0.8rem" }}>
-                    No lots found
-                  </td>
-                </tr>
-              ) : rows.map((d, idx) => (
-                <tr key={d.id} style={{ borderBottom: `0.5px solid ${C.light}`, transition: "background 0.1s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(0,113,227,.02)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                >
-                  <td style={{ padding: "10px 12px", textAlign: "center", color: C.sub, fontWeight: 500 }}>{idx + 1}</td>
-                  <td style={{ padding: "10px 12px", fontWeight: 700, color: C.text, whiteSpace: "nowrap" }}>LOT-{d.lot_number}</td>
-                  <td style={{ padding: "10px 12px", color: C.text, fontWeight: 600 }}>{d.color_category}</td>
-                  <td style={{ padding: "10px 12px", color: C.text, fontWeight: 600 }}>{d.size_category}</td>
-                  <td style={{ padding: "10px 12px", color: C.text, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={d.grade}>{d.grade}</td>
-                  <td style={{ padding: "10px 12px", color: C.text, fontWeight: 600 }}>{parseFloat(d.carats).toFixed(3)}</td>
-                  <td style={{ padding: "10px 12px", color: C.text, fontWeight: 600 }}>
+              {rows.map((d, idx) => (
+                <tr key={d.id} style={{ borderBottom: `0.5px solid ${C.light}` }}>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{idx + 1}</td>
+                  <td style={{ padding: "10px", fontWeight: 700 }}>LOT-{d.lot_number}</td>
+                  <td style={{ padding: "10px" }}>{d.color_category}</td>
+                  <td style={{ padding: "10px" }}>{d.size_category}</td>
+                  <td style={{ padding: "10px" }}>{d.grade}</td>
+                  <td style={{ padding: "10px" }}>{parseFloat(d.carats).toFixed(3)}</td>
+                  <td style={{ padding: "10px" }}>
                     {d.final_price_per_carat ? `₹${parseFloat(d.final_price_per_carat).toLocaleString()}` : "—"}
                   </td>
-                  <td style={{ padding: "10px 12px", fontWeight: 800, color: C.text }}>{fmt(d.total_value)}</td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
-                      <Link href={`/loose-diamonds/${d.loose_diamond_id}`} className="act-btn view act-tooltip" data-tip="View" title="View">
+                  <td style={{ padding: "10px", fontWeight: 800 }}>{fmt(d.total_value)}</td>
+                  <td style={{ padding: "10px" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <Link href={`/loose-diamonds/${d.loose_diamond_id}`} className="act-btn view">
                         <i className="bi bi-eye" />
                       </Link>
-                      <Link href={`/loose-diamonds/edit/${d.loose_diamond_id}`} className="act-btn edit act-tooltip" data-tip="Edit" title="Edit">
+                      <Link href={`/loose-diamonds/edit/${d.loose_diamond_id}`} className="act-btn edit">
                         <i className="bi bi-pencil" />
                       </Link>
-                      <button suppressHydrationWarning className="act-btn del act-tooltip" data-tip="Delete" onClick={() => handleDelete(d.id)}>
+                      <button className="act-btn del" onClick={() => handleDelete(d.id)}>
                         <i className="bi bi-trash3" />
                       </button>
                     </div>
@@ -1374,12 +1448,11 @@ function DiamondsIndexPageContent() {
             </tbody>
           </table>
         </div>
+
       </div>
-
-    </div>
-  );
+    );
+  }
 }
-
           /* Default List Table View */
           return (
             <div className="tbl-card fi" style={{ animationDelay: ".1s" }}>
