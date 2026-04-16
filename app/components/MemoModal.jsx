@@ -64,7 +64,7 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
   const fetchMemos = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/memo?item_id=${item.id}`);
+      const res = await fetch(`/api/memo?item_id=${item.id}&status=active`);
       if (res.ok) {
         setMemos(await res.json());
       }
@@ -78,8 +78,14 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
   const handleCreateMemo = async (e) => {
     e.preventDefault();
     setError("");
+    if (!form.client_id) {
+        setError("Please select a client.");
+        setLoading(false);
+        return;
+    }
     if (parseFloat(form.carats) > availableCarats) {
         setError("Cannot give more than available carats.");
+        setLoading(false);
         return;
     }
     setLoading(true);
@@ -113,35 +119,47 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
   };
 
   const handleAction = async (memo, action) => {
-      // For simplicity, we fully return or fully convert the memo right now.
-      const confirmMsg = action === 'return' ? "Are you sure you want to return this memo?" : "Mark this memo as sold? \nNote: Please create the actual sale entry via the Sales module.";
-      if (!confirm(confirmMsg)) return;
+    if (action === "convert_sale") {
+      const params = new URLSearchParams({
+        diamond_id: memo.loose_diamond_item_id,
+        client_id: memo.client_id,
+        broker_id: memo.broker_id || "",
+        sold_carats: memo.carats,
+        memo_id: memo.id,
+      });
+      window.location.href = `/sales/create?${params.toString()}`;
+      return;
+    }
 
-      try {
-        const res = await fetch(`/api/memo/${memo.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action, carats: memo.carats })
-        });
-        if (res.ok) {
-            fetchMemos();
-            onRefresh();
-            if (action === 'convert_sale') {
-                window.location.href = `/sales/create?diamond_id=${memo.loose_diamond_item_id}`;
-            }
-        } else {
-            const data = await res.json();
-            alert(data.error);
-        }
-      } catch (e) {
-          console.error(e);
+    const confirmMsg = "Are you sure you want to return this memo? This will return the items to stock.";
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await fetch(`/api/memo/${memo.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, carats: memo.carats }),
+      });
+
+      if (res.ok) {
+        fetchMemos();
+        onRefresh();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Action failed");
       }
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred. Please try again.");
+    }
   };
 
   const handleEdit = (memo) => {
     setEditingMemo(memo);
     setShowEditModal(true);
   };
+
+  const activeMemos = memos.filter(m => m.status === 'active');
 
   if (!show) return null;
 
@@ -198,10 +216,11 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
                     <input type="number" step="0.001" min="0.001" max={availableCarats} required className="form-control" value={form.carats} onChange={e=>setForm({...form, carats: e.target.value})} />
                 </div>
                 <div className="col-md-3">
-                    <label className="form-label small mb-1">Client</label>
+                    <label className="form-label small mb-1">Client <span className="text-danger">*</span></label>
                     <select 
                       className="form-select" 
                       value={form.client_id} 
+                      required
                       onChange={e=>{
                           if (e.target.value === "ADD_NEW") openQuickAdd("client");
                           else setForm({...form, client_id: e.target.value});
@@ -253,14 +272,15 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
                             <th>Date</th>
                             <th>Carats</th>
                             <th>Amount (Est.)</th>
-                            <th>Client / Broker</th>
+                            <th>Client</th>
+                            <th>Broker</th>
                             <th className="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {memos.length === 0 ? (
-                            <tr><td colSpan="4" className="text-center text-muted small py-3">No active memos</td></tr>
-                        ) : memos.map(m => (
+                        {activeMemos.length === 0 ? (
+                            <tr><td colSpan="6" className="text-center text-muted small py-3">No active memos</td></tr>
+                        ) : activeMemos.map(m => (
                             <tr key={m.id}>
                                 <td className="small">{new Date(m.created_at).toLocaleDateString()}</td>
                                 <td className="fw-medium">{parseFloat(m.carats).toFixed(3)}</td>
@@ -268,13 +288,15 @@ export default function MemoModal({ show, item, onClose, onRefresh }) {
                                     ₹{(parseFloat(m.carats) * parseFloat(m.selling_price_per_carat || pricePerCarat)).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     <div className="small opacity-50 fw-normal">@ ₹{parseFloat(m.selling_price_per_carat || pricePerCarat).toLocaleString("en-IN")}</div>
                                 </td>
-                                <td className="small">
-                                    {(m.client_name || m.broker_name) ? (
-                                        <>
-                                            {m.client_name && <div><i className="bi bi-person me-1"></i>{m.client_name}</div>}
-                                            {m.broker_name && <div><i className="bi bi-person-badge me-1"></i>{m.broker_name}</div>}
-                                        </>
-                                    ) : '-'}
+                                <td className="small fw-medium">
+                                    {m.client_name ? (
+                                        <><i className="bi bi-building me-1 opacity-75"></i>{m.client_name}</>
+                                    ) : <span className="text-muted opacity-50">-</span>}
+                                </td>
+                                <td className="small text-muted">
+                                    {m.broker_name ? (
+                                        <><i className="bi bi-person-badge me-1 opacity-75"></i>{m.broker_name}</>
+                                    ) : <span className="text-muted opacity-50">-</span>}
                                 </td>
                                 <td className="text-end">
                                     <div className="d-flex justify-content-end gap-2">

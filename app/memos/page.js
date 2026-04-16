@@ -49,6 +49,7 @@ function MemosIndexContent() {
   const [user, setUser] = useState(null);
   const [memos, setMemos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState("active");
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -73,7 +74,7 @@ function MemosIndexContent() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/memo`);
+      const res = await fetch(`/api/memo?status=${selectedStatus}`);
       if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to fetch memos");
@@ -93,7 +94,7 @@ function MemosIndexContent() {
     setHasMounted(true);
     fetchUser();
     fetchMemos();
-  }, []);
+  }, [selectedStatus]);
 
   const handleAction = async (memo, action) => {
     if (action === 'convert_sale') {
@@ -103,7 +104,6 @@ function MemosIndexContent() {
         client_id: memo.client_id,
         broker_id: memo.broker_id || "",
         sold_carats: memo.carats,
-        sale_amount: (parseFloat(memo.carats) * parseFloat(memo.selling_price_per_carat || 0)).toFixed(2),
         memo_id: memo.id
       });
       router.push(`/sales/create?${params.toString()}`);
@@ -145,15 +145,30 @@ function MemosIndexContent() {
     const query = q.trim().toLowerCase();
     if (!query) return memos;
 
+    const keywords = query.split(/\s+/).filter(k => k.length > 0);
+
     return memos.filter((m) => {
-      const lotNum = m.lot_number || "";
-      const clientName = m.client_name || "";
-      const brokerName = m.broker_name || "";
-      const hay = [lotNum, clientName, brokerName, String(m.carats ?? ""), m.status]
+      const lotNumStr = `lot-${m.lot_number}`.toLowerCase();
+      const statusMap = { active: 'active', returned: 'returned', sold: 'sold' };
+      const statusLabel = statusMap[m.status] || m.status;
+
+      const searchableContent = [
+        String(m.lot_number || ""),
+        lotNumStr,
+        m.client_name || "",
+        m.broker_name || "",
+        String(m.carats ?? ""),
+        m.color_category || "",
+        m.size_category || "",
+        m.grade || "",
+        statusLabel
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-      return hay.includes(query);
+
+      // Ensure all keywords are found in the searchable content (AND behavior)
+      return keywords.every(kw => searchableContent.includes(kw));
     });
   }, [memos, q]);
 
@@ -215,6 +230,31 @@ function MemosIndexContent() {
           </div>
         </div>
 
+        {/* Status Tabs */}
+        <div className="mb-4 d-flex align-items-center bg-white p-2 shadow-sm" style={{ borderRadius: 16, width: "fit-content" }}>
+          {[
+            { id: "active", label: "Active", icon: "bi-hourglass-split", color: "#f59e0b" },
+            { id: "sold", label: "Sold", icon: "bi-check-circle", color: "#10b981" },
+            { id: "returned", label: "Returned", icon: "bi-arrow-return-left", color: "#6b7280" },
+            { id: "all", label: "All Memos", icon: "bi-collection", color: "#4f46e5" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedStatus(tab.id)}
+              className={`btn border-0 d-flex align-items-center px-4 py-2 transition-all ${
+                selectedStatus === tab.id ? "bg-light fw-bold" : "text-muted"
+              }`}
+              style={{
+                borderRadius: 12,
+                color: selectedStatus === tab.id ? tab.color : "inherit",
+              }}
+            >
+              <i className={`bi ${tab.icon} me-2`} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Success Message */}
         {successMessage && (
           <div className="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style={{ borderRadius: 14 }}>
@@ -273,7 +313,8 @@ function MemosIndexContent() {
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>LOT ITEM</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CARATS</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>EST. PRICE/CT</th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT / BROKER</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>BROKER</th>
                     <th className="py-3 text-muted text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>STATUS</th>
                     <th className="py-3 text-muted text-center" style={{ width: 140, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
                   </tr>
@@ -287,7 +328,8 @@ function MemosIndexContent() {
                         <td className="py-3"><Skeleton width="120px" height="18px" /></td>
                         <td className="py-3"><Skeleton width="80px" height="18px" /></td>
                         <td className="py-3"><Skeleton width="100px" height="18px" /></td>
-                        <td className="py-3"><Skeleton width="140px" height="18px" /></td>
+                        <td className="py-3"><Skeleton width="120px" height="18px" /></td>
+                        <td className="py-3"><Skeleton width="100px" height="18px" /></td>
                         <td className="py-3 text-center"><Skeleton width="70px" height="22px" style={{ borderRadius: 999 }} /></td>
                         <td className="py-3 text-center">
                            <div className="d-flex gap-2 justify-content-center">
@@ -300,7 +342,7 @@ function MemosIndexContent() {
 
                   ) : filteredMemos.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-5">
+                      <td colSpan={8} className="text-center py-5">
                         <div
                           className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
                           style={{ width: 70, height: 70, backgroundColor: "rgba(108,117,125,0.08)" }}
@@ -343,16 +385,19 @@ function MemosIndexContent() {
                         </td>
 
                         <td className="py-3">
-                          {memo.client_name && (
-                            <div className="small font-weight-bold">
-                              <i className="bi bi-person me-1"></i>{memo.client_name}
+                          {memo.client_name ? (
+                             <div className="fw-semibold text-dark">
+                               <i className="bi bi-building me-2 opacity-75"></i>{memo.client_name}
+                             </div>
+                          ) : <span className="text-muted opacity-50">-</span>}
+                        </td>
+                        
+                        <td className="py-3">
+                          {memo.broker_name ? (
+                            <div className="small text-secondary">
+                              <i className="bi bi-person-badge me-2"></i>{memo.broker_name}
                             </div>
-                          )}
-                          {memo.broker_name && (
-                            <div className="small text-muted">
-                              <i className="bi bi-person-badge me-1"></i>{memo.broker_name}
-                            </div>
-                          )}
+                          ) : <span className="text-muted opacity-50">-</span>}
                         </td>
 
                         <td className="py-3 text-center">

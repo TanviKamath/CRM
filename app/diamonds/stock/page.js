@@ -114,9 +114,13 @@ function StockMaintenancePageContent() {
         const query = q.trim().toLowerCase();
         if (!query) return base;
 
+        const keywords = query.split(/\s+/).filter(k => k.length > 0);
+
         return base.filter((d) => {
-            const hay = isLoose ? [
-                d.lot_number,
+            const isLoose = user?.client_type === "Loose";
+            const fields = isLoose ? [
+                String(d.lot_number || ""),
+                `lot-${d.lot_number}`,
                 d.color_category,
                 d.size_category,
                 d.grade,
@@ -129,11 +133,14 @@ function StockMaintenancePageContent() {
                 d.clarity,
                 d.purchase_from,
                 String(d.weight ?? ""),
-            ]
+            ];
+
+            const searchableContent = fields
                 .filter(Boolean)
                 .join(" ")
                 .toLowerCase();
-            return hay.includes(query);
+            
+            return keywords.every(kw => searchableContent.includes(kw));
         });
     }, [diamonds, activeTab, q, user]);
 

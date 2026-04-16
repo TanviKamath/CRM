@@ -12,13 +12,13 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const itemId = searchParams.get("item_id");
+    const status = searchParams.get("status");
 
     let query = db("on_memo")
       .leftJoin("clients", "on_memo.client_id", "clients.id")
       .leftJoin("brokers", "on_memo.broker_id", "brokers.id")
       .leftJoin("loose_diamond_items", "on_memo.loose_diamond_item_id", "loose_diamond_items.id")
       .leftJoin("loose_diamond", "loose_diamond_items.loose_diamond_id", "loose_diamond.id")
-      .where("on_memo.status", "active")
       .where("loose_diamond.user_id", decoded.id)
       .select(
         "on_memo.*",
@@ -33,6 +33,13 @@ export async function GET(request) {
 
     if (itemId) {
       query = query.where("on_memo.loose_diamond_item_id", itemId);
+    }
+
+    if (status && status !== "all") {
+      query = query.where("on_memo.status", status);
+    } else if (!status && !itemId) {
+      // Default to active for main list if no filters
+      query = query.where("on_memo.status", "active");
     }
 
     const memos = await query;

@@ -56,6 +56,11 @@ export default function MemoEditModal({ show, memo, onClose, onRefresh }) {
   const handleUpdate = async (e) => {
     e.preventDefault();
     setError("");
+    if (!form.client_id) {
+        setError("Please select a client.");
+        setLoading(false);
+        return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/memo/${memo.id}`, {
@@ -116,11 +121,12 @@ export default function MemoEditModal({ show, memo, onClose, onRefresh }) {
               </div>
               
               <div className="mb-3">
-                <label className="form-label small mb-1">Client</label>
+                <label className="form-label small mb-1">Client <span className="text-danger">*</span></label>
                 <div className="input-group">
                   <select 
                     className="form-select" 
                     value={form.client_id} 
+                    required
                     onChange={e=>{
                         if (e.target.value === "ADD_NEW") openQuickAdd("client");
                         else setForm({...form, client_id: e.target.value});

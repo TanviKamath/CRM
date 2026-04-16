@@ -73,6 +73,30 @@ export default function SalesForm({
     setBrokerList(brokers);
   }, [brokers]);
 
+  // Force sync pre-selected values if they arrive via props
+  useEffect(() => {
+    if (preSelectedClientId || preSelectedBrokerId) {
+      setForm(prev => ({
+        ...prev,
+        client_id: preSelectedClientId || prev.client_id,
+        broker_id: preSelectedBrokerId || prev.broker_id,
+      }));
+    }
+  }, [preSelectedClientId, preSelectedBrokerId]);
+
+  // Autofill brokerage rate from broker profile
+  useEffect(() => {
+    if (form.broker_id && brokerList.length > 0) {
+      const broker = brokerList.find(b => String(b.id) === String(form.broker_id));
+      if (broker && broker.commission_rate) {
+        setForm(prev => ({
+          ...prev,
+          brokerage_rate: prev.brokerage_rate || String(broker.commission_rate)
+        }));
+      }
+    }
+  }, [form.broker_id, brokerList]);
+
   // Quick Add Modal
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState("client");
@@ -244,14 +268,16 @@ export default function SalesForm({
       const saleAmountInr = calculateSaleAmountInr(saleAmount);
       const brokerageAmount = calculateBrokerageAmount(saleAmountInr, form.brokerage_rate);
 
-      // Only preserve prev.sold_carats if it's the initial load or a memo conversion, otherwise update to new available weight.
-      const shouldPreserve = isInitialMount.current || (form.memo_id && String(selectedDiamond.id) === String(form.diamond_id));
+      // If this is a memo conversion, we DO NOT want to autofill the price/amount.
+      const isMemoConversion = !!form.memo_id && String(selectedDiamond.id) === String(form.diamond_id);
+      
+      const shouldPreserve = isInitialMount.current || isMemoConversion;
 
       setForm(prev => ({
         ...prev,
         sold_carats: isLoose ? (shouldPreserve ? (prev.sold_carats || availableWeight.toFixed(3)) : availableWeight.toFixed(3)) : "",
-        sale_amount: shouldPreserve ? (prev.sale_amount || (saleAmount > 0 ? saleAmount.toFixed(2) : "")) : (saleAmount > 0 ? saleAmount.toFixed(2) : ""),
-        sale_amount_inr: saleAmountInr,
+        sale_amount: shouldPreserve ? prev.sale_amount : (saleAmount > 0 ? saleAmount.toFixed(2) : ""),
+        sale_amount_inr: shouldPreserve ? prev.sale_amount_inr : saleAmountInr,
         brokerage_amount: brokerageAmount,
       }));
 

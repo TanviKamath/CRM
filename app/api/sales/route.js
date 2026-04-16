@@ -343,11 +343,14 @@ export async function POST(req) {
       }
     }
 
-    // If memo_id exists, mark it as sold
+    // If memo_id exists, resolve the memo
     if (memo_id) {
       await knex("on_memo")
         .where("id", memo_id)
-        .update({ status: "sold", updated_at: new Date() });
+        .update({ 
+          status: "sold", 
+          updated_at: new Date() 
+        });
     }
 
     const created = await knex("sales").where({ id }).first();
