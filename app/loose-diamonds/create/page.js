@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import QuickAddEntityModal from "../../components/QuickAddEntityModal";
+import KYCClientModal from "../../components/KYCClientModal";
 
 const COLOR_CATEGORIES = ["White", "White Natts", "Off-White LB. Natts", "Off-White LC. Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
 const SIZES = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
@@ -381,9 +381,8 @@ export default function CreateLooseDiamondLot() {
               </ol>
             </nav>
 
-            <QuickAddEntityModal
+            <KYCClientModal
               show={showClientModal}
-              type="client"
               onClose={() => setShowClientModal(false)}
               onSuccess={(newClient) => {
                 setClientList((prev) => [newClient, ...prev]);
