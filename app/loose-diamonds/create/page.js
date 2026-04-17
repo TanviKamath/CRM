@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import QuickAddEntityModal from "../../components/QuickAddEntityModal";
 
 const COLOR_CATEGORIES = ["White", "White Natts", "Off-White LB. Natts", "Off-White LC. Natts", "LB", "LC", "Fancy", "Cap Color", "Green"];
 const SIZES = ["-0", "+0", "-2", "+2", "-6.5", "+6.5", "-8", "+8", "-11", "+11", "-14", "+14", "-15", "+15", "-18", "+18"];
@@ -122,6 +123,18 @@ function SmartHistory({ specs }) {
 export default function CreateLooseDiamondLot() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+
+  // KYC Clients
+  const [clientList, setClientList] = useState([]);
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [supplierClientId, setSupplierClientId] = useState("");
+
+  useEffect(() => {
+    fetch("/api/clients")
+      .then((r) => r.json())
+      .then((data) => setClientList(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Failed to load clients:", err));
+  }, []);
 
   // Lot Info
   const [lotInfo, setLotInfo] = useState({
@@ -368,6 +381,17 @@ export default function CreateLooseDiamondLot() {
               </ol>
             </nav>
 
+            <QuickAddEntityModal
+              show={showClientModal}
+              type="client"
+              onClose={() => setShowClientModal(false)}
+              onSuccess={(newClient) => {
+                setClientList((prev) => [newClient, ...prev]);
+                setSupplierClientId(String(newClient.id));
+                setLotInfo((prev) => ({ ...prev, supplier_name: newClient.company_name }));
+                setShowClientModal(false);
+              }}
+            />
             <form onSubmit={handleSubmit}>
               {/* Lot Info Card */}
               <div className="card border-0 shadow-lg overflow-hidden mb-4" style={{ borderRadius: 20 }}>
@@ -418,16 +442,48 @@ export default function CreateLooseDiamondLot() {
                       )}
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label fw-medium">Supplier Name</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="Enter supplier name"
-                        value={lotInfo.supplier_name} 
-                        onChange={(e) => setLotInfo({ ...lotInfo, supplier_name: e.target.value })} 
-                        style={{ borderRadius: "10px", padding: "12px" }} 
-                        suppressHydrationWarning
-                      />
+                      <label className="form-label fw-medium">Bought From (KYC Client)</label>
+                      <div className="input-group" style={{ borderRadius: "10px", overflow: "hidden" }}>
+                        <span className="input-group-text bg-light border-0">
+                          <i className="bi bi-building text-muted" />
+                        </span>
+                        <select
+                          className="form-select border-0"
+                          style={{ padding: "12px" }}
+                          value={supplierClientId}
+                          onChange={(e) => {
+                            if (e.target.value === "ADD_NEW") {
+                              setShowClientModal(true);
+                            } else {
+                              const selected = clientList.find(
+                                (c) => String(c.id) === String(e.target.value)
+                              );
+                              setSupplierClientId(e.target.value);
+                              setLotInfo({
+                                ...lotInfo,
+                                supplier_name: selected ? selected.company_name : "",
+                              });
+                            }
+                          }}
+                          suppressHydrationWarning
+                        >
+                          <option value="">Select KYC Client</option>
+                          <option value="ADD_NEW" className="fw-bold text-primary">
+                            + Add New Client (KYC)
+                          </option>
+                          {clientList.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.company_name}{c.contact_name ? ` (${c.contact_name})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {supplierClientId && supplierClientId !== "ADD_NEW" && (
+                        <div className="mt-1 text-muted" style={{ fontSize: "0.75rem" }}>
+                          <i className="bi bi-shield-check text-success me-1" />
+                          KYC Verified Client
+                        </div>
+                      )}
                     </div>
                     <div className="col-md-4">
                       <label className="form-label fw-medium">Purchase Date</label>
