@@ -124,9 +124,15 @@ function AnalysisContent() {
             </div>
           </div>
           
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.7rem", color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>Total for Category</div>
-            <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.text }}>{selectedData.carats.toFixed(3)} <span style={{ fontSize: "0.85rem", color: C.sub }}>ct</span></div>
+          <div style={{ display: "flex", gap: 24, textAlign: "right" }}>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>On Memo</div>
+              <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.orange }}>{selectedData.memoCarats.toFixed(3)} <span style={{ fontSize: "0.85rem", color: C.sub }}>ct</span></div>
+            </div>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>Total for Category</div>
+              <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.text }}>{selectedData.carats.toFixed(3)} <span style={{ fontSize: "0.85rem", color: C.sub }}>ct</span></div>
+            </div>
           </div>
         </div>
 
@@ -180,6 +186,18 @@ function AnalysisContent() {
               </div>
             </div>
 
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ background: "#fff", padding: "12px 16px", borderRadius: "16px", border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 700, marginBottom: 2 }}>ON MEMO</div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 800, color: C.orange }}>{activeData.memoCarats.toFixed(3)}</div>
+              </div>
+              
+              <div style={{ background: "#fff", padding: "12px 16px", borderRadius: "16px", border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: "0.65rem", color: C.sub, fontWeight: 700, marginBottom: 2 }}>AVAILABLE</div>
+                <div style={{ fontSize: "1.2rem", fontWeight: 800, color: "#1d1d1f" }}>{(activeData.carats - activeData.memoCarats).toFixed(3)}</div>
+              </div>
+            </div>
+
             <div style={{ 
               background: "linear-gradient(135deg, #fff 0%, #f9f9f9 100%)", 
               padding: "16px", borderRadius: "16px", border: `1px solid ${C.border}` 
@@ -211,6 +229,7 @@ function AnalysisContent() {
                   <tr style={{ color: C.sub, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                     <th style={{ padding: "0 10px 8px", textAlign: "left", fontWeight: 700 }}>Lot #</th>
                     <th style={{ padding: "0 10px 8px", textAlign: "right", fontWeight: 700 }}>Weight</th>
+                    <th style={{ padding: "0 10px 8px", textAlign: "right", fontWeight: 700 }}>On Memo</th>
                     <th style={{ padding: "0 10px 8px", textAlign: "right", fontWeight: 700 }}>Rate</th>
                     <th style={{ padding: "0 10px 8px", textAlign: "right", fontWeight: 700 }}>Total Value</th>
                   </tr>
@@ -223,6 +242,9 @@ function AnalysisContent() {
                       </td>
                       <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 600, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                         {parseFloat(item.carats).toFixed(3)} ct
+                      </td>
+                      <td style={{ padding: "10px", textAlign: "right", color: C.orange, fontWeight: 700, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
+                        {parseFloat(item.total_on_memo_carats || 0).toFixed(3)}
                       </td>
                       <td style={{ padding: "10px", textAlign: "right", color: C.text, fontWeight: 700, borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}` }}>
                         {fmt(parseFloat(item.total_value) / parseFloat(item.carats))}

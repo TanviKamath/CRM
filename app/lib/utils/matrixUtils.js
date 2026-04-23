@@ -50,7 +50,7 @@ export function calculateMatrixData(rows) {
     grid[c] = {};
     rowTotals[c] = 0;
     allSizes.forEach(s => {
-      grid[c][s] = { carats: 0, totalPrice: 0, count: 0, grades: {} };
+      grid[c][s] = { carats: 0, memoCarats: 0, totalPrice: 0, count: 0, grades: {} };
       colTotals[s] = 0;
     });
   });
@@ -61,17 +61,20 @@ export function calculateMatrixData(rows) {
     const s = d.size_category || "N/A";
     const g = d.grade || "N/A";
     const carats = parseFloat(d.carats) || 0;
+    const memoCarats = parseFloat(d.total_on_memo_carats) || 0;
     const price = parseFloat(d.total_value) || 0;
 
     if (grid[c] && grid[c][s]) {
       grid[c][s].carats += carats;
+      grid[c][s].memoCarats += memoCarats;
       grid[c][s].totalPrice += price;
       grid[c][s].count += 1;
 
       if (!grid[c][s].grades[g]) {
-        grid[c][s].grades[g] = { carats: 0, totalPrice: 0, count: 0, items: [] };
+        grid[c][s].grades[g] = { carats: 0, memoCarats: 0, totalPrice: 0, count: 0, items: [] };
       }
       grid[c][s].grades[g].carats += carats;
+      grid[c][s].grades[g].memoCarats += memoCarats;
       grid[c][s].grades[g].totalPrice += price;
       grid[c][s].grades[g].count += 1;
       grid[c][s].grades[g].items.push(d);

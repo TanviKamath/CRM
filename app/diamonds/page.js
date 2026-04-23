@@ -1296,6 +1296,15 @@ if (viewMode === "matrix") {
             </span>
           </div>
 
+          <div>
+            <span style={{ fontSize: "0.62rem", color: C.sub, textTransform: "uppercase", fontWeight: 700, marginRight: 6 }}>
+              On Memo
+            </span>
+            <span style={{ fontSize: "0.85rem", color: C.orange, fontWeight: 800 }}>
+              {matrixData.grid[hoveredCell.c][hoveredCell.s].memoCarats.toFixed(3)}
+            </span>
+          </div>
+
           <div style={{ width: 1, height: 16, background: C.border }} />
 
           <div>
@@ -1402,10 +1411,10 @@ if (viewMode === "matrix") {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
             <thead>
               <tr style={{ background: "#fafafa" }}>
-                {["#", "Lot #", "Color", "Size", "Grade", "Carats", "₹/ct", "Total Value", "Actions"].map(h => (
+                {["#", "Lot #", "Color", "Size", "Grade", "Carats", "On Memo", "Available", "₹/ct", "Total Value", "Actions"].map(h => (
                   <th key={h} style={{
                     padding: "12px",
-                    textAlign: h === "#" ? "center" : "left",
+                    textAlign: (h === "#" || h === "Carats" || h === "On Memo" || h === "Available") ? "center" : "left",
                     fontSize: "0.65rem",
                     color: C.sub,
                     textTransform: "uppercase",
@@ -1425,7 +1434,13 @@ if (viewMode === "matrix") {
                   <td style={{ padding: "10px" }}>{d.color_category}</td>
                   <td style={{ padding: "10px" }}>{d.size_category}</td>
                   <td style={{ padding: "10px" }}>{d.grade}</td>
-                  <td style={{ padding: "10px" }}>{parseFloat(d.carats).toFixed(3)}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>{parseFloat(d.carats).toFixed(3)}</td>
+                  <td style={{ padding: "10px", textAlign: "center", color: C.orange, fontWeight: 600 }}>
+                    {parseFloat(d.total_on_memo_carats || 0).toFixed(3)}
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center", color: C.green, fontWeight: 600 }}>
+                    {(parseFloat(d.carats) - parseFloat(d.total_on_memo_carats || 0)).toFixed(3)}
+                  </td>
                   <td style={{ padding: "10px" }}>
                     {d.final_price_per_carat ? `₹${parseFloat(d.final_price_per_carat).toLocaleString()}` : "—"}
                   </td>

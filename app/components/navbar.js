@@ -572,6 +572,9 @@ const navStyles = `
     border-radius: 1px;
     background: #1d1d1f;
   }
+  button.nav-item.active::after {
+    display: none;
+  }
 
   .dd-chev {
     font-size: 0.55rem !important;
