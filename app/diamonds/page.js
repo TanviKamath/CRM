@@ -1076,36 +1076,39 @@ function DiamondsIndexPageContent() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
- <Link
-  href="/loose-diamonds"
-  style={{
-    background: "#fff",
-    color: C.text, // ✅ black text
-    padding: "10px 20px",
-    borderRadius: 12,
-    fontSize: ".82rem",
-    fontWeight: 600,
-    border: `0.5px solid ${C.border}`,
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    cursor: "pointer",
-    transition: "all .2s",
-    textDecoration: "none",
-    whiteSpace: "nowrap"
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = C.light; // ✅ same hover as others
-    e.currentTarget.style.borderColor = C.border;
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = "#fff";
-    e.currentTarget.style.borderColor = C.border;
-  }}
->
-  <i className="bi bi-layers" style={{ fontSize: ".82rem", color: C.text }} />
-  Loose Diamond Management
-</Link>{hasMounted && user?.client_type === "Loose" && (
+{hasMounted && user?.client_type === "Loose" && (
+  <Link
+    href="/loose-diamonds"
+    style={{
+      background: "#fff",
+      color: C.text, // ✅ black text
+      padding: "10px 20px",
+      borderRadius: 12,
+      fontSize: ".82rem",
+      fontWeight: 600,
+      border: `0.5px solid ${C.border}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      cursor: "pointer",
+      transition: "all .2s",
+      textDecoration: "none",
+      whiteSpace: "nowrap"
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = C.light; // ✅ same hover as others
+      e.currentTarget.style.borderColor = C.border;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = "#fff";
+      e.currentTarget.style.borderColor = C.border;
+    }}
+  >
+    <i className="bi bi-layers" style={{ fontSize: ".82rem", color: C.text }} />
+    Loose Diamond Management
+  </Link>
+)}
+{hasMounted && user?.client_type === "Loose" && (
   <div style={{
     display: "flex", border: `0.5px solid ${C.border}`, borderRadius: 12,
     overflow: "hidden", background: "#fff"
