@@ -12,17 +12,21 @@ export async function GET() {
     if (!decoded) return new Response("Unauthorized", { status: 401 });
 
     const lots = await db("loose_diamond")
-      .leftJoin("loose_diamond_items", "loose_diamond.id", "loose_diamond_items.loose_diamond_id")
-      .leftJoin("on_memo", function() {
-          this.on("loose_diamond_items.id", "=", "on_memo.loose_diamond_item_id")
-              .andOn("on_memo.status", "=", db.raw("?", ["active"]));
-      })
       .where("loose_diamond.user_id", decoded.id)
       .select(
         "loose_diamond.*",
-        db.raw("COALESCE(SUM(on_memo.carats), 0) as total_on_memo")
+        db.raw(`
+          (SELECT COALESCE(SUM(on_memo.carats), 0)
+           FROM loose_diamond_items
+           LEFT JOIN on_memo ON loose_diamond_items.id = on_memo.loose_diamond_item_id
+           WHERE loose_diamond_items.loose_diamond_id = loose_diamond.id AND on_memo.status = 'active') as total_on_memo
+        `),
+        db.raw(`
+          (SELECT COALESCE(SUM(payment_amount_done), 0)
+           FROM lot_payments
+           WHERE lot_id = loose_diamond.id) as total_paid
+        `)
       )
-      .groupBy("loose_diamond.id")
       .orderBy("loose_diamond.created_at", "desc");
 
     return Response.json(lots);

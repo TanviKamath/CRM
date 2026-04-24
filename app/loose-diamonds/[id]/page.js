@@ -181,19 +181,19 @@ export default function LooseDiamondDetail() {
             <div className="col-md-3">
                 <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: "20px" }}>
                     <div className="text-muted small fw-bold text-uppercase mb-2">Purchase Value</div>
-                    <div className="h3 fw-bold mb-0 text-dark">${parseFloat(lot.total_purchase_value).toLocaleString()}</div>
+                    <div className="h3 fw-bold mb-0 text-dark">₹{parseFloat(lot.total_purchase_value).toLocaleString()}</div>
                 </div>
             </div>
             <div className="col-md-3">
                 <div className="card border-0 shadow-sm p-4 h-100" style={{ borderRadius: "20px" }}>
                     <div className="text-muted small fw-bold text-uppercase mb-2">Sale Value (Split)</div>
-                    <div className="h3 fw-bold mb-0 text-primary">${totalSaleValue.toLocaleString()}</div>
+                    <div className="h3 fw-bold mb-0 text-primary">₹{totalSaleValue.toLocaleString()}</div>
                 </div>
             </div>
             <div className="col-md-3">
                 <div className={`card border-0 shadow-lg p-4 h-100 text-white ${profitLoss >= 0 ? 'bg-success' : 'bg-danger'}`} style={{ borderRadius: "20px" }}>
                     <div className="text-white-50 small fw-bold text-uppercase mb-2">Profit / Loss</div>
-                    <div className="h3 fw-bold mb-0">${Math.abs(profitLoss).toLocaleString()}</div>
+                    <div className="h3 fw-bold mb-0">₹{Math.abs(profitLoss).toLocaleString()}</div>
                 </div>
             </div>
         </div>
@@ -300,14 +300,14 @@ export default function LooseDiamondDetail() {
                           Total: {parseFloat(item.carats).toFixed(3)}
                         </div>
                     </td>
-                    <td className="px-4 py-4 fw-bold text-dark">${parseFloat(item.base_price).toLocaleString()}</td>
+                    <td className="px-4 py-4 fw-bold text-dark">₹{parseFloat(item.base_price).toLocaleString()}</td>
                     <td className="px-4 py-4">
                         <span className={`badge ${item.discount_pct >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
                             {item.discount_pct >= 0 ? '+' : ''}{item.discount_pct}%
                         </span>
                     </td>
-                    <td className="px-4 py-4 fw-bold text-dark">${parseFloat(item.final_price_per_carat).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td className="px-5 py-4 fw-bold text-primary text-end fs-5">${parseFloat(item.total_value).toLocaleString()}</td>
+                    <td className="px-4 py-4 fw-bold text-dark">₹{parseFloat(item.final_price_per_carat).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="px-5 py-4 fw-bold text-primary text-end fs-5">₹{parseFloat(item.total_value).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -316,7 +316,7 @@ export default function LooseDiamondDetail() {
                     <td colSpan="4" className="px-5 py-4">Weighted Average Price</td>
                     <td className="px-4 py-4">{parseFloat(lot.total_carats).toFixed(3)} cts</td>
                     <td colSpan="3"></td>
-                    <td className="px-5 py-4 text-primary text-end fs-5">${avgPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ct</td>
+                    <td className="px-5 py-4 text-primary text-end fs-5">₹{avgPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ct</td>
                 </tr>
               </tfoot>
             </table>
