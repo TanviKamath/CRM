@@ -20,8 +20,10 @@ export default function SalesForm({
   submitButtonText = "Create Sale",
   onSubmit,
 }) {
+  const isLoose = user?.client_type?.toLowerCase() === "loose";
+
   const [form, setForm] = useState({
-    diamond_id: (user?.client_type === "Loose" ? initial.loose_diamond_item_id : initial.diamond_id) || preSelectedDiamondId || "",
+    diamond_id: (isLoose ? initial.loose_diamond_item_id : initial.diamond_id) || preSelectedDiamondId || "",
     client_id: initial.client_id || preSelectedClientId || "",
     broker_id: initial.broker_id || preSelectedBrokerId || "",
     status: initial.status || "pending",
@@ -178,7 +180,7 @@ export default function SalesForm({
   }, [form.sale_amount, form.advance_amount]);
 
   const maxAvailableCarats = useMemo(() => {
-    if (!selectedDiamond || user?.client_type !== "Loose") return 9999;
+    if (!selectedDiamond || !isLoose) return 9999;
     const itemCarats = parseFloat(selectedDiamond.carats || 0);
     const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
     const originalSale = initial?.id ? (parseFloat(initial.sold_carats) || 0) : 0;
@@ -192,7 +194,7 @@ export default function SalesForm({
       maxAvail += originalSale;
     }
     return Math.max(0, maxAvail);
-  }, [selectedDiamond, user?.client_type, form.memo_id, form.original_memo_carats, form.diamond_id, initial]);
+  }, [selectedDiamond, isLoose, form.memo_id, form.original_memo_carats, form.diamond_id, initial]);
   
   // Smart Autofill: If a diamond is selected and it has exactly one active memo, autofill the client/details
   useEffect(() => {
@@ -229,7 +231,6 @@ export default function SalesForm({
   // Update diamond info when diamond changes
   useEffect(() => {
     if (selectedDiamond) {
-      const isLoose = user?.client_type === "Loose";
 
       setDiamondInfo({
         weight: isLoose ? selectedDiamond.carats : (selectedDiamond.weight || ""),
@@ -325,7 +326,7 @@ export default function SalesForm({
     }
 
     // Sold carats changes -> recalculate sale amount using selling_price_per_carat if set, otherwise proportionally
-    if (name === "sold_carats" && user?.client_type === "Loose" && selectedDiamond) {
+    if (name === "sold_carats" && isLoose && selectedDiamond) {
       const sold = parseFloat(value) || 0;
       
       // Calculate max available locally to avoid stale state in real-time validation
@@ -366,7 +367,7 @@ export default function SalesForm({
     }
 
     // Selling price per carat changes -> recalculate total
-    if (name === "selling_price_per_carat" && user?.client_type === "Loose") {
+    if (name === "selling_price_per_carat" && isLoose) {
       const pricePerCarat = parseFloat(value) || 0;
       const sold = parseFloat(updated.sold_carats) || 0;
       if (pricePerCarat > 0 && sold > 0) {
@@ -382,7 +383,6 @@ export default function SalesForm({
 
   // Fetch next invoice sequence when payment mode changes
   useEffect(() => {
-    const isLoose = user?.client_type === "Loose";
     if (!isLoose || !form.payment_mode) {
       setInvoicePrefix("");
       setInvoiceYear("");
@@ -431,7 +431,7 @@ export default function SalesForm({
     };
 
     fetchSequence();
-  }, [form.payment_mode, user?.client_type, initial?.id]);
+  }, [form.payment_mode, isLoose, initial?.id]);
 
   // Update full invoice string when sequence part is edited manually
   const handleInvoiceSeqChange = (e) => {
@@ -445,7 +445,7 @@ export default function SalesForm({
 
   // Real-time invoice uniqueness check
   useEffect(() => {
-    if (!form.invoice_number || !user?.client_type === "Loose") {
+    if (!form.invoice_number || !isLoose) {
       setIsInvoiceAvailable(true);
       return;
     }
@@ -465,19 +465,19 @@ export default function SalesForm({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [form.invoice_number, form.payment_mode, user?.client_type]);
+  }, [form.invoice_number, form.payment_mode, isLoose]);
 
   const validateForm = () => {
     const errors = {};
     if (!form.diamond_id) errors.diamond_id = "Item is required";
     if (!form.client_id) errors.client_id = "Client is required";
-    if (user?.client_type === "Loose") {
+    if (isLoose) {
     if (!form.sale_amount || parseFloat(form.sale_amount) <= 0) {
       errors.sale_amount = "Selling price is required";
     }
   }
     if (!form.status) errors.status = "Status is required";
-    if (user?.client_type !== "Loose") {
+    if (!isLoose) {
       if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
         errors.sale_rap_discount = "Sale RAP Discount is required";
       }
@@ -491,7 +491,7 @@ export default function SalesForm({
       }
     }
 
-    if (user?.client_type === "Loose") {
+    if (isLoose) {
       const item = selectedDiamond;
       const totalOnMemo = item ? parseFloat(item.total_on_memo_carats || 0) : 0;
       const itemCarats = item ? parseFloat(item.carats || 0) : 0;
@@ -561,8 +561,8 @@ export default function SalesForm({
       }
 
       const dataToSend = {
-        diamond_id: user?.client_type === "Loose" ? null : parseInt(form.diamond_id),
-        loose_diamond_item_id: user?.client_type === "Loose" ? parseInt(form.diamond_id) : null,
+        diamond_id: isLoose ? null : parseInt(form.diamond_id),
+        loose_diamond_item_id: isLoose ? parseInt(form.diamond_id) : null,
         client_id: parseInt(form.client_id),
         broker_id: form.broker_id ? parseInt(form.broker_id) : null,
         status: form.status,
@@ -581,7 +581,7 @@ export default function SalesForm({
         // Backend expects advance_amount in INR
         advance_amount: parseFloat(form.advance_amount) || 0,
         due_date: dueDate,
-        sold_carats: user?.client_type === "Loose" ? parseFloat(form.sold_carats) : null,
+        sold_carats: isLoose ? parseFloat(form.sold_carats) : null,
         payment_mode: form.payment_mode || null,
         invoice_number: form.invoice_number || null,
         memo_id: form.memo_id || null,
@@ -760,13 +760,13 @@ export default function SalesForm({
                 className={selectClass("diamond_id")}
                 required
               >
-                <option value="">Select {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}</option>
+                <option value="">Select {isLoose ? "Lot Item" : "Diamond"}</option>
                 {diamonds
                   .filter((d) => {
                     // Always show the currently selected item
                     if (String(d.id) === String(form.diamond_id)) return true;
                     
-                    if (user?.client_type === "Loose") {
+                    if (isLoose) {
                       const totalOnMemo = parseFloat(d.total_on_memo_carats || 0);
                       const itemCarats = parseFloat(d.carats || 0);
                       let available = itemCarats - totalOnMemo;
@@ -781,7 +781,7 @@ export default function SalesForm({
                     
                     let displayWeight = d.carats || d.weight || 0;
                     
-                    if (user?.client_type === "Loose") {
+                    if (isLoose) {
                       const totalOnMemo = parseFloat(d.total_on_memo_carats || 0);
                       const itemCarats = parseFloat(d.carats || 0);
                       
@@ -805,7 +805,7 @@ export default function SalesForm({
 
                     return (
                       <option key={d.id} value={d.id}>
-                        {user?.client_type === "Loose"
+                        {isLoose
                           ? `LOT-${d.lot_number} (${d.color_category} ${d.size_category} / ${d.grade} - ${parseFloat(displayWeight).toFixed(3)}ct available)`
                           : `${d.certificate_number} (${d.shape} ${displayWeight}ct ${d.color}/${d.clarity})`
                         }
@@ -919,14 +919,14 @@ export default function SalesForm({
 
         <div className="row g-3">
           <div className="col-md-3">
-            <label className="form-label fw-medium">{user?.client_type === "Loose" ? "Available Carats" : "Diamond Weight"}</label>
+            <label className="form-label fw-medium">{isLoose ? "Available Carats" : "Diamond Weight"}</label>
             <div className="input-group">
               <span className="input-group-text bg-white">
                 <i className="bi bi-speedometer2 text-muted" />
               </span>
               <input 
                 value={(() => {
-                  if (user?.client_type === "Loose") {
+                  if (isLoose) {
                     if (!selectedDiamond) return "0.000";
                     const totalOnMemo = parseFloat(selectedDiamond.total_on_memo_carats || 0);
                     const itemCarats = parseFloat(selectedDiamond.carats || 0);
@@ -949,7 +949,7 @@ export default function SalesForm({
             </div>
           </div>
 
-          {user?.client_type === "Loose" && (
+          {isLoose && (
             <div className="col-md-3">
               <label htmlFor="sold_carats" className="form-label fw-medium">
                 Sold Carats <span className="text-danger">*</span>
@@ -975,7 +975,7 @@ export default function SalesForm({
             </div>
           )}
 
-          {user?.client_type === "Loose" && (
+          {isLoose && (
             <div className="col-md-3">
               <label htmlFor="selling_price_per_carat" className="form-label fw-medium">
                 Selling Price / Carat <span className="text-danger">*</span>
@@ -997,7 +997,7 @@ export default function SalesForm({
             </div>
           )}
 
-          {user?.client_type === "Loose" && (
+          {isLoose && (
             <div className="col-md-6">
               <label className="form-label fw-medium">Selling Price Total</label>
               <div className="input-group">
@@ -1026,7 +1026,7 @@ export default function SalesForm({
             </div>
           )}
 
-          {user?.client_type !== "Loose" && (
+          {!isLoose && (
             <>
               <div className="col-md-3">
                 <label className="form-label fw-medium">RAP Rate</label>
@@ -1292,7 +1292,7 @@ export default function SalesForm({
             {hasError("payment_mode") && <div className="invalid-feedback d-block">{validationErrors.payment_mode}</div>}
           </div>
 
-          {user?.client_type === "Loose" && form.payment_mode && (
+          {isLoose && form.payment_mode && (
             <div className="col-12 mt-3">
               <div
                 className="p-3 shadow-sm"

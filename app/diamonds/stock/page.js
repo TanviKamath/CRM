@@ -62,7 +62,7 @@ function StockMaintenancePageContent() {
     const fetchDiamonds = async (clientType) => {
         setLoading(true);
         try {
-            const endpoint = clientType === "Loose" ? "/api/loose-diamonds/items" : "/api/diamonds";
+            const endpoint = clientType?.toLowerCase() === "loose" ? "/api/loose-diamonds/items" : "/api/diamonds";
             const res = await fetch(endpoint);
             if (!res.ok) throw new Error("Failed to fetch diamonds");
             const data = await res.json();
@@ -86,7 +86,7 @@ function StockMaintenancePageContent() {
 
     const filteredData = useMemo(() => {
         let base = [];
-        const isLoose = user?.client_type === "Loose";
+        const isLoose = user?.client_type?.toLowerCase() === "loose";
 
         if (activeTab === "current") {
             if (isLoose) {
@@ -117,7 +117,7 @@ function StockMaintenancePageContent() {
         const keywords = query.split(/\s+/).filter(k => k.length > 0);
 
         return base.filter((d) => {
-            const isLoose = user?.client_type === "Loose";
+            const isLoose = user?.client_type?.toLowerCase() === "loose";
             const fields = isLoose ? [
                 String(d.lot_number || ""),
                 `lot-${d.lot_number}`,
@@ -145,7 +145,7 @@ function StockMaintenancePageContent() {
     }, [diamonds, activeTab, q, user]);
 
     const stats = useMemo(() => {
-        const isLoose = user?.client_type === "Loose";
+        const isLoose = user?.client_type?.toLowerCase() === "loose";
         return {
             total: filteredData.length,
             weight: filteredData.reduce((sum, d) => sum + (parseFloat(isLoose ? d.carats : d.weight) || 0), 0),
@@ -201,7 +201,7 @@ function StockMaintenancePageContent() {
 
                         <div className="mt-4 d-flex gap-3">
                             <div className="p-3 rounded-4 bg-white border flex-grow-1 text-center">
-                                <span className="d-block text-muted small text-uppercase fw-bold mb-1">Total {user?.client_type === "Loose" ? "Items" : "Stones"}</span>
+                                <span className="d-block text-muted small text-uppercase fw-bold mb-1">Total {user?.client_type?.toLowerCase() === "loose" ? "Items" : "Stones"}</span>
                                 <h4 className="fw-bold mb-0">{stats.total}</h4>
                             </div>
                             <div className="p-3 rounded-4 bg-white border flex-grow-1 text-center">
@@ -222,7 +222,7 @@ function StockMaintenancePageContent() {
                         <table className="table table-hover align-middle mb-0">
                             <thead className="bg-light">
                                 <tr>
-                                    <th className="px-4 py-3 text-muted small text-uppercase">{user?.client_type === "Loose" ? "Lot Number" : "Certificate"}</th>
+                                    <th className="px-4 py-3 text-muted small text-uppercase">{user?.client_type?.toLowerCase() === "loose" ? "Lot Number" : "Certificate"}</th>
                                     <th className="py-3 text-muted small text-uppercase">Details</th>
                                     <th className="py-3 text-muted small text-uppercase text-end">Weight</th>
                                     <th className="py-3 text-muted small text-uppercase text-end">Price</th>
@@ -239,7 +239,7 @@ function StockMaintenancePageContent() {
                                     </tr>
                                 ) : (
                                     filteredData.map((d) => {
-                                        const isLoose = user?.client_type === "Loose";
+                                        const isLoose = user?.client_type?.toLowerCase() === "loose";
                                         return (
                                             <tr key={d.id}>
                                                 <td className="px-4">

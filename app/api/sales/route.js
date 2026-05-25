@@ -49,9 +49,9 @@ export async function GET(req) {
 
     // Filter by client type
     if (user) {
-      if (user.client_type === "Loose") {
+      if (user.client_type?.toLowerCase() === "loose") {
         query = query.whereNotNull("loose_diamond_items.id");
-      } else if (user.client_type === "GIA") {
+      } else if (user.client_type?.toLowerCase() === "gia") {
         query = query.whereNotNull("diamonds.id");
       }
     }
@@ -196,13 +196,13 @@ export async function POST(req) {
     if (!decoded) return new Response("Unauthorized", { status: 401 });
     const user = await getUser(decoded.id);
 
-    if (user.client_type === "Loose" && diamond_id) {
+    if (user.client_type?.toLowerCase() === "loose" && diamond_id) {
       return new Response(
         JSON.stringify({ error: "Loose clients can only sell Lot items" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
-    if (user.client_type === "GIA" && loose_diamond_item_id) {
+    if (user.client_type?.toLowerCase() === "gia" && loose_diamond_item_id) {
       return new Response(
         JSON.stringify({ error: "GIA clients can only sell GIA diamonds" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -217,7 +217,7 @@ export async function POST(req) {
     }
 
     // Duplicate Invoice Check for Loose Sales
-    if (user.client_type === "Loose" && invoice_number && payment_mode !== 'Export') {
+    if (user.client_type?.toLowerCase() === "loose" && invoice_number && payment_mode !== 'Export') {
       const existingInvoice = await knex("loose_diamond_sales")
         .where("invoice_number", invoice_number)
         .first();

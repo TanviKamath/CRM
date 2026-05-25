@@ -44,7 +44,7 @@ function CreateSalePageContent() {
         const userData = await userRes.json();
         setUser(userData);
 
-        const itemsEndpoint = userData.client_type === "Loose" 
+        const itemsEndpoint = userData.client_type?.toLowerCase() === "loose" 
           ? "/api/loose-diamonds/items?available=true" 
           : "/api/diamonds?availability=available";
 
@@ -181,8 +181,8 @@ function CreateSalePageContent() {
                       style={{ borderRadius: 999 }}
                     >
                       <i className="bi bi-gem me-2" />
-                      Pre-selected {user?.client_type === "Loose" ? "Lot Item" : "Diamond"}: {user?.client_type === "Loose" ? `LOT-${preSelectedDiamond.lot_number}` : preSelectedDiamond.certificate_number} 
-                      ({user?.client_type === "Loose" 
+                      Pre-selected {user?.client_type?.toLowerCase() === "loose" ? "Lot Item" : "Diamond"}: {user?.client_type?.toLowerCase() === "loose" ? `LOT-${preSelectedDiamond.lot_number}` : preSelectedDiamond.certificate_number} 
+                      ({user?.client_type?.toLowerCase() === "loose" 
                         ? `${preSelectedDiamond.color_category} ${preSelectedDiamond.size_category} / ${preSelectedDiamond.grade}` 
                         : `${preSelectedDiamond.shape} ${preSelectedDiamond.weight}ct ${preSelectedDiamond.color}/${preSelectedDiamond.clarity}`})
                     </span>

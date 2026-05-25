@@ -290,6 +290,7 @@ export default function HomePage() {
   const [expenses, setExpenses] = useState([]);
   const [salePayments, setSalePayments] = useState([]);
   const [purchasePayments, setPurchasePayments] = useState([]);
+  const [looseLots, setLooseLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
@@ -303,6 +304,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     (async () => {
       setLoading(true);
       const safeFetch = async (url) => {
@@ -315,14 +317,17 @@ export default function HomePage() {
           return [];
         }
       };
-      const [di, cl, br, sa, ex, sp, pp] = await Promise.all([
-        safeFetch("/api/diamonds"),
+      const diamondEndpoint = user?.client_type?.toLowerCase() === "loose" ? "/api/loose-diamonds/items" : "/api/diamonds";
+      const lotsEndpoint = user?.client_type?.toLowerCase() === "loose" ? "/api/loose-diamonds" : null;
+      const [di, cl, br, sa, ex, sp, pp, lo] = await Promise.all([
+        safeFetch(diamondEndpoint),
         safeFetch("/api/clients"),
         safeFetch("/api/brokers"),
         safeFetch("/api/sales"),
         safeFetch("/api/expenses"),
         safeFetch("/api/sale-payments"),
         safeFetch("/api/payment-outstanding"),
+        lotsEndpoint ? safeFetch(lotsEndpoint) : Promise.resolve([]),
       ]);
       setDiamonds(di);
       setClients(cl);
@@ -331,24 +336,36 @@ export default function HomePage() {
       setExpenses(ex);
       setSalePayments(sp);
       setPurchasePayments(pp);
+      setLooseLots(lo);
       setLoading(false);
     })();
-  }, []);
+  }, [user]);
 
   /* ══════════════════════════════════════════
      COMPUTED METRICS
      ══════════════════════════════════════════ */
   const m = useMemo(() => {
-    const avail = diamonds.filter((d) => d.availability === "available");
-    const memo = diamonds.filter((d) => d.availability === "memo");
-    const sold = diamonds.filter((d) => d.availability === "sold");
-    const sts = diamonds.filter((d) => d.availability === "subject_to_sale");
+    const isLoose = user?.client_type?.toLowerCase() === "loose";
+    const avail = isLoose
+      ? diamonds.filter((d) => (parseFloat(d.carats) || 0) > 0)
+      : diamonds.filter((d) => d.availability === "available");
+    const memo = isLoose
+      ? diamonds.filter((d) => (parseFloat(d.total_on_memo_carats) || 0) > 0)
+      : diamonds.filter((d) => d.availability === "memo");
+    const sold = isLoose ? [] : diamonds.filter((d) => d.availability === "sold");
+    const sts = isLoose ? [] : diamonds.filter((d) => d.availability === "subject_to_sale");
 
-    const stockVal = avail.reduce((s, d) => s + (parseFloat(d.amount_inr || d.amount_usd) || 0), 0);
-    const stockCost = avail.reduce((s, d) => s + (parseFloat(d.purchase_price_inr || d.purchase_price) || 0), 0);
+    const stockVal = isLoose
+      ? avail.reduce((s, d) => s + ((parseFloat(d.final_price_per_carat) || 0) * (parseFloat(d.carats) || 0)), 0)
+      : avail.reduce((s, d) => s + (parseFloat(d.amount_inr || d.amount_usd) || 0), 0);
+
+    const stockCost = isLoose
+      ? avail.reduce((s, d) => s + ((parseFloat(d.final_price_per_carat) || 0) * (parseFloat(d.carats) || 0)), 0)
+      : avail.reduce((s, d) => s + (parseFloat(d.purchase_price_inr || d.purchase_price) || 0), 0);
+
     const stockValINR = stockVal;
     const potential = stockVal - stockCost;
-    const totalCt = avail.reduce((s, d) => s + (parseFloat(d.weight) || 0), 0);
+    const totalCt = avail.reduce((s, d) => s + (parseFloat(isLoose ? d.carats : d.weight) || 0), 0);
     const avgPPC = totalCt > 0 ? stockVal / totalCt : 0;
 
     const revUSD = sales.reduce((s, x) => s + (parseFloat(x.sale_amount) || 0), 0);
@@ -356,8 +373,16 @@ export default function HomePage() {
 
     let costOfSold = 0;
     sales.forEach((sl) => {
-      const d = diamonds.find((x) => x.id === sl.diamond_id);
-      if (d) costOfSold += parseFloat(d.purchase_price_inr || d.purchase_price) || 0;
+      if (isLoose) {
+        const item = diamonds.find((x) => x.id === sl.loose_diamond_item_id);
+        if (item) {
+          const soldCarats = parseFloat(sl.loose_item?.carats || sl.loose_carats || 0);
+          costOfSold += (parseFloat(item.final_price_per_carat) || 0) * soldCarats;
+        }
+      } else {
+        const d = diamonds.find((x) => x.id === sl.diamond_id);
+        if (d) costOfSold += parseFloat(d.purchase_price_inr || d.purchase_price) || 0;
+      }
     });
     const grossProfit = revINR - costOfSold;
     const margin = revINR > 0 ? (grossProfit / revINR) * 100 : 0;
@@ -369,10 +394,14 @@ export default function HomePage() {
     const totalSpDone = salePayments.reduce((s, x) => s + (parseFloat(x.payment_amount_done) || 0), 0);
     const receivables = Math.max(0, totalSaleINR - totalAdv - totalSpDone);
 
-    const onTerms = diamonds.filter((d) => d.payment_status === "On Terms");
-    const totalPurINR = onTerms.reduce((s, d) => s + (parseFloat(d.purchase_price_inr) || 0), 0);
-    const totalPpDone = purchasePayments.reduce((s, x) => s + (parseFloat(x.payment_amount_done) || 0), 0);
-    const payables = Math.max(0, totalPurINR - totalPpDone);
+    const payables = isLoose
+      ? looseLots.reduce((sum, lot) => sum + Math.max(0, (parseFloat(lot.total_purchase_value) || 0) - (parseFloat(lot.total_paid) || 0)), 0)
+      : (() => {
+          const onTerms = diamonds.filter((d) => d.payment_status === "On Terms");
+          const totalPurINR = onTerms.reduce((s, d) => s + (parseFloat(d.purchase_price_inr) || 0), 0);
+          const totalPpDone = purchasePayments.reduce((s, x) => s + (parseFloat(x.payment_amount_done) || 0), 0);
+          return Math.max(0, totalPurINR - totalPpDone);
+        })();
 
     const collectRate = totalSaleINR > 0 ? ((totalAdv + totalSpDone) / totalSaleINR) * 100 : 100;
 
@@ -413,7 +442,7 @@ export default function HomePage() {
 
     const shapeCnt = {};
     avail.forEach((d) => {
-      const sh = capitalize(d.shape || "Other");
+      const sh = isLoose ? capitalize(d.color_category || "Other") : capitalize(d.shape || "Other");
       shapeCnt[sh] = (shapeCnt[sh] || 0) + 1;
     });
     const byShape = Object.entries(shapeCnt)
@@ -465,7 +494,21 @@ export default function HomePage() {
     const avgDisc = sales.length > 0 ? sales.reduce((s, x) => s + (parseFloat(x.sale_rap_discount) || 0), 0) / sales.length : 0;
 
     let avgDays = 0;
-    if (sold.length) {
+    if (isLoose) {
+      const looseSales = sales.filter((s) => s.loose_diamond_item_id);
+      if (looseSales.length) {
+        const totalDays = looseSales.reduce((sum, sl) => {
+          const item = diamonds.find((x) => x.id === sl.loose_diamond_item_id);
+          if (item) {
+            const buy = new Date(item.purchase_date || item.created_at);
+            const sell = new Date(sl.selling_date || sl.created_at);
+            return sum + Math.max(0, (sell - buy) / 864e5);
+          }
+          return sum;
+        }, 0);
+        avgDays = Math.round(totalDays / looseSales.length);
+      }
+    } else if (sold.length) {
       const totalDays = sold.reduce((sum, d) => {
         const sl = sales.find((s) => s.diamond_id === d.id);
         if (sl) {
@@ -479,7 +522,7 @@ export default function HomePage() {
     }
 
     const avgAge = avail.length
-      ? Math.round(avail.reduce((s, d) => s + (now - new Date(d.buying_date || d.created_at)) / 864e5, 0) / avail.length)
+      ? Math.round(avail.reduce((s, d) => s + (now - new Date((isLoose ? d.purchase_date : d.buying_date) || d.created_at)) / 864e5, 0) / avail.length)
       : 0;
 
     const marginScore = Math.min(100, Math.max(0, margin * 3));
@@ -497,7 +540,7 @@ export default function HomePage() {
       barData, byShape, byAvail, topClients, dueAlerts, expenseData,
       healthScore,
     };
-  }, [diamonds, sales, clients, brokers, expenses, salePayments, purchasePayments]);
+  }, [diamonds, sales, clients, brokers, expenses, salePayments, purchasePayments, looseLots, user]);
 
   const greet = () => {
     const h = new Date().getHours();
@@ -533,10 +576,10 @@ export default function HomePage() {
           </div>
           <div style={{ display: "flex", gap: 10 }}>
             <Link 
-              href={user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} 
+              href={user?.client_type?.toLowerCase() === "loose" ? "/loose-diamonds/create" : "/diamonds/create"} 
               style={{ background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}
             >
-              <i className="bi bi-plus-lg" style={{ fontSize: ".75rem" }} /> {user?.client_type === "Loose" ? "Add Lot" : "New Diamond"}
+              <i className="bi bi-plus-lg" style={{ fontSize: ".75rem" }} /> {user?.client_type?.toLowerCase() === "loose" ? "Add Lot" : "New Diamond"}
             </Link>
             {pro && (
               <Link href="/sales/create" style={{ background: C.blue, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}>
@@ -549,7 +592,7 @@ export default function HomePage() {
         {/* ─────── KPI CARDS ─────── */}
         <div className="row g-3 mb-4">
           <div className="col-xl-3 col-md-6 fi fi1">
-            <KPI label="Inventory Value" value={fmt(m.stockVal)} sub={`${fmtNum(m.totalCt)} ct · ${m.availCnt} stones`} icon="bi-gem" accent="blue" cls="bl" loading={loading} />
+            <KPI label="Inventory Value" value={fmt(m.stockVal)} sub={user?.client_type?.toLowerCase() === "loose" ? `${fmtNum(m.totalCt)} ct · ${m.availCnt} items` : `${fmtNum(m.totalCt)} ct · ${m.availCnt} stones`} icon="bi-gem" accent="blue" cls="bl" loading={loading} />
           </div>
           {pro ? (
             <>
@@ -572,7 +615,7 @@ export default function HomePage() {
                 <KPI label="On Memo" value={m.memoCnt} sub="Currently out" icon="bi-send" accent="orange" cls="or" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi4">
-                <KPI label="Avg ₹/Carat" value={fmt(m.avgPPC)} sub={`Across ${m.availCnt} stones`} icon="bi-currency-rupee" accent="purple" cls="pu" loading={loading} />
+                <KPI label="Avg ₹/Carat" value={fmt(m.avgPPC)} sub={`Across ${m.availCnt} ${user?.client_type?.toLowerCase() === "loose" ? "items" : "stones"}`} icon="bi-currency-rupee" accent="purple" cls="pu" loading={loading} />
               </div>
             </>
           )}
@@ -630,7 +673,7 @@ export default function HomePage() {
                 <div className="sec-card h-100">
                   <div className="sec-head">
                     <div className="sec-title">
-                      <i className="bi bi-diamond-half" style={{ color: C.purple }} /> Stock by Shape
+                      <i className={user?.client_type?.toLowerCase() === "loose" ? "bi bi-palette" : "bi bi-diamond-half"} style={{ color: C.purple }} /> {user?.client_type?.toLowerCase() === "loose" ? "Stock by Color" : "Stock by Shape"}
                     </div>
                   </div>
                   <div className="sec-body">
@@ -638,7 +681,7 @@ export default function HomePage() {
                       <Skel h={180} />
                     ) : (
                       <div className="row align-items-center">
-                        <div className="col-6"><Donut data={m.byShape} centerVal={m.availCnt} centerLbl="Available" /></div>
+                        <div className="col-6"><Donut data={m.byShape} centerVal={m.availCnt} centerLbl={user?.client_type?.toLowerCase() === "loose" ? "Items" : "Stones"} /></div>
                         <div className="col-6"><Legend data={m.byShape.slice(0, 6)} /></div>
                       </div>
                     )}
@@ -660,7 +703,7 @@ export default function HomePage() {
                     ) : (
                       <>
                         {m.byAvail.map((item, i) => (
-                          <PBar key={i} label={item.label} value={item.value} max={m.totalDiamonds} color={item.color} sub={`${item.value} stones`} />
+                          <PBar key={i} label={item.label} value={item.value} max={m.totalDiamonds} color={item.color} sub={user?.client_type?.toLowerCase() === "loose" ? `${item.value} items` : `${item.value} stones`} />
                         ))}
                         <div style={{ marginTop: 16, padding: "14px 16px", background: C.light, borderRadius: 14 }}>
                           <div className="row text-center">
@@ -769,10 +812,10 @@ export default function HomePage() {
                     <div className="row g-2">
                       {[
                         { 
-                          label: "Diamond", 
+                          label: user?.client_type?.toLowerCase() === "loose" ? "Lot" : "Diamond", 
                           icon: "bi-gem", 
                           color: C.blue, 
-                          href: user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create" 
+                          href: user?.client_type?.toLowerCase() === "loose" ? "/loose-diamonds/create" : "/diamonds/create" 
                         },
                         { label: "Client", icon: "bi-person-plus", color: C.green, href: "/clients/create" },
                         { label: "Broker", icon: "bi-person-badge", color: C.orange, href: "/brokers/create" },
@@ -802,7 +845,7 @@ export default function HomePage() {
                   </div>
                   <div className="sec-body" style={{ padding: "8px 0" }}>
                     {[
-                      { label: "All Diamonds", icon: "bi-gem", color: C.blue, count: m.totalDiamonds, href: "/diamonds" },
+                      { label: user?.client_type?.toLowerCase() === "loose" ? "All Lot Items" : "All Diamonds", icon: "bi-gem", color: C.blue, count: m.totalDiamonds, href: "/diamonds" },
                       { label: "All Clients", icon: "bi-people", color: C.green, count: m.totalClients, href: "/clients" },
                       { label: "All Brokers", icon: "bi-person-badge", color: C.orange, count: m.totalBrokers, href: "/brokers" },
                       ...(pro ? [{ label: "All Sales", icon: "bi-graph-up-arrow", color: C.purple, count: m.totalSales, href: "/sales" }] : []),

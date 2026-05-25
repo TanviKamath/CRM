@@ -773,6 +773,7 @@ function DiamondsIndexPageContent() {
   const urlAvailability = searchParams.get("availability") || "";
 
   const [user, setUser] = useState(null);
+  const isLoose = user?.client_type?.toLowerCase() === "loose";
   const [diamonds, setDiamonds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -801,7 +802,7 @@ function DiamondsIndexPageContent() {
     (async () => {
       setLoading(true);
       try {
-        if (user?.client_type === "Loose") {
+        if (isLoose) {
           // Construct Query Params for Loose Items
           const params = new URLSearchParams();
           if (availability === "available") params.set("available", "true");
@@ -848,7 +849,7 @@ function DiamondsIndexPageContent() {
       } catch { setDiamonds([]); }
       setLoading(false);
     })();
-  }, [availability, activeFilters, user?.client_type]);
+  }, [availability, activeFilters, isLoose]);
 
   const changeAvail = (id) => {
     setAvailability(id);
@@ -894,7 +895,6 @@ function DiamondsIndexPageContent() {
 
   const chips = useMemo(() => {
     const list = [];
-    const isLoose = user?.client_type === "Loose";
 
     if (activeFilters.lotNumber) list.push({ key: "lotNumber", label: `Lot: LOT-${activeFilters.lotNumber}` });
 
@@ -933,7 +933,7 @@ function DiamondsIndexPageContent() {
     if (!isLoose && activeFilters.certificate) list.push({ key: "certificate", label: `Cert: ${activeFilters.certificate}` });
 
     return list;
-  }, [activeFilters, user?.client_type]);
+  }, [activeFilters, isLoose]);
 
   const removeChip = (key) => {
     const removeFn = (f) => {
@@ -950,7 +950,6 @@ function DiamondsIndexPageContent() {
   };
 
   const handleDelete = async (id) => {
-    const isLoose = user?.client_type === "Loose";
     const msg = isLoose ? "Are you sure you want to delete this mix item?" : "Are you sure you want to delete this diamond?";
     if (!confirm(msg)) return;
     try {
@@ -977,7 +976,7 @@ function DiamondsIndexPageContent() {
       );
     }
     if (sort.key) {
-      const allCols = user?.client_type === "Loose" ? [...MIX_FZ, ...MIX_SCROLL_COLS] : [...FZ, ...SCROLL_COLS];
+      const allCols = isLoose ? [...MIX_FZ, ...MIX_SCROLL_COLS] : [...FZ, ...SCROLL_COLS];
       const col = allCols.find((c) => c.key === sort.key);
       data.sort((a, b) => {
         let va = a[sort.key], vb = b[sort.key];
@@ -990,15 +989,15 @@ function DiamondsIndexPageContent() {
     }
 
     return data;
-  }, [diamonds, query, sort, user?.client_type]);
+  }, [diamonds, query, sort, isLoose]);
 
   const matrixData = useMemo(() => {
-    if (user?.client_type !== "Loose" || rows.length === 0) return null;
+    if (!isLoose || rows.length === 0) return null;
     return calculateMatrixData(rows);
-  }, [rows, user?.client_type]);
+  }, [rows, isLoose]);
 
   const stats = useMemo(() => {
-    if (user?.client_type === "Loose") {
+    if (isLoose) {
       return {
         total: diamonds.length,
         available: diamonds.length,
@@ -1013,7 +1012,7 @@ function DiamondsIndexPageContent() {
       value: avail.reduce((s, d) => s + (parseFloat(d.amount_usd) || 0), 0),
       carats: avail.reduce((s, d) => s + (parseFloat(d.weight) || 0), 0),
     };
-  }, [diamonds, user?.client_type]);
+  }, [diamonds, isLoose]);
 
   /* Render cell */
   const renderCell = (d, key) => {
@@ -1076,7 +1075,7 @@ function DiamondsIndexPageContent() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-{hasMounted && user?.client_type === "Loose" && (
+{hasMounted && isLoose && (
   <Link
     href="/loose-diamonds"
     style={{
@@ -1108,7 +1107,7 @@ function DiamondsIndexPageContent() {
     Loose Diamond Management
   </Link>
 )}
-{hasMounted && user?.client_type === "Loose" && (
+{hasMounted && isLoose && (
   <div style={{
     display: "flex", border: `0.5px solid ${C.border}`, borderRadius: 12,
     overflow: "hidden", background: "#fff"
@@ -1159,7 +1158,7 @@ function DiamondsIndexPageContent() {
                Export{selected.size > 0 ? ` (${selected.size})` : ""}
              </button>
             <Link
-              href={!hasMounted ? "/diamonds/create" : (user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create")}
+              href={!hasMounted ? "/diamonds/create" : (isLoose ? "/loose-diamonds/create" : "/diamonds/create")}
               style={{
                 background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12,
                 fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex",
@@ -1167,7 +1166,7 @@ function DiamondsIndexPageContent() {
               }}
             >
               <i className="bi bi-plus-lg" style={{ fontSize: ".72rem" }} /> 
-              Add {!hasMounted ? "Diamond" : (user?.client_type === "Loose" ? "Lot" : "Diamond")}
+              Add {!hasMounted ? "Diamond" : (isLoose ? "Lot" : "Diamond")}
             </Link>
           </div>
         </div>
@@ -1235,7 +1234,7 @@ function DiamondsIndexPageContent() {
         {(() => {
           if (!hasMounted) return <div style={{ padding: "40px", textAlign: "center", color: C.sub }}>Loading view...</div>;
           
- if (user?.client_type === "Loose") {
+ if (isLoose) {
   if (!matrixData) {
     return (
       <div className="tbl-card fi" style={{ animationDelay: ".1s", padding: "40px", textAlign: "center", color: C.sub }}>
@@ -1501,7 +1500,7 @@ if (viewMode === "matrix") {
                           onChange={toggleSelectAll}
                         />
                       </th>
-                      {user?.client_type === "Loose" ? (
+                      {isLoose ? (
                         <>
                           {MIX_FZ.map((col, i) => (
                             <SortTH
@@ -1551,13 +1550,13 @@ if (viewMode === "matrix") {
                           <td className="fz" style={{ left: 0, width: 44, minWidth: 44, maxWidth: 44, textAlign: "center" }}>
                             <Skel w={16} h={16} />
                           </td>
-                          {(user?.client_type === "Loose" ? MIX_FZ : FZ).map((col, j) => (
-                            <td key={j} className={`fz ${j === (user?.client_type === "Loose" ? MIX_FZ : FZ).length - 1 ? "fz-last" : ""}`}
-                              style={{ left: (user?.client_type === "Loose" ? mixFzLeft[j] : fzLeft[j]) + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
+                          {(isLoose ? MIX_FZ : FZ).map((col, j) => (
+                            <td key={j} className={`fz ${j === (isLoose ? MIX_FZ : FZ).length - 1 ? "fz-last" : ""}`}
+                              style={{ left: (isLoose ? mixFzLeft[j] : fzLeft[j]) + 44, width: col.w, minWidth: col.w, maxWidth: col.w }}>
                               <Skel w={col.w - 28} h={14} />
                             </td>
                           ))}
-                          {(user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
+                          {(isLoose ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
                             <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
                               <Skel w={col.w - 32} h={14} />
                             </td>
@@ -1569,7 +1568,7 @@ if (viewMode === "matrix") {
                       ))
                     ) : rows.length === 0 ? (
                       <tr>
-                        <td colSpan={user?.client_type === "Loose" ? (MIX_FZ.length + MIX_SCROLL_COLS.length + 2) : (FZ.length + SCROLL_COLS.length + 2)} style={{ border: "none" }}>
+                        <td colSpan={isLoose ? (MIX_FZ.length + MIX_SCROLL_COLS.length + 2) : (FZ.length + SCROLL_COLS.length + 2)} style={{ border: "none" }}>
                           <div className="empty-state">
                             <i className="bi bi-gem" style={{ fontSize: "2.5rem", color: C.border, display: "block", marginBottom: 12 }} />
                             <div style={{ fontSize: ".95rem", fontWeight: 600, color: C.text, marginBottom: 4 }}>No diamonds found</div>
@@ -1581,8 +1580,8 @@ if (viewMode === "matrix") {
                                 Clear Filters
                               </button>
                             ) : (
-                              <Link href={user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create"} className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
-                                Add {user?.client_type === "Loose" ? "Lot" : "Diamond"}
+                              <Link href={isLoose ? "/loose-diamonds/create" : "/diamonds/create"} className="m-btn primary" style={{ textDecoration: "none", display: "inline-block" }}>
+                                Add {isLoose ? "Lot" : "Diamond"}
                               </Link>
                             )}
                           </div>
@@ -1602,7 +1601,7 @@ if (viewMode === "matrix") {
                             />
                           </td>
                           {/* Frozen Left Columns */}
-                          {user?.client_type === "Loose" ? (
+                          {isLoose ? (
                             <>
                               {/* Frozen: # */}
                               <td className="fz" style={{ left: mixFzLeft[0] + 44, width: MIX_FZ[0].w, minWidth: MIX_FZ[0].w, maxWidth: MIX_FZ[0].w, color: C.sub, fontWeight: 500 }}>
@@ -1651,7 +1650,7 @@ if (viewMode === "matrix") {
                           )}
 
                           {/* Scrollable */}
-                          {(user?.client_type === "Loose" ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
+                          {(isLoose ? MIX_SCROLL_COLS : SCROLL_COLS).map((col) => (
                             <td key={col.key} style={{ minWidth: col.w, width: col.w }}>
                               {renderCell(d, col.key)}
                             </td>
@@ -1667,9 +1666,9 @@ if (viewMode === "matrix") {
   <i className="bi bi-pencil" />
 </Link>
 
-                              {((user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                              {((!isLoose ? d.availability === "available" : true)) && (
                                 <Link 
-                                  href={user?.client_type === "Loose" ? `/sales/create?diamond_id=${d.id}` : `/sales/create?diamond_id=${d.id}`} 
+                                  href={`/sales/create?diamond_id=${d.id}`}
                                   className="act-btn sell act-tooltip" 
                                   data-tip="Create Sale" 
                                   title="Sell"
@@ -1678,9 +1677,9 @@ if (viewMode === "matrix") {
                                 </Link>
                               )}
 
-                              {((user?.client_type !== "Loose" ? d.availability === "available" : true)) && (
+                              {((!isLoose ? d.availability === "available" : true)) && (
                                 <Link 
-                                  href={user?.client_type === "Loose" ? "#" : `/diamonds/${d.id}/memo`} 
+                                  href={isLoose ? "#" : `/diamonds/${d.id}/memo`} 
                                   className="act-btn memo act-tooltip" 
                                   data-tip="Send on Memo" 
                                   title="Memo"
@@ -1732,7 +1731,7 @@ if (viewMode === "matrix") {
           setActiveFilters(filters);
           setShowModal(false);
         }}
-        isLoose={user?.client_type === "Loose"}
+        isLoose={isLoose}
       />
     </div>
   );

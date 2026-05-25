@@ -231,7 +231,7 @@ function SalesIndexContent() {
 
   const filteredSales = useMemo(() => {
     const query = q.trim().toLowerCase();
-    const isLoose = user?.client_type === "Loose";
+    const isLoose = user?.client_type?.toLowerCase() === "loose";
     if (!query) return sales;
 
     return sales.filter((s) => {
@@ -424,7 +424,7 @@ function SalesIndexContent() {
                 <thead style={{ backgroundColor: "#ffffff" }}>
                   <tr>
                     <th className="px-4 py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>SALE</th>
-                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>{user?.client_type === "Loose" ? "LOT ITEM" : "DIAMOND"}</th>
+                    <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>{user?.client_type?.toLowerCase() === "loose" ? "LOT ITEM" : "DIAMOND"}</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT (₹)</th>
                     <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED (₹)</th>

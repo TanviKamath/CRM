@@ -16,7 +16,7 @@ export default function CreateDiamond() {
     fetch("/api/auth/me")
       .then((res) => res.json())
       .then((userData) => {
-        if (userData.client_type === "Loose") {
+        if (userData.client_type?.toLowerCase() === "loose") {
           router.replace("/loose-diamonds/create");
         }
       })

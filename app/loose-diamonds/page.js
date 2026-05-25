@@ -214,7 +214,7 @@ export default function LooseDiamondDashboard() {
         return res.json();
       })
       .then((user) => {
-        if (user.client_type !== "Loose") {
+        if (user.client_type?.toLowerCase() !== "loose") {
           router.push("/");
         } else {
           fetchAndShowLots();

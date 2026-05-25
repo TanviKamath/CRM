@@ -82,36 +82,39 @@ export default function Navbar() {
     clearTimeout(dropdownTimeout.current);
   }, []);
 
-  const pro = user?.subscription === "Pro" && user?.client_type !== "Loose";
+  const pro = user?.subscription === "Pro" && user?.client_type?.toLowerCase() !== "loose";
 
   /* ── nav config ── */
   const navItems = useMemo(() => {
     const items = [];
 
     if (user) {
+      const isLoose = user.client_type?.toLowerCase() === "loose";
       items.push({ type: "link", href: "/", icon: "bi-grid-1x2-fill", label: "Dashboard", active: isActive("/") });
       items.push({
         type: "dropdown",
         id: "diamonds",
         icon: "bi-gem",
-        label: "Diamonds",
-        active: isActiveGroup("/diamonds"),
+        label: isLoose ? "Loose Lots" : "Diamonds",
+        active: isActiveGroup("/diamonds") || isActiveGroup("/loose-diamonds"),
         sections: [
           {
-            items: [
+            items: isLoose ? [
+              { href: "/loose-diamonds", icon: "bi-layers-half", label: "Lots Management", color: "#8b5cf6" },
+              { href: "/diamonds", icon: "bi-collection", label: "All Lot Items", color: "#0071e3" },
+              { href: "/diamonds/stock", icon: "bi-box-seam", label: "Stock Maintenance", color: "#5ac8fa" },
+              { href: "/loose-diamonds/create", icon: "bi-plus-circle", label: "Add Lot", color: "#34c759" },
+            ] : [
               { href: "/diamonds", icon: "bi-collection", label: "All Diamonds", color: "#0071e3" },
               { href: "/diamonds/stock", icon: "bi-box-seam", label: "Stock Maintenance", color: "#5ac8fa" },
-              { 
-                href: user?.client_type === "Loose" ? "/loose-diamonds/create" : "/diamonds/create", 
-                icon: "bi-plus-circle", 
-                label: "Add Diamond", 
-                color: "#34c759" 
-              },
+              { href: "/diamonds/create", icon: "bi-plus-circle", label: "Add Diamond", color: "#34c759" },
             ],
           },
           {
             title: "Filter by Status",
-            items: [
+            items: isLoose ? [
+              { href: "/diamonds?availability=available", icon: "bi-check-circle", label: "Available Items", color: "#34c759" },
+            ] : [
               { href: "/diamonds?availability=available", icon: "bi-check-circle", label: "Available", color: "#34c759" },
               { href: "/diamonds?availability=sold", icon: "bi-bag-check", label: "Sold", color: "#0071e3" },
               { href: "/diamonds?availability=memo", icon: "bi-hourglass-split", label: "On Memo", color: "#ff9f0a" },
@@ -254,7 +257,7 @@ export default function Navbar() {
                 >
        <div style={{ display: "flex", alignItems: "center" }}>
   <Link
-    href={item.id === "diamonds" ? "/diamonds" : item.id === "sales" ? "/sales" : item.id === "kyc" ? "/clients" : item.id === "accounting" ? "/accounts" : "#"}
+    href={item.id === "diamonds" ? (user?.client_type?.toLowerCase() === "loose" ? "/loose-diamonds" : "/diamonds") : item.id === "sales" ? "/sales" : item.id === "kyc" ? "/clients" : item.id === "accounting" ? "/accounts" : "#"}
     className={`nav-item ${item.active ? "active" : ""}`}
     style={{ paddingRight: 4 }}
   >

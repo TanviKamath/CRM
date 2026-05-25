@@ -40,7 +40,7 @@ export default function EditSalePage() {
         const userData = await userRes.json();
         setUser(userData);
 
-        const itemsEndpoint = userData.client_type === "Loose" 
+        const itemsEndpoint = userData.client_type?.toLowerCase() === "loose" 
           ? "/api/loose-diamonds/items" 
           : "/api/diamonds";
 
@@ -76,7 +76,7 @@ export default function EditSalePage() {
   }, [saleId]);
 
   const selectedDiamond = useMemo(() => {
-    const isLoose = user?.client_type === "Loose";
+    const isLoose = user?.client_type?.toLowerCase() === "loose";
     const itemId = isLoose ? sale?.loose_diamond_item_id : sale?.diamond_id;
     if (!itemId) return null;
     return diamonds.find((d) => String(d.id) === String(itemId)) || (isLoose ? sale?.loose_item : sale?.diamond) || null;
@@ -187,8 +187,8 @@ export default function EditSalePage() {
                   {selectedDiamond && (
                     <span className="badge bg-dark bg-opacity-5 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                       <i className="bi bi-gem me-2 opacity-50" />
-                      {user?.client_type === "Loose" ? "Lot Item: " : "Diamond: "} 
-                      {user?.client_type === "Loose" ? (selectedDiamond.lot_number ? `LOT-${selectedDiamond.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "")) : selectedDiamond.certificate_number}
+                      {user?.client_type?.toLowerCase() === "loose" ? "Lot Item: " : "Diamond: "} 
+                      {user?.client_type?.toLowerCase() === "loose" ? (selectedDiamond.lot_number ? `LOT-${selectedDiamond.lot_number}` : (sale?.loose_lot_number ? `LOT-${sale.loose_lot_number}` : "")) : selectedDiamond.certificate_number}
                     </span>
                   )}
 

@@ -347,11 +347,6 @@ export default function ShowDiamond() {
               </div>
             </div>
           </div>
-
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
