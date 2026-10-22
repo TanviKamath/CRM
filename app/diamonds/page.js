@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { calculateMatrixData } from "../lib/utils/matrixUtils";
+import DiamondImportModal from "../components/DiamondImportModal";
 
 /* ═══════════════════════════════════════════
    CONSTANTS
@@ -779,6 +780,8 @@ function DiamondsIndexPageContent() {
   const [query, setQuery] = useState("");
   const [availability, setAvailability] = useState(urlAvailability);
   const [showModal, setShowModal] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [filters, setFilters] = useState({ ...INITIAL_FILTERS });
   const [activeFilters, setActiveFilters] = useState({ ...INITIAL_FILTERS });
   const [sort, setSort] = useState({ key: null, dir: "asc" });
@@ -849,7 +852,7 @@ function DiamondsIndexPageContent() {
       } catch { setDiamonds([]); }
       setLoading(false);
     })();
-  }, [availability, activeFilters, isLoose]);
+  }, [availability, activeFilters, isLoose, reloadKey]);
 
   const changeAvail = (id) => {
     setAvailability(id);
@@ -1141,6 +1144,20 @@ function DiamondsIndexPageContent() {
     </button>
   </div>
 )}
+            {hasMounted && !isLoose && (
+              <button
+                onClick={() => setShowImport(true)}
+                style={{
+                  background: "#fff", color: C.text, padding: "10px 20px", borderRadius: 12,
+                  fontSize: ".82rem", fontWeight: 600, border: `0.5px solid ${C.border}`,
+                  display: "flex", alignItems: "center", gap: 6, cursor: "pointer"
+                }}
+                title="Add many stones at once from an Excel or CSV file"
+              >
+                <i className="bi bi-upload" style={{ fontSize: ".82rem" }} />
+                Import
+              </button>
+            )}
             <button
                onClick={handleExport}
                suppressHydrationWarning
@@ -1733,6 +1750,12 @@ if (viewMode === "matrix") {
         }}
         isLoose={isLoose}
       />
+      {showImport && (
+        <DiamondImportModal
+          onClose={() => setShowImport(false)}
+          onImported={() => setReloadKey((k) => k + 1)}
+        />
+      )}
     </div>
   );
 }
