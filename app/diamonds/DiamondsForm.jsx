@@ -294,7 +294,6 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
     if (!form.shape) errors.shape = "Shape is required";
     if (!form.color) errors.color = "Color is required";
     if (!form.clarity) errors.clarity = "Clarity is required";
-    if (!form.cut) errors.cut = "Cut is required";
 
     const w = toNum(form.weight);
     if (!String(form.weight ?? "").trim() || w <= 0) {
@@ -555,6 +554,10 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
               {Object.entries(GIA_STANDARDS.SHAPES).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
+              {/* Custom shapes (e.g. from an import) must stay selectable when editing */}
+              {form.shape && !GIA_STANDARDS.SHAPES[form.shape] && (
+                <option value={form.shape}>{form.shape.replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+              )}
             </select>
             {hasError("shape") && <div className="invalid-feedback d-block">{validationErrors.shape}</div>}
           </div>
@@ -597,9 +600,9 @@ export default function DiamondsForm({ initial = {}, clients: initialClients = [
           </div>
 
           <div className="col-md-3">
-            <Label required>Cut</Label>
+            <Label>Cut</Label>
             <select name="cut" value={form.cut} onChange={change} className={selectClass("cut")}>
-              <option value="">Select Cut</option>
+              <option value="">No cut grade</option>
               {Object.entries(GIA_STANDARDS.CUT).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}

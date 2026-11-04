@@ -1,6 +1,8 @@
 // app/page.js
 "use client";
 
+import DiamondImportModal from "./components/DiamondImportModal";
+import { isUsdSale } from "./lib/utils/saleCurrency";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -117,7 +119,20 @@ function fmt(v, cur = "INR") {
     if (n >= 1e3) return "₹" + (n / 1e3).toFixed(1) + "K";
     return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
   }
+  if (cur === "USD") {
+    if (n >= 1e6) return "$" + (n / 1e6).toFixed(2) + "M";
+    if (n >= 1e4) return "$" + (n / 1e3).toFixed(1) + "K";
+    return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+}
+
+// "₹1.2 L + $3.5K" for amounts that can be held in both currencies
+function fmtPair(inr, usd) {
+  const parts = [];
+  if (inr > 0 || usd <= 0) parts.push(fmt(inr, "INR"));
+  if (usd > 0) parts.push(fmt(usd, "USD"));
+  return parts.join(" + ");
 }
 
 function fmtNum(v) {
@@ -223,7 +238,7 @@ function Legend({ data }) {
   );
 }
 
-function Bars({ data, h = 150 }) {
+function Bars({ data, h = 150, format = fmt }) {
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: h, paddingTop: 22 }}>
@@ -231,7 +246,7 @@ function Bars({ data, h = 150 }) {
         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
           {d.value > 0 && (
             <span style={{ fontSize: ".58rem", fontWeight: 600, color: C.text, marginBottom: 4, whiteSpace: "nowrap" }}>
-              {fmt(d.value)}
+              {format(d.value)}
             </span>
           )}
           <div
@@ -293,6 +308,8 @@ export default function HomePage() {
   const [looseLots, setLooseLots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => setMounted(true), []);
 
@@ -339,7 +356,7 @@ export default function HomePage() {
       setLooseLots(lo);
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, reloadKey]);
 
   /* ══════════════════════════════════════════
      COMPUTED METRICS
@@ -357,11 +374,11 @@ export default function HomePage() {
 
     const stockVal = isLoose
       ? avail.reduce((s, d) => s + ((parseFloat(d.final_price_per_carat) || 0) * (parseFloat(d.carats) || 0)), 0)
-      : avail.reduce((s, d) => s + (parseFloat(d.amount_inr || d.amount_usd) || 0), 0);
+      : avail.reduce((s, d) => s + (parseFloat(d.amount_usd) || 0), 0); // single stones are priced in USD
 
     const stockCost = isLoose
       ? avail.reduce((s, d) => s + ((parseFloat(d.final_price_per_carat) || 0) * (parseFloat(d.carats) || 0)), 0)
-      : avail.reduce((s, d) => s + (parseFloat(d.purchase_price_inr || d.purchase_price) || 0), 0);
+      : avail.reduce((s, d) => s + (parseFloat(d.purchase_price) || 0), 0);
 
     const stockValINR = stockVal;
     const potential = stockVal - stockCost;
@@ -370,6 +387,8 @@ export default function HomePage() {
 
     const revUSD = sales.reduce((s, x) => s + (parseFloat(x.sale_amount) || 0), 0);
     const revINR = sales.reduce((s, x) => s + (parseFloat(x.sale_amount_inr) || 0), 0);
+    // Single-stone sales that were converted to rupees (a USD → INR rate was entered)
+    const billedInr = sales.reduce((s, x) => s + (!isLoose && !isUsdSale(x) ? parseFloat(x.sale_amount_inr) || 0 : 0), 0);
 
     let costOfSold = 0;
     sales.forEach((sl) => {
@@ -381,18 +400,32 @@ export default function HomePage() {
         }
       } else {
         const d = diamonds.find((x) => x.id === sl.diamond_id);
-        if (d) costOfSold += parseFloat(d.purchase_price_inr || d.purchase_price) || 0;
+        if (d) costOfSold += parseFloat(d.purchase_price) || 0;
       }
     });
-    const grossProfit = revINR - costOfSold;
-    const margin = revINR > 0 ? (grossProfit / revINR) * 100 : 0;
+    // Single stones: margin on the dollar sale amount against the dollar purchase price
+    const marginRev = isLoose ? revINR : revUSD;
+    const grossProfit = marginRev - costOfSold;
+    const margin = marginRev > 0 ? (grossProfit / marginRev) * 100 : 0;
 
     const brokTotal = sales.reduce((s, x) => s + (parseFloat(x.brokerage_amount) || 0), 0);
 
     const totalSaleINR = sales.reduce((s, x) => s + (parseFloat(x.sale_amount_inr) || 0), 0);
     const totalAdv = sales.reduce((s, x) => s + (parseFloat(x.advance_amount) || 0), 0);
     const totalSpDone = salePayments.reduce((s, x) => s + (parseFloat(x.payment_amount_done) || 0), 0);
-    const receivables = Math.max(0, totalSaleINR - totalAdv - totalSpDone);
+
+    // Receivables per sale, in the sale's own currency (dollar sales are never added to rupees).
+    // Received = recorded payments, or the advance when no payment row exists (same rule as the sales page).
+    const paidBySale = {};
+    salePayments.forEach((p) => { paidBySale[p.sale_id] = (paidBySale[p.sale_id] || 0) + (parseFloat(p.payment_amount_done) || 0); });
+    let receivables = 0, receivablesUsd = 0, billInr = 0, billUsd = 0, gotInr = 0, gotUsd = 0;
+    sales.forEach((x) => {
+      const amt = parseFloat(x.sale_amount_inr) || 0;
+      const got = paidBySale[x.id] > 0 ? paidBySale[x.id] : (parseFloat(x.advance_amount) || 0);
+      const due = Math.max(0, amt - got);
+      if (isUsdSale(x)) { receivablesUsd += due; billUsd += amt; gotUsd += got; }
+      else { receivables += due; billInr += amt; gotInr += got; }
+    });
 
     const payables = isLoose
       ? looseLots.reduce((sum, lot) => sum + Math.max(0, (parseFloat(lot.total_purchase_value) || 0) - (parseFloat(lot.total_paid) || 0)), 0)
@@ -403,7 +436,7 @@ export default function HomePage() {
           return Math.max(0, totalPurINR - totalPpDone);
         })();
 
-    const collectRate = totalSaleINR > 0 ? ((totalAdv + totalSpDone) / totalSaleINR) * 100 : 100;
+    const collectRate = billInr > 0 ? Math.min(100, (gotInr / billInr) * 100) : billUsd > 0 ? Math.min(100, (gotUsd / billUsd) * 100) : 100;
 
     const now = new Date();
     const thisMo = now.getMonth();
@@ -477,7 +510,7 @@ export default function HomePage() {
         const cl = clients.find((c) => c.id === s.client_id);
         const due = new Date(s.due_date);
         const days = Math.ceil((due - now) / 864e5);
-        return { id: s.id, client: cl?.company_name || "Unknown", amount: parseFloat(s.sale_amount_inr) || 0, dueDate: s.due_date, days, overdue: days < 0, status: s.payment_status };
+        return { id: s.id, client: cl?.company_name || "Unknown", amount: parseFloat(s.sale_amount_inr) || 0, usd: isUsdSale(s), dueDate: s.due_date, days, overdue: days < 0, status: s.payment_status };
       })
       .sort((a, b) => a.days - b.days);
 
@@ -536,7 +569,7 @@ export default function HomePage() {
       totalClients: clients.length, totalBrokers: brokers.length, totalSales: sales.length,
       stockVal, stockCost, stockValINR, potential, totalCt, avgPPC, avgAge,
       revUSD, revINR, grossProfit, margin, thisMoRev, lastMoRev, revGrowth, thisMoCnt: thisMonthSales.length, avgDisc, avgDays, brokTotal,
-      receivables, payables, collectRate, totalExp,
+      receivables, receivablesUsd, billedInr, usd: !isLoose, payables, collectRate, totalExp,
       barData, byShape, byAvail, topClients, dueAlerts, expenseData,
       healthScore,
     };
@@ -562,6 +595,12 @@ export default function HomePage() {
     <div className="dash">
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+      {showImport && (
+        <DiamondImportModal
+          onClose={() => setShowImport(false)}
+          onImported={() => setReloadKey((k) => k + 1)}
+        />
+      )}
 
       <div className="container-fluid" style={{ maxWidth: 1440, padding: "28px 20px" }}>
         {/* ─────── HEADER ─────── */}
@@ -575,6 +614,15 @@ export default function HomePage() {
             </p>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
+            {user && user.client_type?.toLowerCase() !== "loose" && (
+              <button
+                onClick={() => setShowImport(true)}
+                title="Add many stones at once from an Excel or CSV file"
+                style={{ background: "#fff", color: C.text, padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, border: `0.5px solid ${C.border}`, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+              >
+                <i className="bi bi-upload" style={{ fontSize: ".78rem" }} /> Import
+              </button>
+            )}
             <Link 
               href={user?.client_type?.toLowerCase() === "loose" ? "/loose-diamonds/create" : "/diamonds/create"} 
               style={{ background: C.text, color: "#fff", padding: "10px 20px", borderRadius: 12, fontSize: ".82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6, transition: "opacity .2s" }}
@@ -592,18 +640,18 @@ export default function HomePage() {
         {/* ─────── KPI CARDS ─────── */}
         <div className="row g-3 mb-4">
           <div className="col-xl-3 col-md-6 fi fi1">
-            <KPI label="Inventory Value" value={fmt(m.stockVal)} sub={user?.client_type?.toLowerCase() === "loose" ? `${fmtNum(m.totalCt)} ct · ${m.availCnt} items` : `${fmtNum(m.totalCt)} ct · ${m.availCnt} stones`} icon="bi-gem" accent="blue" cls="bl" loading={loading} />
+            <KPI label="Inventory Value" value={m.usd ? fmt(m.stockVal, "USD") : fmt(m.stockVal)} sub={user?.client_type?.toLowerCase() === "loose" ? `${fmtNum(m.totalCt)} ct · ${m.availCnt} items` : `${fmtNum(m.totalCt)} ct · ${m.availCnt} stones`} icon="bi-gem" accent="blue" cls="bl" loading={loading} />
           </div>
           {pro ? (
             <>
               <div className="col-xl-3 col-md-6 fi fi2">
-                <KPI label="Total Revenue (INR)" value={fmt(m.revINR)} sub={`${m.totalSales} transactions`} trend={m.revGrowth} icon="bi-graph-up-arrow" accent="green" cls="gr" loading={loading} />
+                <KPI label={m.usd ? "Total Revenue (USD)" : "Total Revenue (INR)"} value={m.usd ? fmt(m.revUSD, "USD") : fmt(m.revINR)} sub={`${m.totalSales} transactions${m.usd && m.billedInr > 0 ? ` · ${fmt(m.billedInr, "INR")} billed in INR` : ""}`} trend={m.revGrowth} icon="bi-graph-up-arrow" accent="green" cls="gr" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi3">
-                <KPI label="Receivables (INR)" value={fmt(m.receivables, "INR")} sub={`Collection rate ${m.collectRate.toFixed(0)}%`} icon="bi-wallet2" accent="orange" cls="or" loading={loading} />
+                <KPI label="Receivables" value={fmtPair(m.receivables, m.receivablesUsd)} sub={`Collection rate ${m.collectRate.toFixed(0)}%`} icon="bi-wallet2" accent="orange" cls="or" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi4">
-                <KPI label="Gross Margin" value={`${m.margin.toFixed(1)}%`} sub={`Profit ${fmt(m.grossProfit)}`} trend={m.margin > 0 ? m.margin : -m.margin} icon="bi-pie-chart" accent="purple" cls="pu" loading={loading} />
+                <KPI label="Gross Margin" value={`${m.margin.toFixed(1)}%`} sub={`Profit ${m.usd ? fmt(m.grossProfit, "USD") : fmt(m.grossProfit)}`} trend={m.margin > 0 ? m.margin : -m.margin} icon="bi-pie-chart" accent="purple" cls="pu" loading={loading} />
               </div>
             </>
           ) : (
@@ -615,7 +663,7 @@ export default function HomePage() {
                 <KPI label="On Memo" value={m.memoCnt} sub="Currently out" icon="bi-send" accent="orange" cls="or" loading={loading} />
               </div>
               <div className="col-xl-3 col-md-6 fi fi4">
-                <KPI label="Avg ₹/Carat" value={fmt(m.avgPPC)} sub={`Across ${m.availCnt} ${user?.client_type?.toLowerCase() === "loose" ? "items" : "stones"}`} icon="bi-currency-rupee" accent="purple" cls="pu" loading={loading} />
+                <KPI label={m.usd ? "Avg $/Carat" : "Avg ₹/Carat"} value={m.usd ? fmt(m.avgPPC, "USD") : fmt(m.avgPPC)} sub={`Across ${m.availCnt} ${user?.client_type?.toLowerCase() === "loose" ? "items" : "stones"}`} icon={m.usd ? "bi-currency-dollar" : "bi-currency-rupee"} accent="purple" cls="pu" loading={loading} />
               </div>
             </>
           )}
@@ -630,7 +678,7 @@ export default function HomePage() {
               { label: "Avg Discount", value: `${m.avgDisc.toFixed(1)}%`, icon: "bi-percent", cls: "tl", accent: "teal" },
               { label: "Avg Days to Sell", value: `${m.avgDays}d`, icon: "bi-hourglass-split", cls: "id", accent: "indigo" },
               { label: "Brokerage Paid", value: fmt(m.brokTotal), icon: "bi-person-check", cls: "or", accent: "orange" },
-              { label: "Potential Markup", value: fmt(m.potential), icon: "bi-arrow-up-circle", cls: "gr", accent: "green" },
+              { label: "Potential Markup", value: m.usd ? fmt(m.potential, "USD") : fmt(m.potential), icon: "bi-arrow-up-circle", cls: "gr", accent: "green" },
             ].map((k, i) => (
               <div key={i} className={`col-xl-2 col-md-4 col-6 fi fi${i + 1}`}>
                 <div className={`mc ${k.cls}`} style={{ padding: "20px 18px" }}>
@@ -655,7 +703,7 @@ export default function HomePage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span style={{ fontSize: ".75rem", color: C.sub }}>
-                      This month: <strong style={{ color: C.text }}>{fmt(m.thisMoRev)}</strong>
+                      This month: <strong style={{ color: C.text }}>{m.usd ? fmt(m.thisMoRev, "USD") : fmt(m.thisMoRev)}</strong>
                     </span>
                     <span className={m.revGrowth >= 0 ? "badge-up" : "badge-dn"}>
                       <i className={`bi ${m.revGrowth >= 0 ? "bi-arrow-up-right" : "bi-arrow-down-right"}`} style={{ fontSize: ".6rem" }} />
@@ -663,7 +711,7 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
-                <div className="sec-body">{loading ? <Skel h={160} /> : <Bars data={m.barData} />}</div>
+                <div className="sec-body">{loading ? <Skel h={160} /> : <Bars data={m.barData} format={m.usd ? (v) => fmt(v, "USD") : fmt} />}</div>
               </div>
             )}
 
@@ -712,8 +760,8 @@ export default function HomePage() {
                               <div style={{ fontSize: ".65rem", color: C.sub }}>Total Carats</div>
                             </div>
                             <div className="col-4">
-                              <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text }}>{fmt(m.avgPPC)}</div>
-                              <div style={{ fontSize: ".65rem", color: C.sub }}>Avg ₹/ct</div>
+                              <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text }}>{m.usd ? fmt(m.avgPPC, "USD") : fmt(m.avgPPC)}</div>
+                              <div style={{ fontSize: ".65rem", color: C.sub }}>{m.usd ? "Avg $/ct" : "Avg ₹/ct"}</div>
                             </div>
                             <div className="col-4">
                               <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.text }}>{m.avgAge}d</div>
@@ -759,7 +807,7 @@ export default function HomePage() {
                           </div>
                           <span style={{ flex: 1, fontSize: ".82rem", fontWeight: 500, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cl.name}</span>
                           <span style={{ width: 80, fontSize: ".82rem", fontWeight: 600, color: C.text, textAlign: "center" }}>{cl.cnt}</span>
-                          <span style={{ width: 120, fontSize: ".82rem", fontWeight: 600, color: C.text, textAlign: "right" }}>{fmt(cl.total)}</span>
+                          <span style={{ width: 120, fontSize: ".82rem", fontWeight: 600, color: C.text, textAlign: "right" }}>{m.usd ? fmt(cl.total, "USD") : fmt(cl.total)}</span>
                           <span style={{ width: 80, fontSize: ".78rem", color: C.sub, textAlign: "right" }}>{pct(cl.total, m.revUSD)}%</span>
                         </div>
                       ))}
@@ -930,7 +978,7 @@ export default function HomePage() {
                           Sale #{a.id} · {a.client}
                         </div>
                         <div style={{ fontSize: ".68rem", color: C.sub }}>
-                          {a.overdue ? `Overdue by ${Math.abs(a.days)}d` : `Due in ${a.days}d`} · {fmt(a.amount, "INR")}
+                          {a.overdue ? `Overdue by ${Math.abs(a.days)}d` : `Due in ${a.days}d`} · {fmt(a.amount, a.usd ? "USD" : "INR")}
                         </div>
                       </div>
                     </div>
@@ -949,7 +997,7 @@ export default function HomePage() {
                 </div>
                 <div className="sec-body">
                   {[
-                    { label: "Receivables", val: fmt(m.receivables, "INR"), icon: "bi-arrow-down-left", color: C.green, desc: "Money owed to you" },
+                    { label: "Receivables", val: fmtPair(m.receivables, m.receivablesUsd), icon: "bi-arrow-down-left", color: C.green, desc: "Money owed to you" },
                     { label: "Payables", val: fmt(m.payables, "INR"), icon: "bi-arrow-up-right", color: C.red, desc: "Money you owe" },
                     { label: "Net Position", val: fmt(m.receivables - m.payables, "INR"), icon: "bi-arrow-left-right", color: m.receivables >= m.payables ? C.green : C.red, desc: m.receivables >= m.payables ? "Positive" : "Negative" },
                   ].map((item, i) => (
@@ -1000,7 +1048,7 @@ export default function HomePage() {
                               {new Date(sale.selling_date || sale.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </div>
                           </div>
-                          <span style={{ fontSize: ".85rem", fontWeight: 700, color: C.text }}>{fmt(sale.sale_amount)}</span>
+                          <span style={{ fontSize: ".85rem", fontWeight: 700, color: C.text }}>{!sale.loose_diamond_item_id && sale.diamond_id ? fmt(sale.sale_amount, "USD") : fmt(sale.sale_amount)}</span>
                         </div>
                       );
                     })

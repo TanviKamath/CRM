@@ -21,6 +21,8 @@ export default function DiamondImportModal({ onClose, onImported }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [outcome, setOutcome] = useState(null);
+  const [newShapes, setNewShapes] = useState({});
+  const [updateExisting, setUpdateExisting] = useState(true);
   const inputRef = useRef(null);
 
   const missing = IMPORT_FIELDS.filter((f) => f.required && map[f.key] === undefined);
@@ -68,6 +70,7 @@ export default function DiamondImportModal({ onClose, onImported }) {
     try {
       const data = await post(false, false);
       setResults(data.results);
+      setNewShapes(data.newShapes || {});
       setStep(3);
     } catch (e) {
       setError(e.message);
@@ -79,16 +82,16 @@ export default function DiamondImportModal({ onClose, onImported }) {
     setBusy(true);
     setError("");
     try {
-      // Only send rows that are error-free and not excluded; the server re-checks them anyway.
-      const keep = results.filter((r) => r.errors.length === 0).map((r) => rowsAsObjects[r.index]);
+      // Send every row without errors; the server re-checks them and decides add / revise / unchanged.
+      const keep = results.filter((r) => r.status !== "error").map((r) => rowsAsObjects[r.index]);
       const res = await fetch("/api/diamonds/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: keep, commit: true }),
+        body: JSON.stringify({ rows: keep, commit: true, updateExisting }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Import failed");
-      setOutcome({ created: data.created, left: results.length - data.created });
+      setOutcome({ created: data.created || 0, updated: data.updated || 0, unchanged: data.unchanged || 0, skipped: data.skipped || 0 });
       setStep(4);
       onImported?.();
     } catch (e) {
@@ -97,8 +100,21 @@ export default function DiamondImportModal({ onClose, onImported }) {
     setBusy(false);
   }
 
-  const good = results.filter((r) => r.errors.length === 0);
-  const bad = results.filter((r) => r.errors.length > 0);
+  const fresh = results.filter((r) => r.status === "new");
+  const revised = results.filter((r) => r.status === "update");
+  const unchanged = results.filter((r) => r.status === "unchanged");
+  const bad = results.filter((r) => r.status === "error");
+  const toDo = fresh.length + (updateExisting ? revised.length : 0);
+
+  // Show a changed value the way the stone list does: $ for dollar prices, ₹ for rupee amounts
+  const showValue = (field, v) => {
+    if (v === null || v === undefined || v === "") return "—";
+    const n = Number(v);
+    if (/_inr$/.test(field) && Number.isFinite(n)) return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+    if (["price_per_carat_usd", "amount_usd", "purchase_price", "rap_rate"].includes(field) && Number.isFinite(n)) return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    if (field === "weight" && Number.isFinite(n)) return n.toFixed(2) + " ct";
+    return String(v);
+  };
 
   function downloadTemplate() {
     const head = IMPORT_FIELDS.filter((f) => f.required || ["diamond_id", "certificate_number", "lab", "pol", "sym", "flor", "rap_rate", "rap_discount"].includes(f.key)).map((f) => f.label);
@@ -135,7 +151,7 @@ export default function DiamondImportModal({ onClose, onImported }) {
                 style={{ border: `1.5px dashed ${C.border}`, borderRadius: 16, padding: "48px 24px", cursor: "pointer", background: C.light }}>
                 <i className="bi bi-file-earmark-spreadsheet" style={{ fontSize: "2rem", color: C.sub }} />
                 <div style={{ fontWeight: 600, marginTop: 8 }}>Drop an .xlsx, .xls or .csv file here, or click to choose</div>
-                <div style={{ fontSize: ".78rem", color: C.sub, marginTop: 4 }}>First row = headers · up to {MAX_IMPORT_ROWS} stones · required columns: Shape, Carats, Color, Clarity, Cut</div>
+                <div style={{ fontSize: ".78rem", color: C.sub, marginTop: 4 }}>First row = headers · up to {MAX_IMPORT_ROWS} stones · required columns: Shape, Carats, Color, Clarity (any shape name is accepted; cut is optional)</div>
               </div>
               <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={(e) => e.target.files?.[0] && readFile(e.target.files[0])} />
               <button onClick={downloadTemplate} style={{ ...btn(false), marginTop: 16 }}>Download template (.csv)</button>
@@ -170,11 +186,55 @@ export default function DiamondImportModal({ onClose, onImported }) {
 
           {step === 3 && (
             <>
-              <div style={{ display: "flex", gap: 12, marginBottom: 14, fontSize: ".85rem" }}>
-                <span style={{ color: C.green, fontWeight: 700 }}>{good.length} ready</span>
+              <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: ".85rem", flexWrap: "wrap" }}>
+                <span style={{ color: C.green, fontWeight: 700 }}>{fresh.length} new</span>
+                <span style={{ color: revised.length ? C.blue : C.sub, fontWeight: 700 }}>{revised.length} already in inventory with changes</span>
+                {unchanged.length > 0 && <span style={{ color: C.sub, fontWeight: 700 }}>{unchanged.length} already in inventory, no changes</span>}
                 <span style={{ color: bad.length ? C.red : C.sub, fontWeight: 700 }}>{bad.length} with errors</span>
               </div>
-              {bad.length === 0 && <div style={{ color: C.sub, fontSize: ".82rem" }}>No errors found.</div>}
+              {Object.keys(newShapes).length > 0 && (
+                <div style={{ background: "#f0f7ff", color: C.blue, padding: "10px 14px", borderRadius: 10, fontSize: ".8rem", marginBottom: 12 }}>
+                  New shapes will be added to your inventory: {Object.entries(newShapes).map(([k, n]) => `${k} (${n})`).join(", ")}.
+                </div>
+              )}
+              {revised.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: 18, marginBottom: 8, fontSize: ".82rem", flexWrap: "wrap" }}>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontWeight: updateExisting ? 700 : 400 }}>
+                      <input type="radio" name="existing" checked={updateExisting} onChange={() => setUpdateExisting(true)} />
+                      Revise the {revised.length} existing stone{revised.length === 1 ? "" : "s"} with the changes below
+                    </label>
+                    <label style={{ display: "flex", gap: 6, alignItems: "center", cursor: "pointer", fontWeight: !updateExisting ? 700 : 400 }}>
+                      <input type="radio" name="existing" checked={!updateExisting} onChange={() => setUpdateExisting(false)} />
+                      Leave existing stones as they are
+                    </label>
+                  </div>
+                  <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 12, overflow: "auto", maxHeight: 260, opacity: updateExisting ? 1 : 0.5 }}>
+                    <table style={{ borderCollapse: "collapse", fontSize: ".78rem", width: "100%" }}>
+                      <thead><tr>
+                        <th style={{ textAlign: "left", padding: "6px 10px", background: C.light }}>Row</th>
+                        <th style={{ textAlign: "left", padding: "6px 10px", background: C.light }}>Stone</th>
+                        <th style={{ textAlign: "left", padding: "6px 10px", background: C.light }}>What changes</th>
+                      </tr></thead>
+                      <tbody>{revised.map((r) => (
+                        <tr key={r.index}>
+                          <td style={{ padding: "6px 10px", borderTop: `0.5px solid ${C.border}`, whiteSpace: "nowrap", verticalAlign: "top" }}>{r.index + 2}</td>
+                          <td style={{ padding: "6px 10px", borderTop: `0.5px solid ${C.border}`, whiteSpace: "nowrap", verticalAlign: "top" }}>
+                            {r.match.stockId || r.match.certificate}
+                            <div style={{ color: C.sub, fontSize: ".7rem" }}>matched by {r.match.by}</div>
+                          </td>
+                          <td style={{ padding: "6px 10px", borderTop: `0.5px solid ${C.border}` }}>
+                            {r.changes.map((c) => (
+                              <div key={c.field}><span style={{ color: C.sub }}>{c.label}:</span> {showValue(c.field, c.from)} → <b>{showValue(c.field, c.to)}</b></div>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+              {bad.length === 0 && revised.length === 0 && <div style={{ color: C.sub, fontSize: ".82rem" }}>No errors found.</div>}
               {bad.length > 0 && (
                 <div style={{ border: `0.5px solid ${C.border}`, borderRadius: 12, overflow: "auto", maxHeight: 340 }}>
                   <table style={{ borderCollapse: "collapse", fontSize: ".78rem", width: "100%" }}>
@@ -186,10 +246,10 @@ export default function DiamondImportModal({ onClose, onImported }) {
                   </table>
                 </div>
               )}
-              {results.some((r) => r.errors.length === 0 && r.warnings.length > 0) && (
+              {results.some((r) => r.status !== "error" && r.warnings.length > 0) && (
                 <div style={{ marginTop: 12, fontSize: ".78rem", color: C.orange }}>
-                  Notes on rows that will still import: {results.filter((r) => r.errors.length === 0 && r.warnings.length).slice(0, 5).map((r) => `row ${r.index + 2}: ${r.warnings.join(", ")}`).join(" · ")}
-                  {results.filter((r) => r.errors.length === 0 && r.warnings.length).length > 5 && " …"}
+                  Notes on rows that will still be saved: {results.filter((r) => r.status !== "error" && r.warnings.length).slice(0, 5).map((r) => `row ${r.index + 2}: ${r.warnings.join(", ")}`).join(" · ")}
+                  {results.filter((r) => r.status !== "error" && r.warnings.length).length > 5 && " …"}
                 </div>
               )}
               {bad.length > 0 && <div style={{ marginTop: 12, fontSize: ".78rem", color: C.sub }}>Rows with errors are skipped. Fix them in the file and import again if you need them.</div>}
@@ -199,8 +259,14 @@ export default function DiamondImportModal({ onClose, onImported }) {
           {step === 4 && outcome && (
             <div style={{ textAlign: "center", padding: "32px 0" }}>
               <i className="bi bi-check-circle-fill" style={{ fontSize: "2.4rem", color: C.green }} />
-              <div style={{ fontSize: "1.1rem", fontWeight: 700, marginTop: 8 }}>{outcome.created} stones added to inventory</div>
-              {outcome.left > 0 && <div style={{ color: C.sub, fontSize: ".85rem", marginTop: 4 }}>{outcome.left} rows were not imported.</div>}
+              <div style={{ fontSize: "1.1rem", fontWeight: 700, marginTop: 8 }}>
+                {[outcome.created > 0 && `${outcome.created} stone${outcome.created === 1 ? "" : "s"} added`, outcome.updated > 0 && `${outcome.updated} revised`].filter(Boolean).join(" · ") || "Nothing to change"}
+              </div>
+              {(outcome.unchanged > 0 || outcome.skipped > 0) && (
+                <div style={{ color: C.sub, fontSize: ".85rem", marginTop: 4 }}>
+                  {[outcome.unchanged > 0 && `${outcome.unchanged} already up to date`, outcome.skipped > 0 && `${outcome.skipped} not imported`].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -208,7 +274,7 @@ export default function DiamondImportModal({ onClose, onImported }) {
         <div style={{ padding: "16px 24px", borderTop: `0.5px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
           <button style={btn(false)} onClick={step === 4 ? onClose : step > 1 ? () => setStep(step - 1) : onClose}>{step === 4 ? "Close" : step > 1 ? "Back" : "Cancel"}</button>
           {step === 2 && <button style={btn(true, missing.length > 0 || busy)} disabled={missing.length > 0 || busy} onClick={validate}>{busy ? "Checking…" : "Validate"}</button>}
-          {step === 3 && <button style={btn(true, good.length === 0 || busy)} disabled={good.length === 0 || busy} onClick={commit}>{busy ? "Importing…" : `Import ${good.length} stone${good.length === 1 ? "" : "s"}`}</button>}
+          {step === 3 && <button style={btn(true, toDo === 0 || busy)} disabled={toDo === 0 || busy} onClick={commit}>{busy ? "Saving…" : [fresh.length > 0 && `Add ${fresh.length}`, updateExisting && revised.length > 0 && `Revise ${revised.length}`].filter(Boolean).join(" + ") || "Nothing to save"}</button>}
         </div>
       </div>
     </div>

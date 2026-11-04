@@ -1,34 +1,38 @@
 // Shared by the import modal (preview) and /api/diamonds/bulk (authoritative check).
 
 export const IMPORT_FIELDS = [
-  { key: "diamond_id", label: "Stock ID", aliases: ["STOCK ID", "STOCKID", "STOCK NO", "STOCK #", "ID", "REF", "REFERENCE"] },
+  { key: "diamond_id", label: "Stock ID", aliases: ["STOCK ID", "STOCKID", "STOCK NO", "STOCK", "ID", "REF", "REFERENCE"] },
   { key: "certificate_number", label: "Certificate No.", aliases: ["CERTIFICATE", "CERTIFICATE NO", "CERT NO", "CERT", "REPORT NO", "REPORT NUMBER"] },
   { key: "lab", label: "Lab", aliases: ["LAB"] },
   { key: "shape", label: "Shape", required: true, aliases: ["SHAPE"] },
   { key: "weight", label: "Carats", required: true, aliases: ["CTS", "CARAT", "CARATS", "WEIGHT", "SIZE"] },
   { key: "color", label: "Color", required: true, aliases: ["COLOR", "COLOUR"] },
   { key: "clarity", label: "Clarity", required: true, aliases: ["CLARITY", "PURITY"] },
-  { key: "cut", label: "Cut", required: true, aliases: ["CUT", "CUT GRADE"] },
+  { key: "cut", label: "Cut (optional)", aliases: ["CUT", "CUT GRADE"] },
   { key: "pol", label: "Polish", aliases: ["POLISH", "POL"] },
   { key: "sym", label: "Symmetry", aliases: ["SYMMETRY", "SYM"] },
-  { key: "flor", label: "Fluorescence", aliases: ["FLUORESCENCE", "FLUOR", "FLOUR", "FLOR"] },
+  { key: "flor", label: "Fluorescence", aliases: ["FLUORESCENCE", "FLUORESCENCE INTENSITY", "FLUOR", "FLOUR", "FLOR"] },
   { key: "rap_rate", label: "Rap rate / ct (USD)", aliases: ["RAP", "RAP RATE", "RAPAPORT", "RAP PRICE"] },
   { key: "rap_discount", label: "Rap discount %", aliases: ["DISC", "DISCOUNT", "RAP DISCOUNT", "DISC %", "RAP %"] },
-  { key: "price_per_carat_usd", label: "Price / ct (USD)", aliases: ["RATE/CT", "RATE", "PRICE/CT", "PRICE PER CARAT", "$/CT", "PPC"] },
+  { key: "price_per_carat_usd", label: "Price / ct (USD)", aliases: ["RATE/CT", "RATE", "PRICE/CT", "PRICE PER CARAT", "$/CT", "PPC", "BUY P/CT", "BUY PRICE/CT", "BUY RATE"] },
   { key: "conversion_rate", label: "USD → INR rate", aliases: ["CONVERSION RATE", "USD RATE", "FX", "INR RATE"] },
   { key: "measurement", label: "Measurements", aliases: ["MEASUREMENT", "MEASUREMENTS", "MEAS"] },
-  { key: "length", label: "Length", aliases: ["LENGTH"] },
-  { key: "width", label: "Width", aliases: ["WIDTH"] },
-  { key: "depth", label: "Depth (mm)", aliases: ["DEPTH MM"] },
+  { key: "length", label: "Length", aliases: ["LENGTH", "MEASUREMENTS LENGTH"] },
+  { key: "width", label: "Width", aliases: ["WIDTH", "MEASUREMENTS WIDTH"] },
+  { key: "depth", label: "Depth (mm)", aliases: ["DEPTH MM", "MEASUREMENTS DEPTH"] },
   { key: "table_percentage", label: "Table %", aliases: ["TABLE", "TABLE %", "TABLE PERCENT"] },
-  { key: "depth_percentage", label: "Depth %", aliases: ["DEPTH", "DEPTH %", "TOTAL DEPTH"] },
+  { key: "depth_percentage", label: "Depth %", aliases: ["DEPTH", "DEPTH %", "DEPTH PERCENT", "TOTAL DEPTH"] },
   { key: "ratio", label: "Ratio", aliases: ["RATIO"] },
   { key: "purchase_from", label: "Purchased from", aliases: ["SUPPLIER", "PURCHASE FROM", "VENDOR"] },
   { key: "pur_rap_discount", label: "Purchase rap discount %", aliases: ["PURCHASE DISC", "PUR DISC", "PUR RAP DISCOUNT"] },
   { key: "purchase_conversion_rate", label: "Purchase USD → INR rate", aliases: ["PURCHASE RATE", "PUR CONVERSION RATE"] },
   { key: "location", label: "Location", aliases: ["LOCATION", "LOC"] },
   { key: "report_dt", label: "Report date", aliases: ["REPORT DATE", "REPORT DT"] },
-  { key: "report_comments", label: "Comments", aliases: ["REMARK", "REMARKS", "NOTE", "NOTES", "COMMENTS"] },
+  { key: "availability", label: "Status / availability", aliases: ["AVAILABILITY", "STATUS", "STOCK STATUS"] },
+  { key: "girdle_condition", label: "Girdle condition", aliases: ["GIRDLE CONDITION"] },
+  { key: "girdle_pct", label: "Girdle %", aliases: ["GIRDLE PERCENT", "GIRDLE %"] },
+  { key: "culet_size", label: "Culet size", aliases: ["CULET SIZE"] },
+  { key: "report_comments", label: "Comments", aliases: ["REMARK", "REMARKS", "NOTE", "NOTES", "COMMENTS", "CERT COMMENT", "MEMBER COMMENTS"] },
 ];
 
 export const MAX_IMPORT_ROWS = 2000;
@@ -53,6 +57,15 @@ const FLUOR = {
 
 const SHAPE_ALIASES = { BRILLIANT: "round", RBC: "round", BR: "round", RD: "round", PS: "pear", OV: "oval", EM: "emerald", MQ: "marquise", CU: "cushion", RAD: "radiant", PR: "princess", PRN: "princess", HT: "heart", AS: "asscher" };
 
+const AVAILABILITY = {
+  AVAILABLE: "available", "IN STOCK": "available", STOCK: "available",
+  MEMO: "memo", "ON MEMO": "memo", "OUT ON MEMO": "memo",
+  "PLEASE CALL FOR STATUS": "subject_to_sale", "CALL FOR STATUS": "subject_to_sale", "SUBJECT TO PRIOR SALE": "subject_to_sale", "SUBJECT TO SALE": "subject_to_sale", HOLD: "subject_to_sale", "ON HOLD": "subject_to_sale",
+  "AT LAB": "at_lab", SOLD: "sold",
+};
+
+export const BUILTIN_SHAPES = SHAPES;
+
 const clean = (v) => (v === null || v === undefined ? "" : String(v).replace(/\s+/g, " ").trim());
 
 export const toNumber = (v) => {
@@ -65,7 +78,7 @@ export const toNumber = (v) => {
 const upper = (v) => clean(v).toUpperCase();
 
 export function guessMapping(headers) {
-  const norm = (h) => upper(h).replace(/[_]+/g, " ");
+  const norm = (h) => upper(h).replace(/#/g, "").replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
   const map = {};
   const taken = new Set();
   IMPORT_FIELDS.forEach((f) => {
@@ -85,7 +98,7 @@ export function normalizeRow(raw) {
   const r = {};
 
   const text = (k) => { const v = clean(raw[k]); r[k] = v === "" ? null : v; };
-  ["diamond_id", "certificate_number", "measurement", "purchase_from", "location", "report_dt", "report_comments"].forEach(text);
+  ["diamond_id", "certificate_number", "measurement", "purchase_from", "location", "report_dt", "report_comments", "girdle_condition", "girdle_pct", "culet_size"].forEach(text);
 
   // Lab
   const lab = upper(raw.lab);
@@ -94,12 +107,17 @@ export function normalizeRow(raw) {
     else { r.lab = "OTHER"; warnings.push(`Lab "${clean(raw.lab)}" saved as Other`); }
   } else r.lab = null;
 
-  // Shape
+  // Shape: any non-empty value is accepted so custom shapes can come in with new stock.
+  // Known aliases map to the built-in shapes; anything else is kept as typed (lower-cased).
   const shapeRaw = upper(raw.shape);
-  const shape = SHAPES.find((s) => s.toUpperCase() === shapeRaw) || SHAPE_ALIASES[shapeRaw];
   if (!shapeRaw) errors.push("Shape is required");
-  else if (!shape) errors.push(`Unknown shape "${clean(raw.shape)}"`);
-  else r.shape = shape;
+  else {
+    const known = SHAPES.find((s) => s.toUpperCase() === shapeRaw) || SHAPE_ALIASES[shapeRaw];
+    const custom = clean(raw.shape).toLowerCase();
+    if (known) r.shape = known;
+    else if (custom.length > 40) errors.push(`Shape "${clean(raw.shape)}" is too long (max 40 characters)`);
+    else r.shape = custom;
+  }
 
   // Carats
   const w = toNumber(raw.weight);
@@ -126,10 +144,8 @@ export function normalizeRow(raw) {
     warnings.push(`${label} "${clean(raw[k])}" not recognised, left blank`);
     return null;
   };
-  // The Add Diamond form requires a cut, so the import does too.
+  // Cut is optional: fancy and non-standard shapes often have no cut grade.
   r.cut = grade("cut", "Cut");
-  if (!clean(raw.cut)) errors.push("Cut is required");
-  else if (!r.cut) errors.push(`Unknown cut "${clean(raw.cut)}"`);
   r.pol = grade("pol", "Polish");
   r.sym = grade("sym", "Symmetry");
   const fl = upper(raw.flor);
@@ -137,6 +153,15 @@ export function normalizeRow(raw) {
     r.flor = FLUOR[fl] || null;
     if (!r.flor) warnings.push(`Fluorescence "${clean(raw.flor)}" not recognised, left blank`);
   } else r.flor = null;
+
+  // Availability / status
+  const av = upper(raw.availability);
+  if (!av) r.availability = "available";
+  else if (AVAILABILITY[av]) r.availability = AVAILABILITY[av];
+  else {
+    r.availability = "available";
+    warnings.push(`Status "${clean(raw.availability)}" not recognised, saved as Available`);
+  }
 
   // Numbers
   const num = (k, label, { min = null, max = null } = {}) => {
@@ -181,7 +206,11 @@ export function normalizeRow(raw) {
   r.price_per_carat_usd = r.price_per_carat_usd ?? 0;
   r.pur_rap_discount = r.pur_rap_discount ?? 0;
 
-  return { record: errors.length ? null : r, errors, warnings };
+  // Fields the file actually gave a value for. Updating an existing stone only touches these,
+  // so a blank or unmapped column never wipes what is already saved.
+  const provided = Object.keys(raw).filter((k) => clean(raw[k]) !== "");
+
+  return { record: errors.length ? null : r, errors, warnings, provided };
 }
 
 // Within-file duplicate detection on the identifiers a stone can be recognised by.

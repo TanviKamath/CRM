@@ -22,6 +22,17 @@ export default function SalesForm({
 }) {
   const isLoose = user?.client_type?.toLowerCase() === "loose";
 
+  // Single stones are priced per carat in USD. With a USD → INR rate the sale is tracked in rupees;
+  // without one it is tracked in dollars (sale_amount_inr then holds the dollar total, conversion_rate is NULL).
+  const usdToInr = (usd, rate) => {
+    const u = parseFloat(usd) || 0;
+    const r = parseFloat(rate) || 0;
+    if (!(u > 0)) return "";
+    return (r > 0 ? u * r : u).toFixed(2);
+  };
+  const prevDiamondRef = useRef(null);
+  const stoneRate = (diamond, current) => current || (parseFloat(diamond?.conversion_rate) > 0 ? String(diamond.conversion_rate) : "");
+
   const [form, setForm] = useState({
     diamond_id: (isLoose ? initial.loose_diamond_item_id : initial.diamond_id) || preSelectedDiamondId || "",
     client_id: initial.client_id || preSelectedClientId || "",
@@ -30,12 +41,14 @@ export default function SalesForm({
     sale_rap_discount: initial.sale_rap_discount ?? "",
     sale_amount: initial.sale_amount || preSelectedSaleAmount || "",
     sale_amount_inr: initial.sale_amount_inr ?? preSelectedSaleAmount ?? "",
+    conversion_rate: initial.conversion_rate != null ? String(initial.conversion_rate) : "", // USD → INR (single stones); blank = dollar sale
     brokerage_rate: initial.brokerage_rate ?? "",
     brokerage_amount: initial.brokerage_amount ?? "", // Now in INR
     notes: initial.notes || "",
 
     // Payment fields
-    selling_date: initial.selling_date ? initial.selling_date.split('T')[0] : new Date().toISOString().split('T')[0],
+    // The API returns DATE columns as UTC instants (midnight local = previous day in UTC), so read them back in local time
+    selling_date: initial.selling_date ? new Date(initial.selling_date).toLocaleDateString("en-CA") : new Date().toLocaleDateString("en-CA"),
     payment_status: initial.payment_status || "on_terms",
     terms_days: initial.terms_days ?? "30",
     advance_amount: initial.advance_amount ?? "",
@@ -49,7 +62,7 @@ export default function SalesForm({
     original_memo_carats: initial.sold_carats || preSelectedSoldCarats || "", // New field to stabilize available carats calculation
   });
 
-  const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "" });
+  const [diamondInfo, setDiamondInfo] = useState({ weight: "", rap_rate: "", price_per_carat_usd: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
@@ -174,10 +187,10 @@ export default function SalesForm({
   };
 
   const outstandingAmount = useMemo(() => {
-    const saleAmount = parseFloat(form.sale_amount) || 0;
+    const saleAmount = parseFloat(form.sale_amount_inr) || parseFloat(form.sale_amount) || 0;
     const advance = parseFloat(form.advance_amount) || 0;
     return Math.max(0, saleAmount - advance);
-  }, [form.sale_amount, form.advance_amount]);
+  }, [form.sale_amount, form.sale_amount_inr, form.advance_amount]);
 
   const maxAvailableCarats = useMemo(() => {
     if (!selectedDiamond || !isLoose) return 9999;
@@ -235,10 +248,16 @@ export default function SalesForm({
       setDiamondInfo({
         weight: isLoose ? selectedDiamond.carats : (selectedDiamond.weight || ""),
         rap_rate: isLoose ? "" : (selectedDiamond.rap_rate || ""),
+        price_per_carat_usd: isLoose ? "" : (selectedDiamond.price_per_carat_usd || ""),
       });
 
       // Avoid overwriting pre-filled values from memo/URL on the very first mount
       if (isInitialMount.current && (form.sold_carats || form.sale_amount)) {
+        // Editing an existing single-stone sale: show its per-carat price
+        if (!isLoose && !form.selling_price_per_carat && parseFloat(form.sale_amount) > 0 && parseFloat(selectedDiamond.weight) > 0) {
+          setForm((prev) => ({ ...prev, selling_price_per_carat: (parseFloat(prev.sale_amount) / parseFloat(selectedDiamond.weight)).toFixed(2) }));
+        }
+        prevDiamondRef.current = form.diamond_id;
         return;
       }
 
@@ -263,7 +282,6 @@ export default function SalesForm({
         // Use proportional value for the available weight
         saleAmount = (parseFloat(availableWeight) / itemCarats) * parseFloat(selectedDiamond.total_value || 0) || 0;
       } else {
-        saleAmount = calculateSaleAmount(selectedDiamond.weight, selectedDiamond.rap_rate, form.sale_rap_discount);
       }
 
       const saleAmountInr = calculateSaleAmountInr(saleAmount);
@@ -274,19 +292,43 @@ export default function SalesForm({
       
       const shouldPreserve = isInitialMount.current || isMemoConversion;
 
+      // Single stones: pre-fill the per-carat price from the stone itself (only when the stone changes,
+      // so typing elsewhere never overwrites a price the user has edited).
+      let giaFields = {};
+      const diamondChanged = prevDiamondRef.current !== form.diamond_id;
+      prevDiamondRef.current = form.diamond_id;
+      if (!isLoose && diamondChanged && !isMemoConversion) {
+        const w = parseFloat(selectedDiamond.weight) || 0;
+        const ppc = parseFloat(selectedDiamond.price_per_carat_usd) || 0;
+        const rate = stoneRate(selectedDiamond, form.conversion_rate);
+        const usd = ppc > 0 && w > 0 ? (ppc * w).toFixed(2) : "";
+        const inr = usdToInr(usd, rate);
+        giaFields = {
+          selling_price_per_carat: ppc > 0 ? ppc.toFixed(2) : "",
+          sale_rap_discount: "",
+          conversion_rate: rate,
+          sale_amount: usd,
+          sale_amount_inr: inr,
+          brokerage_amount: calculateBrokerageAmount(inr, form.brokerage_rate),
+        };
+      }
+
       setForm(prev => ({
         ...prev,
+        ...(isLoose ? {} : (Object.keys(giaFields).length ? giaFields : { brokerage_amount: brokerageAmount })),
         sold_carats: isLoose ? (shouldPreserve ? (prev.sold_carats || availableWeight.toFixed(3)) : availableWeight.toFixed(3)) : "",
-        sale_amount: shouldPreserve ? prev.sale_amount : (saleAmount > 0 ? saleAmount.toFixed(2) : ""),
-        sale_amount_inr: shouldPreserve ? prev.sale_amount_inr : saleAmountInr,
-        brokerage_amount: brokerageAmount,
+        ...(isLoose ? {
+          sale_amount: shouldPreserve ? prev.sale_amount : (saleAmount > 0 ? saleAmount.toFixed(2) : ""),
+          sale_amount_inr: shouldPreserve ? prev.sale_amount_inr : saleAmountInr,
+          brokerage_amount: brokerageAmount,
+        } : {}),
       }));
 
 
     } else {
-      setDiamondInfo({ weight: "", rap_rate: "" });
+      setDiamondInfo({ weight: "", rap_rate: "", price_per_carat_usd: "" });
     }
-  }, [form.diamond_id, diamonds, form.brokerage_rate, user, form.sale_rap_discount]);
+  }, [form.diamond_id, diamonds, form.brokerage_rate, user]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -302,6 +344,21 @@ export default function SalesForm({
 
     const updated = { ...form, [name]: value };
 
+    // Single stones: price per carat (USD) × weight, converted to INR at the sale's rate.
+    // A RAP discount is optional: if entered it sets the per-carat price from the stone's RAP rate.
+    if (!isLoose && selectedDiamond && ["selling_price_per_carat", "sale_rap_discount", "conversion_rate"].includes(name)) {
+      const w = parseFloat(selectedDiamond.weight) || 0;
+      const rap = parseFloat(selectedDiamond.rap_rate) || 0;
+      if (name === "sale_rap_discount" && value !== "" && rap > 0) {
+        updated.selling_price_per_carat = (rap * (1 - (parseFloat(value) || 0) / 100)).toFixed(2);
+      }
+      if (name === "selling_price_per_carat") updated.sale_rap_discount = "";
+      const ppc = parseFloat(updated.selling_price_per_carat) || 0;
+      updated.sale_amount = ppc > 0 && w > 0 ? (ppc * w).toFixed(2) : "";
+      updated.sale_amount_inr = usdToInr(updated.sale_amount, updated.conversion_rate);
+      updated.brokerage_amount = calculateBrokerageAmount(updated.sale_amount_inr, updated.brokerage_rate);
+    }
+
     // Amount changes -> recompute INR
     if (name === "sale_amount") {
       updated.sale_amount_inr = calculateSaleAmountInr(value);
@@ -316,7 +373,7 @@ export default function SalesForm({
     // If payment status changes to completed, clear terms fields
     if (name === "payment_status" && value === "completed") {
       updated.terms_days = "";
-      updated.advance_amount = updated.sale_amount;
+      updated.advance_amount = updated.sale_amount_inr || updated.sale_amount;
     }
 
     // If payment status changes to on_terms, set default terms
@@ -478,9 +535,7 @@ export default function SalesForm({
   }
     if (!form.status) errors.status = "Status is required";
     if (!isLoose) {
-      if (form.sale_rap_discount === "" || form.sale_rap_discount === null) {
-        errors.sale_rap_discount = "Sale RAP Discount is required";
-      }
+      if (!(parseFloat(form.selling_price_per_carat) > 0)) errors.selling_price_per_carat = "Selling price per carat is required";
     }
     if (!form.selling_date) errors.selling_date = "Selling date is required";
     if (!form.payment_status) errors.payment_status = "Payment status is required";
@@ -530,14 +585,22 @@ export default function SalesForm({
       }
     }
 
-    if (form.payment_status === "on_terms" && form.advance_amount && form.sale_amount) {
-      if (parseFloat(form.advance_amount) > parseFloat(form.sale_amount)) {
+    if (form.payment_status === "on_terms" && form.advance_amount && (form.sale_amount_inr || form.sale_amount)) {
+      if (parseFloat(form.advance_amount) > (parseFloat(form.sale_amount_inr) || parseFloat(form.sale_amount))) {
         errors.advance_amount = "Advance amount cannot exceed sale amount";
       }
     }
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Discount off RAP actually given (typed, or implied by the price per carat); 0 when the stone has no RAP rate.
+  const giaRapDiscount = () => {
+    if (form.sale_rap_discount !== "" && form.sale_rap_discount != null) return parseFloat(form.sale_rap_discount) || 0;
+    const rap = parseFloat(selectedDiamond?.rap_rate) || 0;
+    const ppc = parseFloat(form.selling_price_per_carat) || 0;
+    return rap > 0 && ppc > 0 ? Math.round((1 - ppc / rap) * 10000) / 100 : 0;
   };
 
   const handleSubmit = async (e) => {
@@ -566,10 +629,10 @@ export default function SalesForm({
         client_id: parseInt(form.client_id),
         broker_id: form.broker_id ? parseInt(form.broker_id) : null,
         status: form.status,
-        sale_rap_discount: 0,
+        sale_rap_discount: isLoose ? 0 : giaRapDiscount(),
         sale_amount: parseFloat(form.sale_amount) || 0,
-        conversion_rate: 1,
-        sale_amount_inr: parseFloat(form.sale_amount) || 0,
+        conversion_rate: isLoose ? 1 : (parseFloat(form.conversion_rate) > 0 ? parseFloat(form.conversion_rate) : null),
+        sale_amount_inr: isLoose ? (parseFloat(form.sale_amount) || 0) : (parseFloat(form.sale_amount_inr) || 0),
         brokerage_rate: form.brokerage_rate ? parseFloat(form.brokerage_rate) : null,
         brokerage_amount: form.brokerage_amount ? parseFloat(form.brokerage_amount) : null,
         notes: form.notes || null,
@@ -588,6 +651,7 @@ export default function SalesForm({
       };
 
       await onSubmit(dataToSend);
+
     } catch (err) {
       setError(err.message || "Failed to save sale");
     } finally {
@@ -603,19 +667,24 @@ export default function SalesForm({
     isInitialMount.current = false;
   }, []);
 
+  // Rupees for loose parcels and for single stones with a USD → INR rate, dollars otherwise
+  const saleSym = isLoose || parseFloat(form.conversion_rate) > 0 ? "₹" : "$";
+  const saleCode = saleSym === "$" ? "USD" : "INR";
+  const fmtSale = (n) => `${saleSym}${n.toLocaleString(saleSym === "$" ? "en-US" : "en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const summary = useMemo(() => {
-    const amt = parseFloat(form.sale_amount) || 0;
+    const amt = parseFloat(form.sale_amount_inr) || parseFloat(form.sale_amount) || 0;
     const bro = parseFloat(form.brokerage_amount) || 0;
     const adv = parseFloat(form.advance_amount) || 0;
     const out = Math.max(0, amt - adv);
 
     return {
-      amt: `₹${amt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      bro: `₹${bro.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      advance: `₹${adv.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      outstanding: `₹${out.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      amt: fmtSale(amt),
+      bro: fmtSale(bro),
+      advance: fmtSale(adv),
+      outstanding: fmtSale(out),
     };
-  }, [form.sale_amount, form.brokerage_amount, form.advance_amount]);
+  }, [form.sale_amount, form.sale_amount_inr, form.brokerage_amount, form.advance_amount, saleSym]);
 
   return (
     <>
@@ -665,7 +734,7 @@ export default function SalesForm({
             }}
           >
             <div style={{ fontSize: "1.1rem", fontWeight: "700", marginRight: "10px", color: "#1e293b" }}>
-              ₹
+              {saleSym}
             </div>
             <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#1e293b" }}>
               Total Sale: <span className="ms-1">{summary.amt}</span>
@@ -913,7 +982,7 @@ export default function SalesForm({
           </div>
           <div>
             <div className="fw-bold">Pricing & Calculations</div>
-            <div className="text-muted small">Discount drives totals; brokerage is calculated on INR amount</div>
+            <div className="text-muted small">Per-carat price drives the total; brokerage is calculated on the sale total</div>
           </div>
         </div>
 
@@ -1028,17 +1097,79 @@ export default function SalesForm({
 
           {!isLoose && (
             <>
-              <div className="col-md-3">
-                <label className="form-label fw-medium">RAP Rate</label>
+              <div className="col-md-4">
+                <label htmlFor="selling_price_per_carat" className="form-label fw-medium">
+                  Selling Price / Carat (USD) <span className="text-danger">*</span>
+                </label>
                 <div className="input-group">
-                  <span className="input-group-text bg-white">₹</span>
-                  <input value={diamondInfo.rap_rate} className="form-control bg-light" readOnly />
+                  <span className="input-group-text bg-white">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="selling_price_per_carat"
+                    name="selling_price_per_carat"
+                    value={form.selling_price_per_carat}
+                    onChange={handleChange}
+                    className={controlClass("selling_price_per_carat")}
+                    placeholder="e.g. 85.00"
+                  />
+                  <span className="input-group-text bg-white">/ct</span>
+                </div>
+                {hasError("selling_price_per_carat") && <div className="invalid-feedback d-block">{validationErrors.selling_price_per_carat}</div>}
+                {parseFloat(diamondInfo.price_per_carat_usd) > 0 && (
+                  <div className="text-muted small mt-1">Listed price: ${parseFloat(diamondInfo.price_per_carat_usd).toLocaleString("en-US", { minimumFractionDigits: 2 })}/ct</div>
+                )}
+              </div>
+
+              <div className="col-md-4">
+                <label htmlFor="conversion_rate" className="form-label fw-medium">
+                  USD → INR Rate <span className="text-muted fw-normal">(optional)</span>
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">{saleSym}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    id="conversion_rate"
+                    name="conversion_rate"
+                    value={form.conversion_rate}
+                    onChange={handleChange}
+                    className={controlClass("conversion_rate")}
+                    placeholder="Leave blank to bill in USD"
+                  />
+                  <span className="input-group-text bg-white">per $1</span>
+                </div>
+                {hasError("conversion_rate") && <div className="invalid-feedback d-block">{validationErrors.conversion_rate}</div>}
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-medium">Total</label>
+                <input
+                  type="text"
+                  className="form-control fw-semibold bg-light"
+                  readOnly
+                  placeholder="Auto-calculated"
+                  value={form.sale_amount
+                    ? `$${parseFloat(form.sale_amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` +
+                      (parseFloat(form.conversion_rate) > 0 && form.sale_amount_inr ? `  =  ₹${parseFloat(form.sale_amount_inr).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "")
+                    : ""}
+                />
+                {diamondInfo.weight && form.selling_price_per_carat && (
+                  <div className="text-muted small mt-1">{parseFloat(diamondInfo.weight).toFixed(3)} ct × ${parseFloat(form.selling_price_per_carat).toLocaleString("en-US")}</div>
+                )}
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-medium">RAP Rate <span className="text-muted fw-normal">(optional)</span></label>
+                <div className="input-group">
+                  <span className="input-group-text bg-white">$</span>
+                  <input value={parseFloat(diamondInfo.rap_rate) > 0 ? diamondInfo.rap_rate : ""} placeholder="—" className="form-control bg-light" readOnly />
                 </div>
               </div>
 
-              <div className="col-md-3">
+              <div className="col-md-4">
                 <label htmlFor="sale_rap_discount" className="form-label fw-medium">
-                  Sale RAP Discount (%) <span className="text-danger">*</span>
+                  Sale RAP Discount (%) <span className="text-muted fw-normal">(optional)</span>
                 </label>
                 <div className="input-group">
                   <span className="input-group-text bg-white">
@@ -1052,27 +1183,10 @@ export default function SalesForm({
                     value={form.sale_rap_discount}
                     onChange={handleChange}
                     className={controlClass("sale_rap_discount")}
-                    placeholder="e.g., 35"
-                    required
+                    placeholder={parseFloat(diamondInfo.rap_rate) > 0 ? "Sets the price from RAP" : "No RAP rate on this stone"}
+                    disabled={!(parseFloat(diamondInfo.rap_rate) > 0)}
                   />
                 </div>
-                {hasError("sale_rap_discount") && <div className="invalid-feedback d-block">{validationErrors.sale_rap_discount}</div>}
-              </div>
-
-              <div className="col-md-12">
-                <label className="form-label fw-medium">Selling Price (INR)</label>
-                <div className="input-group">
-                  <span className="input-group-text bg-white">₹</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    name="sale_amount"
-                    value={form.sale_amount}
-                    onChange={handleChange}
-                    className={`form-control fw-semibold ${hasError("sale_amount") ? "is-invalid" : ""}`}
-                  />
-                </div>
-                {hasError("sale_amount") && <div className="invalid-feedback d-block">{validationErrors.sale_amount}</div>}
               </div>
             </>
           )}
@@ -1085,7 +1199,7 @@ export default function SalesForm({
             <div className="p-4" style={{ backgroundColor: "rgba(79, 70, 229, 0.04)", borderRadius: 20, border: "1px solid rgba(79, 70, 229, 0.1)" }}>
               <div className="d-flex align-items-center mb-3">
                 <i className="bi bi-person-badge text-indigo me-2" style={{ color: "#4f46e5" }} />
-                <span className="fw-bold" style={{ color: "#3730a3" }}>Brokerage (Calculated on INR)</span>
+                <span className="fw-bold" style={{ color: "#3730a3" }}>Brokerage (Calculated on {saleCode} total)</span>
               </div>
               <div className="row g-3">
                 <div className="col-md-6">
@@ -1107,13 +1221,13 @@ export default function SalesForm({
                       placeholder="e.g., 1.0"
                     />
                   </div>
-                  <div className="text-muted small mt-1">Applied on INR sale amount</div>
+                  <div className="text-muted small mt-1">Applied on the sale total</div>
                 </div>
 
                 <div className="col-md-6">
-                  <label className="form-label fw-medium text-dark">Brokerage Amount (INR)</label>
+                  <label className="form-label fw-medium text-dark">Brokerage Amount ({saleCode})</label>
                   <div className="input-group">
-                    <span className="input-group-text border-end-0">₹</span>
+                    <span className="input-group-text border-end-0">{saleSym}</span>
                     <input
                       value={form.brokerage_amount}
                       className="form-control fw-bold border-start-0"
@@ -1123,8 +1237,8 @@ export default function SalesForm({
                   </div>
                   <div className="text-muted small mt-1">
                     {form.brokerage_rate && form.sale_amount_inr
-                      ? `${form.brokerage_rate}% of ₹${parseFloat(form.sale_amount_inr).toLocaleString('en-IN')}`
-                      : "Auto-calculated from INR amount"
+                      ? `${form.brokerage_rate}% of ${saleSym}${parseFloat(form.sale_amount_inr).toLocaleString(saleSym === '$' ? 'en-US' : 'en-IN')}`
+                      : "Auto-calculated from the sale total"
                     }
                   </div>
                 </div>
@@ -1219,7 +1333,7 @@ export default function SalesForm({
 
               <div className="col-md-4">
                 <label htmlFor="advance_amount" className="form-label fw-medium">
-                  Advance Amount (INR)
+                  Advance Amount ({saleCode})
                 </label>
                 <div className="input-group">
                   <span className="input-group-text bg-white">₹</span>
@@ -1254,9 +1368,9 @@ export default function SalesForm({
               </div>
 
               <div className="col-md-4">
-                <label className="form-label fw-medium">Outstanding Amount (INR)</label>
+                <label className="form-label fw-medium">Outstanding Amount ({saleCode})</label>
                 <div className="input-group">
-                  <span className="input-group-text bg-warning bg-opacity-25">₹</span>
+                  <span className="input-group-text bg-warning bg-opacity-25">{saleSym}</span>
                   <input
                     type="text"
                     value={outstandingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -1380,7 +1494,7 @@ export default function SalesForm({
                 <div>
                   <div className="fw-semibold text-success">Full Payment Received</div>
                   <div className="text-muted small">
-                    Amount: ₹{parseFloat(form.sale_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })} - No outstanding balance
+                    Amount: {fmtSale(parseFloat(form.sale_amount_inr) || parseFloat(form.sale_amount) || 0)} - No outstanding balance
                   </div>
                 </div>
               </div>
@@ -1413,7 +1527,7 @@ export default function SalesForm({
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2">
         <div className="text-muted small">
           <i className="bi bi-info-circle me-2" />
-          Brokerage is calculated as a percentage of the INR sale amount.
+          Brokerage is calculated as a percentage of the sale total.
         </div>
 
         <div className="d-flex gap-2">

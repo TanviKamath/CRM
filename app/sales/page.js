@@ -1,6 +1,7 @@
 // app/sales/page.js
 "use client";
 
+import { isUsdSale, saleSymbol, money, moneyPair } from "../lib/utils/saleCurrency";
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -251,18 +252,28 @@ function SalesIndexContent() {
     let totalInr = 0;
     let outstandingInr = 0;
     let receivedInr = 0;
+    // Sales recorded in dollars (no USD → INR rate) are totalled separately, never mixed into rupees.
+    let totalUsd = 0;
+    let outstandingUsd = 0;
+    let receivedUsd = 0;
 
     for (const s of filteredSales) {
-      const amountInr = parseFloat(s.sale_amount_inr) || 0;
-      const totalReceivedInr = parseFloat(s.total_received_inr) || 0;
-      const saleOutstandingInr = Math.max(0, amountInr - totalReceivedInr);
+      const amount = parseFloat(s.sale_amount_inr) || 0;
+      const received = parseFloat(s.total_received_inr) || 0;
+      const outstanding = Math.max(0, amount - received);
 
-      totalInr += amountInr;
-      outstandingInr += saleOutstandingInr;
-      receivedInr += totalReceivedInr;
+      if (isUsdSale(s)) {
+        totalUsd += amount;
+        outstandingUsd += outstanding;
+        receivedUsd += received;
+      } else {
+        totalInr += amount;
+        outstandingInr += outstanding;
+        receivedInr += received;
+      }
     }
 
-    return { totalInr, count: filteredSales.length, outstandingInr, receivedInr };
+    return { totalInr, totalUsd, count: filteredSales.length, outstandingInr, outstandingUsd, receivedInr, receivedUsd };
   }, [filteredSales]);
 
   const setFilter = (key, value) => {
@@ -301,9 +312,9 @@ function SalesIndexContent() {
 
             <div className="mt-3 d-flex flex-wrap gap-2">
               <StatPill icon="bi-collection" label="Sales" value={totals.count} />
-              <StatPill icon="bi-cash-stack" label="Total" value={formatINR(totals.totalInr)} />
-              <StatPill icon="bi-check-circle" label="Received" value={formatINR(totals.receivedInr)} />
-              <StatPill icon="bi-hourglass-split" label="Outstanding" value={formatINR(totals.outstandingInr)} />
+              <StatPill icon="bi-cash-stack" label="Total" value={moneyPair(totals.totalInr, totals.totalUsd)} />
+              <StatPill icon="bi-check-circle" label="Received" value={moneyPair(totals.receivedInr, totals.receivedUsd)} />
+              <StatPill icon="bi-hourglass-split" label="Outstanding" value={moneyPair(totals.outstandingInr, totals.outstandingUsd)} />
             </div>
           </div>
 
@@ -426,9 +437,9 @@ function SalesIndexContent() {
                     <th className="px-4 py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>SALE</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>{user?.client_type?.toLowerCase() === "loose" ? "LOT ITEM" : "DIAMOND"}</th>
                     <th className="py-3 text-muted" style={{ fontSize: "0.8rem", fontWeight: 600 }}>CLIENT</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT (₹)</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED (₹)</th>
-                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING (₹)</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>AMOUNT</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>RECEIVED</th>
+                    <th className="py-3 text-muted text-end" style={{ fontSize: "0.8rem", fontWeight: 600 }}>OUTSTANDING</th>
                     <th className="py-3 text-muted text-center" style={{ fontSize: "0.8rem", fontWeight: 600 }}>STATUS</th>
                     <th className="py-3 text-muted text-center" style={{ width: 260, fontSize: "0.8rem", fontWeight: 600 }}>ACTIONS</th>
                   </tr>
@@ -535,16 +546,16 @@ function SalesIndexContent() {
                           </td>
 
                           <td className="py-3 text-end">
-                            <div className="fw-semibold">{formatINR(saleAmountInr)}</div>
+                            <div className="fw-semibold">{money(saleAmountInr, saleSymbol(sale))}</div>
                           </td>
 
                           <td className="py-3 text-end">
-                            <span className="text-dark fw-medium opacity-75">{formatINR(totalReceivedInr)}</span>
+                            <span className="text-dark fw-medium opacity-75">{money(totalReceivedInr, saleSymbol(sale))}</span>
                           </td>
 
                           <td className="py-3 text-end">
                             <span className={outstandingInr > 0 ? "text-dark fw-semibold" : "text-dark opacity-50"}>
-                              {formatINR(outstandingInr)}
+                              {money(outstandingInr, saleSymbol(sale))}
                             </span>
                           </td>
 
@@ -612,11 +623,11 @@ function SalesIndexContent() {
               <div className="d-flex gap-3 text-muted small">
                 <span>
                   <i className="bi bi-check-circle text-dark me-1" />
-                  Collected: <span className="fw-semibold text-dark">{formatINR(totals.receivedInr)}</span>
+                  Collected: <span className="fw-semibold text-dark">{moneyPair(totals.receivedInr, totals.receivedUsd)}</span>
                 </span>
                 <span>
                   <i className="bi bi-hourglass-split text-dark me-1 opacity-50" />
-                  Pending: <span className="fw-semibold text-dark">{formatINR(totals.outstandingInr)}</span>
+                  Pending: <span className="fw-semibold text-dark">{moneyPair(totals.outstandingInr, totals.outstandingUsd)}</span>
                 </span>
               </div>
             </div>

@@ -299,6 +299,11 @@ function fmt(v) {
   if (n >= 1e5) return "₹" + (n / 1e5).toFixed(1) + "L";
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
+function fmtUsd(v) {
+  const n = parseFloat(v);
+  if (!Number.isFinite(n) || n <= 0) return "—";
+  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "—"; }
 function val(v, suffix = "") { return v != null && v !== "" ? `${v}${suffix}` : "—"; }
 
@@ -355,7 +360,7 @@ function ToggleGroup({ options, selected, onChange, rangeSelect = false }) {
 /* ═══════════════════════════════════════════
    ADVANCED SEARCH MODAL
    ═══════════════════════════════════════════ */
-function SearchModal({ show, onClose, filters, setFilters, onApply, isLoose = false }) {
+function SearchModal({ show, onClose, filters, setFilters, onApply, isLoose = false, extraShapes = [] }) {
   useEffect(() => {
     document.body.style.overflow = show ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -475,7 +480,7 @@ function SearchModal({ show, onClose, filters, setFilters, onApply, isLoose = fa
               <div className="f-section">
                 <div className="f-label"><i className="bi bi-gem" style={{ color: C.blue }} /> Shape</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {SHAPES.map((sh) => (
+                  {[...SHAPES, ...extraShapes].map((sh) => (
                     <button
                       key={sh.id}
                       className={`sh-btn ${filters.shapes.includes(sh.id) ? "on" : ""}`}
@@ -615,8 +620,9 @@ const SCROLL_COLS = [
   { key: "lab", label: "Lab", w: 72 },
   { key: "rap_rate", label: "Rap", w: 90, num: true },
   { key: "rap_discount", label: "Disc %", w: 80, num: true },
-  { key: "price_per_carat_usd", label: "₹/ct", w: 90, num: true },
-  { key: "amount_usd", label: "Amount (₹)", w: 100, num: true },
+  { key: "price_per_carat_usd", label: "$/ct", w: 90, num: true },
+  { key: "amount_usd", label: "Amount ($)", w: 100, num: true },
+  { key: "amount_inr", label: "Amount (₹)", w: 110, num: true },
   { key: "measurement", label: "Meas.", w: 130 },
   { key: "table_percentage", label: "Table %", w: 80, num: true },
   { key: "depth_percentage", label: "Depth %", w: 80, num: true },
@@ -708,10 +714,10 @@ const EXPORT_COLS = [
   // Pricing
   { key: "rap_rate", label: "Rap Rate" },
   { key: "rap_discount", label: "Disc %" },
-  { key: "price_per_carat_usd", label: "₹/ct" },
-  { key: "amount_usd", label: "Amount (INR)" },
+  { key: "price_per_carat_usd", label: "Price / ct (USD)" },
+  { key: "amount_usd", label: "Amount (USD)" },
   { key: "conversion_rate", label: "Conversion Rate" },
-  { key: "amount_inr", label: "Amount (INR) Ref" },
+  { key: "amount_inr", label: "Amount (INR)" },
   { key: "availability", label: "Status" },
   // Dimensions
   { key: "measurement", label: "Measurement" },
@@ -782,6 +788,26 @@ function DiamondsIndexPageContent() {
   const [showModal, setShowModal] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [knownShapes, setKnownShapes] = useState([]);
+
+  // Shapes outside the built-in list (e.g. from imports) get their own filter button.
+  // Remembered across filter changes so a button doesn't vanish once it narrows the list.
+  useEffect(() => {
+    if (isLoose) return;
+    const found = diamonds.map((d) => String(d.shape || "").trim().toLowerCase()).filter(Boolean);
+    setKnownShapes((prev) => {
+      const next = Array.from(new Set([...prev, ...found]));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [diamonds, isLoose]);
+
+  const extraShapeOptions = useMemo(
+    () => knownShapes
+      .filter((k) => !SHAPES.some((sh) => sh.id === k))
+      .sort()
+      .map((k) => ({ id: k, label: k.replace(/\b\w/g, (c) => c.toUpperCase()), icon: "bi-gem" })),
+    [knownShapes]
+  );
   const [filters, setFilters] = useState({ ...INITIAL_FILTERS });
   const [activeFilters, setActiveFilters] = useState({ ...INITIAL_FILTERS });
   const [sort, setSort] = useState({ key: null, dir: "asc" });
@@ -1022,15 +1048,20 @@ function DiamondsIndexPageContent() {
     const v = d[key];
     switch (key) {
       case "availability": return <AvBadge status={v} />;
-      case "amount_usd":
       case "total_value":
         return v ? fmt(v) : "—";
-      case "rap_rate":
+      case "amount_inr":
+        return parseFloat(v) > 0 ? fmt(v) : "—";
+      // GIA prices are kept in USD; INR is only shown where it was actually calculated.
+      case "amount_usd":
       case "price_per_carat_usd":
+      case "rap_rate":
+        return fmtUsd(v);
       case "base_price":
       case "final_price_per_carat":
         return v ? `₹${parseFloat(v).toLocaleString()}` : "—";
       case "rap_discount":
+        return parseFloat(d.rap_rate) > 0 ? val(v, "%") : "—";
       case "discount_pct":
       case "table_percentage":
       case "depth_percentage":
@@ -1497,7 +1528,7 @@ if (viewMode === "matrix") {
                   </span>
                   {!loading && (
                     <span style={{ fontSize: ".72rem", color: C.sub }}>
-                      {stats.available + " available"} · {stats.carats.toFixed(2)} ct · {fmt(stats.value)}
+                      {stats.available + " available"} · {stats.carats.toFixed(2)} ct · {isLoose ? fmt(stats.value) : fmtUsd(stats.value)}
                     </span>
                   )}
                 </div>
@@ -1749,6 +1780,7 @@ if (viewMode === "matrix") {
           setShowModal(false);
         }}
         isLoose={isLoose}
+        extraShapes={extraShapeOptions}
       />
       {showImport && (
         <DiamondImportModal

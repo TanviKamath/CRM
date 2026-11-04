@@ -1,6 +1,7 @@
 // app/sales/show/[id]/page.js
 "use client";
 
+import { saleSymbol, isUsdSale } from "../../../lib/utils/saleCurrency";
 import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -319,7 +320,7 @@ function SalesShowContent() {
                 <StatusBadge status={sale.status} />
                 <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-cash-stack me-2" />
-                  {formatCurrency(sale.sale_amount_inr || sale.sale_amount)}
+                  {formatCurrency(sale.sale_amount_inr || sale.sale_amount, saleSymbol(sale))}
                 </span>
                 <span className="badge bg-dark bg-opacity-10 text-dark border px-3 py-2" style={{ borderRadius: 999 }}>
                   <i className="bi bi-gem me-2" />
@@ -372,7 +373,7 @@ function SalesShowContent() {
                   </div>
                   <div>
                     <div className="text-muted small">Total Amount (₹)</div>
-                    <div className="fw-bold fs-5">{formatCurrency(sale.sale_amount_inr || sale.sale_amount)}</div>
+                    <div className="fw-bold fs-5">{formatCurrency(sale.sale_amount_inr || sale.sale_amount, saleSymbol(sale))}</div>
                   </div>
                 </div>
                 <div className="text-muted small mt-2">
@@ -391,7 +392,7 @@ function SalesShowContent() {
                   </div>
                   <div>
                     <div className="text-muted small">Sale Amount (INR)</div>
-                    <div className="fw-bold fs-5">{sale.sale_amount_inr ? formatCurrency(sale.sale_amount_inr, "₹") : "-"}</div>
+                    <div className="fw-bold fs-5">{sale.sale_amount_inr ? formatCurrency(sale.sale_amount_inr, saleSymbol(sale)) : "-"}</div>
                   </div>
                 </div>
                 <div className="text-muted small mt-2">
@@ -410,7 +411,7 @@ function SalesShowContent() {
                   </div>
                   <div>
                     <div className="text-muted small">Brokerage (INR)</div>
-                    <div className="fw-bold fs-5">{sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, "₹") : "-"}</div>
+                    <div className="fw-bold fs-5">{sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, saleSymbol(sale)) : "-"}</div>
                   </div>
                 </div>
                 <div className="text-muted small mt-2">
@@ -505,9 +506,9 @@ function SalesShowContent() {
           <div className="col-lg-6">
             <SectionCard title="Sale Details" subtitle="Amounts and status" icon="bi-receipt">
               <InfoRow icon="bi-calendar3" label="Sale Date" value={formatDate(sale.selling_date)} />
-              <InfoRow icon="bi-cash-stack" label="Sale Amount (INR)" value={formatCurrency(sale.sale_amount_inr || sale.sale_amount)} />
+              <InfoRow icon="bi-cash-stack" label={isUsdSale(sale) ? "Sale Amount (USD)" : "Sale Amount (INR)"} value={formatCurrency(sale.sale_amount_inr || sale.sale_amount, saleSymbol(sale))} />
               <InfoRow icon="bi-graph-down" label="Brokerage Rate" value={sale.brokerage_rate ? `${formatNumber(sale.brokerage_rate)}%` : "-"} />
-              <InfoRow icon="bi-currency-rupee" label="Brokerage Amount (INR)" value={sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, "₹") : "-"} />
+              <InfoRow icon="bi-currency-rupee" label={isUsdSale(sale) ? "Brokerage Amount (USD)" : "Brokerage Amount (INR)"} value={sale.brokerage_amount ? formatCurrency(sale.brokerage_amount, saleSymbol(sale)) : "-"} />
 
               <div className="pt-3 mt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div className="text-muted small">Status</div>

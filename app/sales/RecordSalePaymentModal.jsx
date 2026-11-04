@@ -1,6 +1,7 @@
 // app/sales/RecordSalePaymentModal.jsx
 "use client";
 
+import { saleSymbol } from "../lib/utils/saleCurrency";
 import { useState, useEffect } from "react";
 
 export default function RecordSalePaymentModal({ saleId, show, onClose, onSuccess }) {
@@ -93,9 +94,11 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
+    // Dollar sales (no USD → INR rate) are paid and balanced in dollars
+    const sym = saleSymbol(data);
     const formatCurrency = (value) => {
         const num = parseFloat(value) || 0;
-        return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `${sym}${num.toLocaleString(sym === "$" ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     const isOverdue = () => {
@@ -311,7 +314,7 @@ export default function RecordSalePaymentModal({ saleId, show, onClose, onSucces
                                         Amount Received <span className="text-danger">*</span>
                                     </label>
                                     <div className="input-group input-group-lg" style={{ borderRadius: 12, overflow: "hidden", border: "1px solid rgba(0,0,0,0.08)" }}>
-                                        <span className="input-group-text bg-white border-0" style={{ fontSize: "1.2rem" }}>₹</span>
+                                        <span className="input-group-text bg-white border-0" style={{ fontSize: "1.2rem" }}>{sym}</span>
                                         <input
                                             type="number"
                                             step="0.01"

@@ -3,6 +3,7 @@ import knex from "../../../lib/db";
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { verifyToken } from "../../../lib/services/authService";
+import { blankCutValue } from "../../../lib/utils/cutColumn";
 
 // Helper to convert empty strings to null
 const emptyToNull = (v) => (v === "" || v === undefined ? null : v);
@@ -31,7 +32,7 @@ const diamondSchema = z.object({
   weight: z.preprocess((v) => Number(v), z.number().positive("Weight must be positive")),
   color: z.string().min(1, "Color is required"),
   clarity: z.string().min(1, "Clarity is required"),
-  cut: z.string().min(1, "Cut is required"),
+  cut: z.string().optional().nullable(),
   pol: z.string().optional().nullable(),
   sym: z.string().optional().nullable(),
   flor: z.string().optional().nullable(),
@@ -195,7 +196,7 @@ export async function PUT(req, { params }) {
       weight: parsed.weight,
       color: parsed.color,
       clarity: parsed.clarity,
-      cut: parsed.cut,
+      cut: parsed.cut || (await blankCutValue(knex)),
       pol: parsed.pol || null,
       sym: parsed.sym || null,
       flor: parsed.flor || null,
