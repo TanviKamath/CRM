@@ -72,6 +72,8 @@ export async function GET(req, { params }) {
       sale_id: sale.id,
       sale_amount: sale.sale_amount,
       sale_amount_inr: saleAmountInr,
+      conversion_rate: sale.conversion_rate,
+      loose_diamond_item_id: sale.loose_diamond_item_id,
       selling_date: sale.selling_date,
       terms_days: sale.terms_days || 30,
       due_date: dueDate,
